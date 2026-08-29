@@ -33,6 +33,9 @@ public class BookingConfiguration : IEntityTypeConfiguration<BookingEntity>
 
         builder.Property(booking => booking.ExpiresAt);
 
+        builder.Property(booking => booking.RowVersion)
+            .IsRowVersion();
+
         builder.HasIndex(booking => booking.UserId);
 
         builder.HasIndex(booking => new

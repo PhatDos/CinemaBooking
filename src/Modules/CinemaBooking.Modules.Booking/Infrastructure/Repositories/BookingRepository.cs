@@ -1,4 +1,5 @@
 using CinemaBooking.Modules.Booking.Application.Interfaces;
+using CinemaBooking.Modules.Booking.Application.SeatAvailability;
 using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Booking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -78,16 +79,18 @@ public class BookingRepository : IBookingRepository
                 seat.SeatId == seatId);
     }
 
-    public async Task<HashSet<Guid>> GetBookedSeatIdsAsync(
+    public async Task<List<SeatBookingStatusInfo>> GetSeatStatusesAsync(
         Guid showtimeId)
     {
-        var seatIds = await _dbContext.BookingSeats
+        return await _dbContext.BookingSeats
             .AsNoTracking()
             .Where(seat => seat.ShowtimeId == showtimeId)
-            .Select(seat => seat.SeatId)
+            .Select(seat => new SeatBookingStatusInfo
+            {
+                SeatId = seat.SeatId,
+                BookingStatus = seat.Booking.Status
+            })
             .ToListAsync();
-
-        return seatIds.ToHashSet();
     }
 
     public void RemoveSeats(IEnumerable<BookingSeat> seats)

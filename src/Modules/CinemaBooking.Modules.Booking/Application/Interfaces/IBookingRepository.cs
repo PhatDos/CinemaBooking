@@ -1,4 +1,5 @@
 using CinemaBooking.Modules.Booking.Domain;
+using CinemaBooking.Modules.Booking.Application.SeatAvailability;
 using BookingEntity = CinemaBooking.Modules.Booking.Domain.Booking;
 
 namespace CinemaBooking.Modules.Booking.Application.Interfaces;
@@ -22,7 +23,8 @@ public interface IBookingRepository
         Guid showtimeId,
         Guid seatId);
 
-    Task<HashSet<Guid>> GetBookedSeatIdsAsync(Guid showtimeId);
+    Task<List<SeatBookingStatusInfo>> GetSeatStatusesAsync(
+        Guid showtimeId);
 
     void RemoveSeats(IEnumerable<BookingSeat> seats);
 

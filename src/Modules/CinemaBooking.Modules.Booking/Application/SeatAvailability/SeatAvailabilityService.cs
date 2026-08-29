@@ -1,4 +1,5 @@
 using CinemaBooking.Modules.Booking.Application.Interfaces;
+using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Scheduling.Contracts;
 using CinemaBooking.Modules.Theater.Contracts;
 using CinemaBooking.SharedKernel.Exceptions;
@@ -42,18 +43,21 @@ public class SeatAvailabilityService
             .Select(seat => seat.Id)
             .ToList();
 
-        var bookedTask =
-            _bookingRepository.GetBookedSeatIdsAsync(showtimeId);
+        var seatStatusesTask =
+            _bookingRepository.GetSeatStatusesAsync(showtimeId);
 
         var heldTask =
             _seatHoldService.GetHeldSeatIdsAsync(
                 showtimeId,
                 seatIds);
 
-        await Task.WhenAll(bookedTask, heldTask);
+        await Task.WhenAll(seatStatusesTask, heldTask);
 
-        var bookedSeatIds = await bookedTask;
+        var seatStatuses = await seatStatusesTask;
         var heldSeatIds = await heldTask;
+        var statusBySeat = seatStatuses.ToDictionary(
+            seat => seat.SeatId,
+            seat => seat.BookingStatus);
 
         return seats
             .Select(seat => new SeatAvailabilityResponse
@@ -61,12 +65,33 @@ public class SeatAvailabilityService
                 SeatId = seat.Id,
                 Row = seat.Row,
                 Number = seat.Number,
-                Status = bookedSeatIds.Contains(seat.Id)
-                    ? SeatStatus.Booked
-                    : heldSeatIds.Contains(seat.Id)
-                        ? SeatStatus.Held
-                        : SeatStatus.Available
+                Status = GetSeatStatus(
+                    seat.Id,
+                    statusBySeat,
+                    heldSeatIds)
             })
             .ToList();
+    }
+
+    private static SeatStatus GetSeatStatus(
+        Guid seatId,
+        IReadOnlyDictionary<Guid, BookingStatus> statusBySeat,
+        IReadOnlySet<Guid> heldSeatIds)
+    {
+        if (statusBySeat.TryGetValue(
+            seatId,
+            out var bookingStatus))
+        {
+            return bookingStatus switch
+            {
+                BookingStatus.Pending => SeatStatus.Reserved,
+                BookingStatus.Confirmed => SeatStatus.Booked,
+                _ => SeatStatus.Available
+            };
+        }
+
+        return heldSeatIds.Contains(seatId)
+            ? SeatStatus.Held
+            : SeatStatus.Available;
     }
 }

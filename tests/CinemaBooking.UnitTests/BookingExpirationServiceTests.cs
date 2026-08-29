@@ -1,6 +1,8 @@
 using CinemaBooking.Modules.Booking.Application;
 using CinemaBooking.Modules.Booking.Application.Interfaces;
+using CinemaBooking.Modules.Booking.Application.SeatAvailability;
 using CinemaBooking.Modules.Booking.Domain;
+using Microsoft.Extensions.Logging.Abstractions;
 using BookingEntity = CinemaBooking.Modules.Booking.Domain.Booking;
 
 namespace CinemaBooking.UnitTests;
@@ -27,7 +29,9 @@ public class BookingExpirationServiceTests
         var repository = new FakeBookingRepository(
             new List<BookingEntity> { booking });
 
-        var service = new BookingExpirationService(repository);
+        var service = new BookingExpirationService(
+            repository,
+            NullLogger<BookingExpirationService>.Instance);
 
         await service.ExpireBookingsAsync();
 
@@ -40,7 +44,9 @@ public class BookingExpirationServiceTests
     public async Task ExpireBookingsAsync_DoesNotSaveWhenNoBookingsExpired()
     {
         var repository = new FakeBookingRepository(new List<BookingEntity>());
-        var service = new BookingExpirationService(repository);
+        var service = new BookingExpirationService(
+            repository,
+            NullLogger<BookingExpirationService>.Instance);
 
         await service.ExpireBookingsAsync();
 
@@ -98,7 +104,8 @@ public class BookingExpirationServiceTests
             throw new NotImplementedException();
         }
 
-        public Task<HashSet<Guid>> GetBookedSeatIdsAsync(Guid showtimeId)
+        public Task<List<SeatBookingStatusInfo>> GetSeatStatusesAsync(
+            Guid showtimeId)
         {
             throw new NotImplementedException();
         }

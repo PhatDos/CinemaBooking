@@ -62,6 +62,14 @@ public class BookingModule : IBookingModule
         booking.Status = BookingStatus.Confirmed;
         booking.ExpiresAt = null;
 
-        await _dbContext.SaveChangesAsync();
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException(
+                "Booking state changed. Please retry.");
+        }
     }
 }

@@ -16,5 +16,7 @@ public class Booking
 
     public DateTime? ExpiresAt { get; set; }
 
+    public byte[] RowVersion { get; set; } = [];
+
     public ICollection<BookingSeat> Seats { get; set; } = new List<BookingSeat>();
 }

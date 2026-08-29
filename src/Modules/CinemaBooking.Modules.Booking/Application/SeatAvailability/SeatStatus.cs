@@ -11,6 +11,9 @@ public enum SeatStatus
     [JsonStringEnumMemberName("HELD")]
     Held,
 
+    [JsonStringEnumMemberName("RESERVED")]
+    Reserved,
+
     [JsonStringEnumMemberName("BOOKED")]
     Booked
 }

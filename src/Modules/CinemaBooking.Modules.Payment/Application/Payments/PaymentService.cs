@@ -44,6 +44,15 @@ public class PaymentService
             throw new NotFoundException("Booking not found.");
         }
 
+        var existing =
+            await _paymentRepository.GetByBookingIdAsync(
+                booking.Id);
+
+        if (existing is not null)
+        {
+            return ToResponse(existing);
+        }
+
         if (booking.Status != "Pending")
         {
             throw new ConflictException(
@@ -54,15 +63,6 @@ public class PaymentService
             booking.ExpiresAt <= DateTime.UtcNow)
         {
             throw new ConflictException("Booking has expired.");
-        }
-
-        var existing =
-            await _paymentRepository.GetByBookingIdAsync(
-                booking.Id);
-
-        if (existing is not null)
-        {
-            throw new ConflictException("Payment already exists.");
         }
 
         var now = DateTime.UtcNow;
