@@ -4,6 +4,7 @@ using CinemaBooking.Modules.Booking;
 using CinemaBooking.Modules.Catalog;
 using CinemaBooking.Modules.Identity;
 using CinemaBooking.Modules.Identity.Infrastructure.Authentication;
+using CinemaBooking.Modules.Payment;
 using CinemaBooking.Modules.Scheduling;
 using CinemaBooking.Modules.Theater;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -40,6 +41,7 @@ builder.Services.AddCatalogModule(builder.Configuration);
 builder.Services.AddTheaterModule(builder.Configuration);
 builder.Services.AddSchedulingModule(builder.Configuration);
 builder.Services.AddBookingModule(builder.Configuration);
+builder.Services.AddPaymentModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 
 var jwtOptions =

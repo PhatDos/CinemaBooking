@@ -3,6 +3,7 @@ using CinemaBooking.Modules.Booking.Application.Interfaces;
 using CinemaBooking.Modules.Booking.Application.SeatAvailability;
 using CinemaBooking.Modules.Booking.Application.SeatHolds;
 using CinemaBooking.Modules.Booking.Application;
+using CinemaBooking.Modules.Booking.Contracts;
 using CinemaBooking.Modules.Booking.Infrastructure.BackgroundJobs;
 using CinemaBooking.Modules.Booking.Infrastructure.Persistence;
 using CinemaBooking.Modules.Booking.Infrastructure.Redis;
@@ -27,6 +28,7 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IBookingModule, BookingModule>();
         services.AddScoped<ISeatHoldService, RedisSeatHoldService>();
         services.AddScoped<BookingService>();
         services.AddScoped<BookingExpirationService>();

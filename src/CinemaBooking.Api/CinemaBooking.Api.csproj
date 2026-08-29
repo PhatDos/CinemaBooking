@@ -20,6 +20,7 @@
     <ProjectReference Include="..\Modules\CinemaBooking.Modules.Scheduling\CinemaBooking.Modules.Scheduling.csproj" />
     <ProjectReference Include="..\Modules\CinemaBooking.Modules.Booking\CinemaBooking.Modules.Booking.csproj" />
     <ProjectReference Include="..\Modules\CinemaBooking.Modules.Identity\CinemaBooking.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\CinemaBooking.Modules.Payment\CinemaBooking.Modules.Payment.csproj" />
   </ItemGroup>
 
 </Project>
