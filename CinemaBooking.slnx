@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CinemaBooking.Api/CinemaBooking.Api.csproj" />
+    <Project Path="src/CinemaBooking.SharedKernel/CinemaBooking.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/CinemaBooking.Modules.Booking/CinemaBooking.Modules.Booking.csproj" />
+    <Project Path="src/Modules/CinemaBooking.Modules.Catalog/CinemaBooking.Modules.Catalog.csproj" />
+    <Project Path="src/Modules/CinemaBooking.Modules.Identity/CinemaBooking.Modules.Identity.csproj" />
+    <Project Path="src/Modules/CinemaBooking.Modules.Scheduling/CinemaBooking.Modules.Scheduling.csproj" />
+    <Project Path="src/Modules/CinemaBooking.Modules.Theater/CinemaBooking.Modules.Theater.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CinemaBooking.IntegrationTests/CinemaBooking.IntegrationTests.csproj" />
+    <Project Path="tests/CinemaBooking.UnitTests/CinemaBooking.UnitTests.csproj" />
+  </Folder>
+</Solution>
