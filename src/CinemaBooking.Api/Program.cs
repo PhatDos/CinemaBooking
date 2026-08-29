@@ -1,4 +1,5 @@
 using System.Text;
+using CinemaBooking.Api.Database;
 using CinemaBooking.Api.ExceptionHandling;
 using CinemaBooking.Api.SeedData;
 using CinemaBooking.Modules.Booking;
@@ -12,6 +13,7 @@ using CinemaBooking.Modules.Theater;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,17 +76,33 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services
+    .AddHealthChecks()
+    .AddSqlServer(
+        _ =>
+            builder.Configuration.GetConnectionString("Database")
+            ?? throw new InvalidOperationException(
+                "Database connection string is missing."))
+    .AddRedis(
+        serviceProvider =>
+            serviceProvider.GetRequiredService<IConnectionMultiplexer>(),
+        name: "redis");
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    await app.ApplyMigrationsAsync();
+}
 
 await IdentitySeeder.SeedAsync(
     app.Services,
     builder.Configuration);
 
-//if (app.Environment.IsDevelopment())
-//{
-//    await DevelopmentDataSeeder.SeedAsync(app.Services);
-//}
+if (app.Environment.IsDevelopment())
+{
+    await DevelopmentDataSeeder.SeedAsync(app.Services);
+}
 
 app.UseExceptionHandler();
 
@@ -98,5 +116,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
