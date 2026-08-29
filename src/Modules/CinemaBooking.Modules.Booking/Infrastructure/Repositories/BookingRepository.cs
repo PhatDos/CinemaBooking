@@ -55,6 +55,18 @@ public class BookingRepository : IBookingRepository
             .ToListAsync();
     }
 
+    public async Task<List<BookingEntity>> GetExpiredPendingBookingsAsync(
+        DateTime utcNow)
+    {
+        return await _dbContext.Bookings
+            .Include(booking => booking.Seats)
+            .Where(booking =>
+                booking.Status == BookingStatus.Pending &&
+                booking.ExpiresAt != null &&
+                booking.ExpiresAt <= utcNow)
+            .ToListAsync();
+    }
+
     public async Task<bool> IsSeatBookedAsync(
         Guid showtimeId,
         Guid seatId)

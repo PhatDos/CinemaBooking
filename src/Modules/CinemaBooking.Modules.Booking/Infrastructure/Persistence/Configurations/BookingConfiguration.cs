@@ -35,6 +35,12 @@ public class BookingConfiguration : IEntityTypeConfiguration<BookingEntity>
 
         builder.HasIndex(booking => booking.UserId);
 
+        builder.HasIndex(booking => new
+        {
+            booking.Status,
+            booking.ExpiresAt
+        });
+
         builder.HasMany(booking => booking.Seats)
             .WithOne(seat => seat.Booking)
             .HasForeignKey(seat => seat.BookingId)

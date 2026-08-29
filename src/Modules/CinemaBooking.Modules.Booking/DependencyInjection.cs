@@ -2,6 +2,8 @@ using CinemaBooking.Modules.Booking.Application.Bookings;
 using CinemaBooking.Modules.Booking.Application.Interfaces;
 using CinemaBooking.Modules.Booking.Application.SeatAvailability;
 using CinemaBooking.Modules.Booking.Application.SeatHolds;
+using CinemaBooking.Modules.Booking.Application;
+using CinemaBooking.Modules.Booking.Infrastructure.BackgroundJobs;
 using CinemaBooking.Modules.Booking.Infrastructure.Persistence;
 using CinemaBooking.Modules.Booking.Infrastructure.Redis;
 using CinemaBooking.Modules.Booking.Infrastructure.Repositories;
@@ -27,8 +29,10 @@ public static class DependencyInjection
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<ISeatHoldService, RedisSeatHoldService>();
         services.AddScoped<BookingService>();
+        services.AddScoped<BookingExpirationService>();
         services.AddScoped<SeatHoldService>();
         services.AddScoped<SeatAvailabilityService>();
+        services.AddHostedService<BookingExpirationWorker>();
 
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {

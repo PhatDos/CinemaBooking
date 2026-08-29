@@ -15,6 +15,9 @@ public interface IBookingRepository
 
     Task<List<BookingEntity>> GetByUserIdAsync(Guid userId);
 
+    Task<List<BookingEntity>> GetExpiredPendingBookingsAsync(
+        DateTime utcNow);
+
     Task<bool> IsSeatBookedAsync(
         Guid showtimeId,
         Guid seatId);
