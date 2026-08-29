@@ -2,6 +2,8 @@ using CinemaBooking.Modules.Theater.Application;
 using CinemaBooking.Modules.Theater.Application.Cinemas;
 using CinemaBooking.Modules.Theater.Application.Rooms;
 using CinemaBooking.Modules.Theater.Application.Seats;
+using CinemaBooking.Modules.Identity.Application.Roles;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CinemaBooking.Api.Controllers;
@@ -26,6 +28,7 @@ public class CinemasController : ControllerBase
         return Ok(cinemas);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("cinemas")]
     public async Task<IActionResult> CreateCinema(
         CreateCinemaRequest request)
@@ -61,6 +64,7 @@ public class CinemasController : ControllerBase
         return Ok(rooms);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("cinemas/{cinemaId:guid}/rooms")]
     public async Task<IActionResult> CreateRoom(
         Guid cinemaId,
@@ -88,6 +92,7 @@ public class CinemasController : ControllerBase
         return Ok(seats);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("rooms/{roomId:guid}/seats")]
     public async Task<IActionResult> CreateSeat(
         Guid roomId,

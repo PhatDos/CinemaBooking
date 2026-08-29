@@ -1,5 +1,6 @@
 using CinemaBooking.Api.Authentication;
 using CinemaBooking.Modules.Booking.Application.Bookings;
+using CinemaBooking.Modules.Identity.Application.Roles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,6 +17,7 @@ public class BookingsController : ControllerBase
         _bookingService = bookingService;
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -37,6 +39,7 @@ public class BookingsController : ControllerBase
         return Ok(bookings);
     }
 
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -44,6 +47,14 @@ public class BookingsController : ControllerBase
             await _bookingService.GetByIdAsync(id);
 
         if (booking is null)
+        {
+            return NotFound();
+        }
+
+        var userId = User.GetUserId();
+
+        if (!User.IsInRole(AppRoles.Admin) &&
+            booking.UserId != userId)
         {
             return NotFound();
         }

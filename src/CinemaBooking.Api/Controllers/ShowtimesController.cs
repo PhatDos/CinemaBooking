@@ -1,4 +1,6 @@
 using CinemaBooking.Modules.Scheduling.Application.Showtimes;
+using CinemaBooking.Modules.Identity.Application.Roles;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CinemaBooking.Api.Controllers;
@@ -38,6 +40,7 @@ public class ShowtimesController : ControllerBase
         return Ok(showtime);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     public async Task<IActionResult> Create(
         CreateShowtimeRequest request)

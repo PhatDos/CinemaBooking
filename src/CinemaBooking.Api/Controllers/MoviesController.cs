@@ -1,4 +1,6 @@
 using CinemaBooking.Modules.Catalog.Application.Movies;
+using CinemaBooking.Modules.Identity.Application.Roles;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CinemaBooking.Api.Controllers;
@@ -35,6 +37,7 @@ public class MoviesController : ControllerBase
         return Ok(movie);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     public async Task<IActionResult> Create(CreateMovieRequest request)
     {

@@ -13,6 +13,8 @@ public class IdentityDbContext : IdentityDbContextBase
     {
     }
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(
         ModelBuilder builder)
     {
@@ -28,5 +30,8 @@ public class IdentityDbContext : IdentityDbContextBase
 
         builder.Entity<IdentityRole<Guid>>()
             .ToTable("AspNetRoles", "identity");
+
+        builder.ApplyConfigurationsFromAssembly(
+            typeof(IdentityDbContext).Assembly);
     }
 }

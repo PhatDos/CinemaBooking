@@ -1,9 +1,11 @@
 using System.Text;
 using CinemaBooking.Api.ExceptionHandling;
+using CinemaBooking.Api.SeedData;
 using CinemaBooking.Modules.Booking;
 using CinemaBooking.Modules.Catalog;
 using CinemaBooking.Modules.Identity;
 using CinemaBooking.Modules.Identity.Infrastructure.Authentication;
+using CinemaBooking.Modules.Identity.Infrastructure.Persistence;
 using CinemaBooking.Modules.Payment;
 using CinemaBooking.Modules.Scheduling;
 using CinemaBooking.Modules.Theater;
@@ -74,6 +76,15 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+await IdentitySeeder.SeedAsync(
+    app.Services,
+    builder.Configuration);
+
+//if (app.Environment.IsDevelopment())
+//{
+//    await DevelopmentDataSeeder.SeedAsync(app.Services);
+//}
 
 app.UseExceptionHandler();
 
