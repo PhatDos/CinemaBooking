@@ -1,5 +1,5 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { createBooking } from '@/src/api/bookings';
@@ -21,6 +21,7 @@ export default function SeatsScreen() {
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const handledExpiryRef = useRef(false);
 
   const loadSeats = useCallback(
     async (showLoader = true) => {
@@ -54,6 +55,7 @@ export default function SeatsScreen() {
   useEffect(() => {
     if (!hold) {
       setRemainingSeconds(0);
+      handledExpiryRef.current = false;
       return;
     }
 
@@ -65,7 +67,22 @@ export default function SeatsScreen() {
       setRemainingSeconds(seconds);
 
       if (seconds === 0) {
+        if (handledExpiryRef.current) {
+          return;
+        }
+
+        handledExpiryRef.current = true;
+        setHold(null);
+        setSelectedSeatIds(new Set());
         setHoldError('Seat hold has expired. Please select seats again.');
+        void loadSeats(false);
+
+        if (showtimeId) {
+          router.replace({
+            pathname: '/seats/[showtimeId]',
+            params: { showtimeId },
+          });
+        }
       }
     }
 
@@ -74,12 +91,12 @@ export default function SeatsScreen() {
     const timer = setInterval(syncCountdown, 1000);
 
     return () => clearInterval(timer);
-  }, [hold]);
+  }, [hold, loadSeats, showtimeId]);
 
   const rows = useMemo(() => groupSeatsByRow(seats), [seats]);
 
   function toggleSeat(seat: SeatAvailability) {
-    if (seat.status !== 'available') {
+    if (hold || seat.status !== 'available') {
       return;
     }
 
@@ -116,6 +133,7 @@ export default function SeatsScreen() {
     } catch (holdSeatsError) {
       console.error(holdSeatsError);
       setHold(null);
+      setSelectedSeatIds(new Set());
       setHoldError(getHoldErrorMessage(holdSeatsError));
       await loadSeats(false);
     } finally {
@@ -233,7 +251,7 @@ export default function SeatsScreen() {
         <View style={styles.holdPanel}>
           <Text style={styles.holdTitle}>Seats held</Text>
           <Text style={styles.holdText}>
-            {hold.seatIds.length} seat{hold.seatIds.length === 1 ? '' : 's'} held until{' '}
+            Seats held for{' '}
             {formatCountdown(remainingSeconds)}
           </Text>
           <Text style={styles.holdId}>Hold ID: {hold.holdId}</Text>
@@ -257,11 +275,11 @@ export default function SeatsScreen() {
       {holdError ? <Text style={styles.holdError}>{holdError}</Text> : null}
 
       <Pressable
-        disabled={selectedSeatIds.size === 0 || holding}
+        disabled={selectedSeatIds.size === 0 || holding || Boolean(hold)}
         onPress={handleHoldSeats}
         style={[
           styles.button,
-          (selectedSeatIds.size === 0 || holding) && styles.buttonDisabled,
+          (selectedSeatIds.size === 0 || holding || Boolean(hold)) && styles.buttonDisabled,
         ]}>
         {holding ? (
           <ActivityIndicator color="#ffffff" />
@@ -311,7 +329,7 @@ function formatCountdown(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
 
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
 function getHoldErrorMessage(error: unknown) {

@@ -11,3 +11,7 @@ export function createBooking(request: CreateBookingRequest) {
 export function getBooking(bookingId: string) {
   return apiFetch<Booking>(`/api/bookings/${bookingId}`);
 }
+
+export function getBookings() {
+  return apiFetch<Booking[]>('/api/bookings/me');
+}

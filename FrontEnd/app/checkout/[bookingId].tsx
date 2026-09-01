@@ -41,7 +41,13 @@ export default function CheckoutScreen() {
   }, [bookingId, isAuthenticated]);
 
   async function handlePay() {
-    if (!bookingId || paying || payment?.status === 'Succeeded') {
+    if (
+      !bookingId ||
+      !booking ||
+      paying ||
+      normalizeStatus(booking.status) !== 'pending' ||
+      payment?.status === 'Succeeded'
+    ) {
       return;
     }
 
@@ -81,7 +87,9 @@ export default function CheckoutScreen() {
     );
   }
 
-  const paid = payment?.status === 'Succeeded' || isConfirmed(booking.status);
+  const status = normalizeStatus(booking.status);
+  const paid = payment?.status === 'Succeeded' || status === 'confirmed';
+  const canPay = status === 'pending' && !paid;
 
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.container}>
@@ -93,22 +101,24 @@ export default function CheckoutScreen() {
       <Text style={styles.text}>Booking: {booking.id}</Text>
 
       <View style={styles.panel}>
-        <InfoRow label="Status" value={booking.status} />
+        <InfoRow label="Status" value={getStatusLabel(status)} />
         <InfoRow label="Seats" value={booking.seatIds.length.toString()} />
         <InfoRow label="Total" value={formatCurrency(booking.totalAmount)} />
         <InfoRow label="Expires" value={booking.expiresAt ? formatDate(booking.expiresAt) : '-'} />
       </View>
 
+      <Text style={styles.stateText}>{getCheckoutStateText(status, paid)}</Text>
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Pressable
-        disabled={paying || paid}
+        disabled={paying || !canPay}
         onPress={handlePay}
-        style={[styles.button, (paying || paid) && styles.buttonDisabled]}>
+        style={[styles.button, (paying || !canPay) && styles.buttonDisabled]}>
         {paying ? (
           <ActivityIndicator color="#ffffff" />
         ) : (
-          <Text style={styles.buttonText}>{paid ? 'Paid' : 'Pay now'}</Text>
+          <Text style={styles.buttonText}>{getButtonText(status, paid)}</Text>
         )}
       </Pressable>
     </ScrollView>
@@ -132,8 +142,44 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function isConfirmed(status: string) {
-  return status === 'CONFIRMED' || status === 'Confirmed';
+function normalizeStatus(status: string) {
+  return status.toLowerCase();
+}
+
+function getStatusLabel(status: string) {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function getCheckoutStateText(status: string, paid: boolean) {
+  if (paid || status === 'confirmed') {
+    return 'Payment completed';
+  }
+
+  if (status === 'expired') {
+    return 'Booking expired';
+  }
+
+  if (status === 'cancelled') {
+    return 'Booking cancelled';
+  }
+
+  return 'Pending payment';
+}
+
+function getButtonText(status: string, paid: boolean) {
+  if (paid || status === 'confirmed') {
+    return 'Payment completed';
+  }
+
+  if (status === 'expired') {
+    return 'Booking expired';
+  }
+
+  if (status === 'cancelled') {
+    return 'Booking cancelled';
+  }
+
+  return 'Pay now';
 }
 
 function formatCurrency(value: number) {
@@ -205,6 +251,12 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     borderRadius: 8,
     padding: 16,
+  },
+  stateText: {
+    marginTop: 18,
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '700',
   },
   infoRow: {
     flexDirection: 'row',

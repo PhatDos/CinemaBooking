@@ -66,9 +66,15 @@ export default function MoviesScreen() {
           <Text style={styles.subtitle}>{user?.email}</Text>
         </View>
 
-        <Pressable onPress={signOut} style={styles.signOutButton}>
-          <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
+        <View style={styles.actions}>
+          <Pressable onPress={() => router.push('/bookings')} style={styles.actionButton}>
+            <Text style={styles.actionText}>My Bookings</Text>
+          </Pressable>
+
+          <Pressable onPress={signOut} style={styles.actionButton}>
+            <Text style={styles.actionText}>Logout</Text>
+          </Pressable>
+        </View>
       </View>
 
       {error ? (
@@ -164,14 +170,18 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 14,
   },
-  signOutButton: {
+  actions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  actionButton: {
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  signOutText: {
+  actionText: {
     color: '#111827',
     fontSize: 14,
     fontWeight: '600',
