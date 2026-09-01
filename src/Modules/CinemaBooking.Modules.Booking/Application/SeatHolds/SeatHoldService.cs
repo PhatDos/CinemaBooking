@@ -1,4 +1,6 @@
 using CinemaBooking.Modules.Booking.Application.Interfaces;
+using CinemaBooking.Modules.Booking.Contracts;
+using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Scheduling.Contracts;
 using CinemaBooking.Modules.Theater.Contracts;
 using CinemaBooking.SharedKernel.Exceptions;
@@ -31,9 +33,36 @@ public class SeatHoldService
         Guid seatId,
         Guid holderId)
     {
+        await HoldAsync(
+            showtimeId,
+            new[] { seatId },
+            holderId);
+    }
+
+    public async Task<HoldSeatsResult> HoldAsync(
+        Guid showtimeId,
+        IReadOnlyCollection<Guid> seatIds,
+        Guid holderId)
+    {
         if (holderId == Guid.Empty)
         {
             throw new BusinessRuleException("Holder id is required.");
+        }
+
+        if (seatIds.Count == 0)
+        {
+            throw new BusinessRuleException(
+                "At least one seat is required.");
+        }
+
+        var distinctSeatIds = seatIds
+            .Distinct()
+            .ToList();
+
+        if (distinctSeatIds.Count != seatIds.Count)
+        {
+            throw new BusinessRuleException(
+                "Duplicate seats are not allowed.");
         }
 
         var showtime =
@@ -44,57 +73,85 @@ public class SeatHoldService
             throw new NotFoundException("Showtime not found.");
         }
 
-        var validSeat =
-            await _theaterModule.SeatBelongsToRoomAsync(
-                seatId,
-                showtime.RoomId);
-
-        if (!validSeat)
+        foreach (var seatId in distinctSeatIds)
         {
-            throw new BusinessRuleException(
-                "Seat does not belong to this showtime.");
+            var validSeat =
+                await _theaterModule.SeatBelongsToRoomAsync(
+                    seatId,
+                    showtime.RoomId);
+
+            if (!validSeat)
+            {
+                throw new BusinessRuleException(
+                    $"Seat {seatId} does not belong to this showtime.");
+            }
         }
 
+        await EnsureSeatsAreAvailableInSqlAsync(
+            showtimeId,
+            distinctSeatIds);
+
+        var holdId = Guid.NewGuid();
+        var expiresAt =
+            DateTimeOffset.UtcNow.AddSeconds(HoldDurationSeconds);
+        var hold = new SeatHoldMetadata(
+            holdId,
+            holderId,
+            showtimeId,
+            distinctSeatIds,
+            expiresAt);
+
         var success =
-            await _seatHoldService.HoldAsync(
-                showtimeId,
-                seatId,
-                holderId,
-                TimeSpan.FromSeconds(HoldDurationSeconds));
+            await _seatHoldService.HoldManyAsync(hold);
 
         if (!success)
         {
             throw new ConflictException(
-                "Seat is currently held by another user.");
+                "One or more seats are currently held.");
         }
-
-        bool alreadyBooked;
 
         try
         {
-            alreadyBooked =
-                await _bookingRepository.IsSeatBookedAsync(
-                    showtimeId,
-                    seatId);
+            await EnsureSeatsAreAvailableInSqlAsync(
+                showtimeId,
+                distinctSeatIds);
         }
         catch
         {
-            await _seatHoldService.ReleaseAsync(
-                showtimeId,
-                seatId,
-                holderId);
+            await _seatHoldService.ReleaseAsync(hold);
 
             throw;
         }
 
-        if (alreadyBooked)
+        return new HoldSeatsResult
         {
-            await _seatHoldService.ReleaseAsync(
-                showtimeId,
-                seatId,
-                holderId);
+            HoldId = holdId,
+            ShowtimeId = showtimeId,
+            SeatIds = distinctSeatIds,
+            ExpiresAt = expiresAt
+        };
+    }
 
-            throw new ConflictException("Seat is already booked.");
+    private async Task EnsureSeatsAreAvailableInSqlAsync(
+        Guid showtimeId,
+        IReadOnlyCollection<Guid> seatIds)
+    {
+        var selectedSeatIds = seatIds.ToHashSet();
+
+        var unavailableSeatIds =
+            (await _bookingRepository.GetSeatStatusesAsync(showtimeId))
+            .Where(seat =>
+                selectedSeatIds.Contains(seat.SeatId) &&
+                seat.BookingStatus is
+                    BookingStatus.Pending or BookingStatus.Confirmed)
+            .Select(seat => seat.SeatId)
+            .ToList();
+
+        if (unavailableSeatIds.Count > 0)
+        {
+            throw new ConflictException(
+                "One or more seats are no longer available.");
         }
     }
+
 }

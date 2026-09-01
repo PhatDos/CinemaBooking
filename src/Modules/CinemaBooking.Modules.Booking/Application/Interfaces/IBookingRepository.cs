@@ -10,6 +10,8 @@ public interface IBookingRepository
 
     Task<BookingEntity?> GetByIdAsync(Guid id);
 
+    Task<BookingEntity?> GetByHoldIdAsync(Guid holdId);
+
     Task<BookingEntity?> GetForUpdateAsync(Guid id);
 
     Task<List<BookingEntity>> GetAllAsync();

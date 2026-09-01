@@ -19,6 +19,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<BookingEntity>
         builder.Property(booking => booking.ShowtimeId)
             .IsRequired();
 
+        builder.Property(booking => booking.HoldId);
+
         builder.Property(booking => booking.Status)
             .HasConversion<string>()
             .HasMaxLength(20)
@@ -37,6 +39,10 @@ public class BookingConfiguration : IEntityTypeConfiguration<BookingEntity>
             .IsRowVersion();
 
         builder.HasIndex(booking => booking.UserId);
+
+        builder.HasIndex(booking => booking.HoldId)
+            .IsUnique()
+            .HasFilter("[HoldId] IS NOT NULL");
 
         builder.HasIndex(booking => new
         {

@@ -3,6 +3,7 @@ using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Scheduling.Contracts;
 using CinemaBooking.Modules.Theater.Contracts;
 using CinemaBooking.SharedKernel.Exceptions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using BookingEntity = CinemaBooking.Modules.Booking.Domain.Booking;
 
@@ -10,6 +11,9 @@ namespace CinemaBooking.Modules.Booking.Application.Bookings;
 
 public class BookingService
 {
+    private static readonly TimeSpan HoldTransitionLease =
+        TimeSpan.FromSeconds(30);
+
     private readonly IBookingRepository _repository;
     private readonly ISeatHoldService _seatHoldService;
     private readonly ISchedulingModule _schedulingModule;
@@ -31,28 +35,79 @@ public class BookingService
         Guid userId,
         CreateBookingRequest request)
     {
+        return await CreateAsync(userId, request.HoldId);
+    }
+
+    public async Task<BookingResponse> CreateAsync(
+        Guid userId,
+        Guid holdId)
+    {
         if (userId == Guid.Empty)
         {
             throw new BusinessRuleException("User id is required.");
         }
 
-        var seatIds = request.SeatIds
-            .Distinct()
-            .ToList();
-
-        if (seatIds.Count != request.SeatIds.Count)
+        if (holdId == Guid.Empty)
         {
-            throw new BusinessRuleException(
-                "Duplicate seats are not allowed.");
+            throw new BusinessRuleException("Hold id is required.");
+        }
+
+        var existingBooking =
+            await _repository.GetByHoldIdAsync(holdId);
+
+        if (existingBooking is not null)
+        {
+            if (existingBooking.UserId != userId)
+            {
+                throw new ConflictException(
+                    "Seat hold does not belong to the current user.");
+            }
+
+            return ToResponse(existingBooking);
+        }
+
+        var hold =
+            await _seatHoldService.GetHoldAsync(holdId);
+
+        if (hold is null)
+        {
+            throw new ConflictException(
+                "Seat hold does not exist or has expired.");
+        }
+
+        if (hold.UserId != userId)
+        {
+            throw new ConflictException(
+                "Seat hold does not belong to the current user.");
+        }
+
+        if (hold.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            throw new ConflictException("Seat hold has expired.");
         }
 
         var showtime =
-            await _schedulingModule.GetShowtimeAsync(request.ShowtimeId);
+            await _schedulingModule.GetShowtimeAsync(hold.ShowtimeId);
 
         if (showtime is null)
         {
             throw new NotFoundException("Showtime not found.");
         }
+
+        var stillOwned =
+            await _seatHoldService.VerifyAndExtendAsync(
+                hold,
+                HoldTransitionLease);
+
+        if (!stillOwned)
+        {
+            throw new ConflictException(
+                "Seat hold is no longer valid.");
+        }
+
+        var seatIds = hold.SeatIds
+            .Distinct()
+            .ToList();
 
         foreach (var seatId in seatIds)
         {
@@ -66,18 +121,6 @@ public class BookingService
                 throw new BusinessRuleException(
                     $"Seat {seatId} does not belong to the showtime room.");
             }
-
-            var heldByUser =
-                await _seatHoldService.IsHeldByAsync(
-                    request.ShowtimeId,
-                    seatId,
-                    userId);
-
-            if (!heldByUser)
-            {
-                throw new ConflictException(
-                    $"Seat {seatId} is not held by this user.");
-            }
         }
 
         var now = DateTime.UtcNow;
@@ -85,7 +128,8 @@ public class BookingService
         var booking = new BookingEntity
         {
             UserId = userId,
-            ShowtimeId = request.ShowtimeId,
+            ShowtimeId = hold.ShowtimeId,
+            HoldId = hold.HoldId,
             Status = BookingStatus.Pending,
             CreatedAt = now,
             ExpiresAt = now.AddMinutes(5)
@@ -95,7 +139,7 @@ public class BookingService
         {
             booking.Seats.Add(new BookingSeat
             {
-                ShowtimeId = request.ShowtimeId,
+                ShowtimeId = hold.ShowtimeId,
                 SeatId = seatId,
                 Price = showtime.BasePrice
             });
@@ -108,27 +152,29 @@ public class BookingService
         {
             await _repository.AddAsync(booking);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
         {
-            foreach (var seatId in seatIds)
+            var bookingFromRetry =
+                await _repository.GetByHoldIdAsync(hold.HoldId);
+
+            if (bookingFromRetry is not null &&
+                bookingFromRetry.UserId == userId)
             {
-                await _seatHoldService.ReleaseAsync(
-                    request.ShowtimeId,
-                    seatId,
-                    userId);
+                return ToResponse(bookingFromRetry);
             }
 
-            throw new ConflictException(
-                "One or more seats are already booked.");
+            if (IsUniqueViolation(ex))
+            {
+                await _seatHoldService.ReleaseAsync(hold);
+
+                throw new ConflictException(
+                    "One or more seats are already booked.");
+            }
+
+            throw;
         }
 
-        foreach (var seatId in seatIds)
-        {
-            await _seatHoldService.ReleaseAsync(
-                request.ShowtimeId,
-                seatId,
-                userId);
-        }
+        await _seatHoldService.ReleaseAsync(hold);
 
         return ToResponse(booking);
     }
@@ -198,6 +244,7 @@ public class BookingService
             Id = booking.Id,
             UserId = booking.UserId,
             ShowtimeId = booking.ShowtimeId,
+            HoldId = booking.HoldId,
             Status = booking.Status,
             TotalAmount = booking.TotalAmount,
             SeatIds = booking.Seats
@@ -213,5 +260,13 @@ public class BookingService
             CreatedAt = booking.CreatedAt,
             ExpiresAt = booking.ExpiresAt
         };
+    }
+
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException sqlException &&
+               sqlException.Errors
+                   .Cast<SqlError>()
+                   .Any(error => error.Number is 2601 or 2627);
     }
 }

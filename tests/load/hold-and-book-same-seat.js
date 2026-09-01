@@ -39,10 +39,13 @@ export default function () {
     const token = loginResponse.json("accessToken");
 
     const holdResponse = http.post(
-        `${BASE_URL}/api/showtimes/${SHOWTIME_ID}/seats/${SEAT_ID}/hold`,
-        null,
+        `${BASE_URL}/api/showtimes/${SHOWTIME_ID}/holds`,
+        JSON.stringify({
+            seatIds: [SEAT_ID],
+        }),
         {
             headers: {
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
         }
@@ -63,8 +66,7 @@ export default function () {
     const bookingResponse = http.post(
         `${BASE_URL}/api/bookings`,
         JSON.stringify({
-            showtimeId: SHOWTIME_ID,
-            seatIds: [SEAT_ID],
+            holdId: holdResponse.json("holdId"),
         }),
         {
             headers: {

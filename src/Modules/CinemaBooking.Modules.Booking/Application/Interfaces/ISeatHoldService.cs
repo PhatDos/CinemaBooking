@@ -1,3 +1,5 @@
+using CinemaBooking.Modules.Booking.Application.SeatHolds;
+
 namespace CinemaBooking.Modules.Booking.Application.Interfaces;
 
 public interface ISeatHoldService
@@ -6,6 +8,14 @@ public interface ISeatHoldService
         Guid showtimeId,
         Guid seatId,
         Guid holderId,
+        TimeSpan duration);
+
+    Task<bool> HoldManyAsync(SeatHoldMetadata hold);
+
+    Task<SeatHoldMetadata?> GetHoldAsync(Guid holdId);
+
+    Task<bool> VerifyAndExtendAsync(
+        SeatHoldMetadata hold,
         TimeSpan duration);
 
     Task<bool> IsHeldByAsync(
@@ -25,4 +35,6 @@ public interface ISeatHoldService
         Guid showtimeId,
         Guid seatId,
         Guid holderId);
+
+    Task<bool> ReleaseAsync(SeatHoldMetadata hold);
 }

@@ -34,6 +34,9 @@ namespace CinemaBooking.Modules.Booking.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("HoldId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -58,6 +61,10 @@ namespace CinemaBooking.Modules.Booking.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("HoldId")
+                        .IsUnique()
+                        .HasFilter("[HoldId] IS NOT NULL");
 
                     b.HasIndex("Status", "ExpiresAt");
 

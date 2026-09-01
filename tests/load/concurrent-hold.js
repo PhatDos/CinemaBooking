@@ -35,10 +35,13 @@ export default function () {
     }
 
     const response = http.post(
-        `${BASE_URL}/api/showtimes/${SHOWTIME_ID}/seats/${SEAT_ID}/hold`,
-        null,
+        `${BASE_URL}/api/showtimes/${SHOWTIME_ID}/holds`,
+        JSON.stringify({
+            seatIds: [SEAT_ID],
+        }),
         {
             headers: {
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${loginResponse.json("accessToken")}`,
             },
         }

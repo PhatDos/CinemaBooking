@@ -10,6 +10,8 @@ public class BookingResponse
 
     public Guid ShowtimeId { get; set; }
 
+    public Guid? HoldId { get; set; }
+
     public BookingStatus Status { get; set; }
 
     public decimal TotalAmount { get; set; }

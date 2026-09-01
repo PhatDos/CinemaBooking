@@ -76,6 +76,11 @@ public class BookingExpirationServiceTests
             throw new NotImplementedException();
         }
 
+        public Task<BookingEntity?> GetByHoldIdAsync(Guid holdId)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<BookingEntity?> GetForUpdateAsync(Guid id)
         {
             throw new NotImplementedException();

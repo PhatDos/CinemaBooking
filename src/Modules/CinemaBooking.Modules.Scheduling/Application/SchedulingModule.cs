@@ -29,4 +29,23 @@ public class SchedulingModule : ISchedulingModule
             })
             .FirstOrDefaultAsync();
     }
+
+    public async Task<IReadOnlyList<ShowtimeInfo>> GetShowtimesByMovieAsync(
+        Guid movieId)
+    {
+        return await _dbContext.Showtimes
+            .AsNoTracking()
+            .Where(showtime => showtime.MovieId == movieId)
+            .OrderBy(showtime => showtime.StartTime)
+            .Select(showtime => new ShowtimeInfo
+            {
+                Id = showtime.Id,
+                RoomId = showtime.RoomId,
+                MovieId = showtime.MovieId,
+                StartTime = showtime.StartTime,
+                EndTime = showtime.EndTime,
+                BasePrice = showtime.BasePrice
+            })
+            .ToListAsync();
+    }
 }

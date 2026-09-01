@@ -8,6 +8,8 @@ public class Booking
 
     public Guid ShowtimeId { get; set; }
 
+    public Guid? HoldId { get; set; }
+
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
 
     public decimal TotalAmount { get; set; }

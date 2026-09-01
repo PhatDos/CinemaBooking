@@ -1,5 +1,6 @@
 using CinemaBooking.Api.Authentication;
 using CinemaBooking.Modules.Booking.Application.Bookings;
+using CinemaBooking.Modules.Booking.Contracts;
 using CinemaBooking.Modules.Identity.Application.Roles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,14 @@ namespace CinemaBooking.Api.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly BookingService _bookingService;
+    private readonly IBookingModule _bookingModule;
 
-    public BookingsController(BookingService bookingService)
+    public BookingsController(
+        BookingService bookingService,
+        IBookingModule bookingModule)
     {
         _bookingService = bookingService;
+        _bookingModule = bookingModule;
     }
 
     [Authorize(Roles = AppRoles.Admin)]
@@ -81,13 +86,13 @@ public class BookingsController : ControllerBase
         var userId = User.GetUserId();
 
         var booking =
-            await _bookingService.CreateAsync(
+            await _bookingModule.CreateBookingAsync(
                 userId,
-                request);
+                request.HoldId);
 
         return CreatedAtAction(
             nameof(GetById),
-            new { id = booking.Id },
+            new { id = booking.BookingId },
             booking);
     }
 }

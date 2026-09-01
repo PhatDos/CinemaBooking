@@ -1,5 +1,7 @@
 using CinemaBooking.Modules.Catalog.Application.Movies;
+using CinemaBooking.Modules.Catalog.Contracts;
 using CinemaBooking.Modules.Identity.Application.Roles;
+using CinemaBooking.Modules.Scheduling.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,17 @@ namespace CinemaBooking.Api.Controllers;
 public class MoviesController : ControllerBase
 {
     private readonly MovieService _movieService;
+    private readonly ICatalogModule _catalogModule;
+    private readonly ISchedulingModule _schedulingModule;
 
-    public MoviesController(MovieService movieService)
+    public MoviesController(
+        MovieService movieService,
+        ICatalogModule catalogModule,
+        ISchedulingModule schedulingModule)
     {
         _movieService = movieService;
+        _catalogModule = catalogModule;
+        _schedulingModule = schedulingModule;
     }
 
     [HttpGet]
@@ -35,6 +44,23 @@ public class MoviesController : ControllerBase
         }
 
         return Ok(movie);
+    }
+
+    [HttpGet("{movieId:guid}/showtimes")]
+    public async Task<IActionResult> GetShowtimes(Guid movieId)
+    {
+        var movieExists =
+            await _catalogModule.MovieExistsAsync(movieId);
+
+        if (!movieExists)
+        {
+            return NotFound();
+        }
+
+        var showtimes =
+            await _schedulingModule.GetShowtimesByMovieAsync(movieId);
+
+        return Ok(showtimes);
     }
 
     [Authorize(Roles = AppRoles.Admin)]

@@ -31,6 +31,14 @@ public class BookingRepository : IBookingRepository
             .FirstOrDefaultAsync(booking => booking.Id == id);
     }
 
+    public async Task<BookingEntity?> GetByHoldIdAsync(Guid holdId)
+    {
+        return await _dbContext.Bookings
+            .AsNoTracking()
+            .Include(booking => booking.Seats)
+            .FirstOrDefaultAsync(booking => booking.HoldId == holdId);
+    }
+
     public async Task<BookingEntity?> GetForUpdateAsync(Guid id)
     {
         return await _dbContext.Bookings
