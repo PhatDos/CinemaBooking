@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CinemaBooking.Api.Authentication;
 using CinemaBooking.Modules.Identity.Application.Auth;
 using Microsoft.AspNetCore.Authorization;
@@ -58,24 +57,10 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
-        var userId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        var email =
-            User.FindFirstValue(ClaimTypes.Email);
-
-        var roles =
-            User.FindAll(ClaimTypes.Role)
-                .Select(claim => claim.Value)
-                .ToList();
-
-        return Ok(new
-        {
-            userId,
-            email,
-            roles
-        });
+        return Ok(
+            await _authService.GetCurrentUserAsync(
+                User.GetUserId()));
     }
 }

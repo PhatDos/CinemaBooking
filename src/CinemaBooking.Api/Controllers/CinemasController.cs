@@ -3,49 +3,67 @@ using CinemaBooking.Modules.Theater.Application.Cinemas;
 using CinemaBooking.Modules.Theater.Application.Rooms;
 using CinemaBooking.Modules.Theater.Application.Seats;
 using CinemaBooking.Modules.Identity.Application.Roles;
+using CinemaBooking.Modules.Theater.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CinemaBooking.Api.Controllers;
 
 [ApiController]
-[Route("api")]
+[Route("api/cinemas")]
 public class CinemasController : ControllerBase
 {
+    private readonly ITheaterModule _theaterModule;
     private readonly TheaterService _theaterService;
 
-    public CinemasController(TheaterService theaterService)
+    public CinemasController(
+        ITheaterModule theaterModule,
+        TheaterService theaterService)
     {
+        _theaterModule = theaterModule;
         _theaterService = theaterService;
     }
 
-    [HttpGet("cinemas")]
-    public async Task<IActionResult> GetAllCinemas()
+    [HttpGet]
+    public async Task<IActionResult> GetAllCinemas(
+        CancellationToken cancellationToken)
     {
         var cinemas =
-            await _theaterService.GetAllCinemasAsync();
+            await _theaterModule.GetCinemasAsync(
+                cancellationToken);
 
         return Ok(cinemas);
     }
 
     [Authorize(Roles = AppRoles.Admin)]
-    [HttpPost("cinemas")]
+    [HttpPost]
     public async Task<IActionResult> CreateCinema(
-        CreateCinemaRequest request)
+        CreateCinemaRequest request,
+        CancellationToken cancellationToken)
     {
-        var id = await _theaterService.CreateCinemaAsync(request);
+        var cinema =
+            await _theaterModule.CreateCinemaAsync(
+                request.Name,
+                request.Address,
+                request.City,
+                request.Description,
+                cancellationToken);
 
         return CreatedAtAction(
             nameof(GetCinema),
-            new { id },
-            new { id });
+            new { id = cinema.Id },
+            cinema);
     }
 
-    [HttpGet("cinemas/{id:guid}")]
-    public async Task<IActionResult> GetCinema(Guid id)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetCinema(
+        Guid id,
+        CancellationToken cancellationToken)
     {
         var cinema =
-            await _theaterService.GetCinemaByIdAsync(id);
+            await _theaterModule.GetCinemaAsync(
+                id,
+                cancellationToken);
 
         if (cinema is null)
         {
@@ -55,7 +73,26 @@ public class CinemasController : ControllerBase
         return Ok(cinema);
     }
 
-    [HttpGet("rooms")]
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> UpdateCinema(
+        Guid id,
+        UpdateCinemaRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _theaterModule.UpdateCinemaAsync(
+            id,
+            request.Name,
+            request.Address,
+            request.City,
+            request.Description,
+            request.IsActive,
+            cancellationToken);
+
+        return NoContent();
+    }
+
+    [HttpGet("/api/rooms")]
     public async Task<IActionResult> GetAllRooms()
     {
         var rooms =
@@ -64,8 +101,26 @@ public class CinemasController : ControllerBase
         return Ok(rooms);
     }
 
+    [HttpGet("/api/rooms/{id:guid}")]
+    public async Task<IActionResult> GetRoom(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var room =
+            await _theaterModule.GetRoomAsync(
+                id,
+                cancellationToken);
+
+        if (room is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(room);
+    }
+
     [Authorize(Roles = AppRoles.Admin)]
-    [HttpPost("cinemas/{cinemaId:guid}/rooms")]
+    [HttpPost("{cinemaId:guid}/rooms")]
     public async Task<IActionResult> CreateRoom(
         Guid cinemaId,
         CreateRoomRequest request)
@@ -83,7 +138,7 @@ public class CinemasController : ControllerBase
         return Created(string.Empty, new { id });
     }
 
-    [HttpGet("seats")]
+    [HttpGet("/api/seats")]
     public async Task<IActionResult> GetAllSeats()
     {
         var seats =
@@ -93,7 +148,7 @@ public class CinemasController : ControllerBase
     }
 
     [Authorize(Roles = AppRoles.Admin)]
-    [HttpPost("rooms/{roomId:guid}/seats")]
+    [HttpPost("/api/rooms/{roomId:guid}/seats")]
     public async Task<IActionResult> CreateSeat(
         Guid roomId,
         CreateSeatRequest request)

@@ -1,5 +1,7 @@
 using CinemaBooking.Modules.Identity.Application.Auth;
 using CinemaBooking.Modules.Identity.Application.Interfaces;
+using CinemaBooking.Modules.Identity.Application;
+using CinemaBooking.Modules.Identity.Contracts;
 using CinemaBooking.Modules.Identity.Domain;
 using CinemaBooking.Modules.Identity.Infrastructure.Authentication;
 using CinemaBooking.Modules.Identity.Infrastructure.Persistence;
@@ -41,6 +43,7 @@ public static class DependencyInjection
             configuration.GetSection(JwtOptions.SectionName));
 
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IIdentityModule, IdentityModule>();
         services.AddScoped<AuthService>();
 
         return services;

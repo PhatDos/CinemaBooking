@@ -6,6 +6,14 @@ namespace CinemaBooking.Api.ExceptionHandling;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {
+    private readonly ILogger<GlobalExceptionHandler> _logger;
+
+    public GlobalExceptionHandler(
+        ILogger<GlobalExceptionHandler> logger)
+    {
+        _logger = logger;
+    }
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -29,6 +37,13 @@ public class GlobalExceptionHandler : IExceptionHandler
                 (StatusCodes.Status500InternalServerError,
                     "Internal Server Error")
         };
+
+        if (statusCode == StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogError(
+                exception,
+                "Unhandled exception while processing request.");
+        }
 
         var detail = statusCode == StatusCodes.Status500InternalServerError
             ? "An unexpected error occurred."

@@ -20,6 +20,18 @@ public class CinemaConfiguration : IEntityTypeConfiguration<Cinema>
             .HasMaxLength(500)
             .IsRequired();
 
+        builder.Property(cinema => cinema.City)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(cinema => cinema.Description)
+            .HasMaxLength(1000);
+
+        builder.Property(cinema => cinema.IsActive)
+            .IsRequired();
+
+        builder.HasIndex(cinema => cinema.City);
+
         builder.HasMany(cinema => cinema.Rooms)
             .WithOne(room => room.Cinema)
             .HasForeignKey(room => room.CinemaId)

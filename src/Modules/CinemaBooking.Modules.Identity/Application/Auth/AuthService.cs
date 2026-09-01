@@ -198,6 +198,33 @@ public class AuthService
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task<CurrentUserResponse> GetCurrentUserAsync(
+        Guid userId)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        var user =
+            await _userManager.FindByIdAsync(userId.ToString());
+
+        if (user is null)
+        {
+            throw new NotFoundException("User was not found.");
+        }
+
+        var roles =
+            await _userManager.GetRolesAsync(user);
+
+        return new CurrentUserResponse
+        {
+            UserId = user.Id,
+            Email = user.Email ?? string.Empty,
+            Roles = roles.ToList()
+        };
+    }
+
     private async Task<AuthResponse> CreateAuthResponseAsync(
         ApplicationUser user)
     {

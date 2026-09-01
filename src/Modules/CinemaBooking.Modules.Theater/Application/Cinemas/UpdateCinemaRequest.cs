@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CinemaBooking.Modules.Theater.Application.Cinemas;
 
-public sealed record CreateCinemaRequest(
+public sealed record UpdateCinemaRequest(
     [Required]
     [MaxLength(200)]
     string Name,
@@ -16,4 +16,6 @@ public sealed record CreateCinemaRequest(
     string City,
 
     [MaxLength(1000)]
-    string? Description);
+    string? Description,
+
+    bool IsActive);

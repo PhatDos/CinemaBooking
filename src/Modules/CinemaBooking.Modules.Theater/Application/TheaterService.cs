@@ -59,7 +59,10 @@ public class TheaterService
         var cinema = new Cinema
         {
             Name = request.Name.Trim(),
-            Address = request.Address.Trim()
+            Address = request.Address.Trim(),
+            City = request.City.Trim(),
+            Description = request.Description?.Trim(),
+            IsActive = true
         };
 
         await _repository.AddCinemaAsync(cinema);
@@ -114,13 +117,14 @@ public class TheaterService
 
     private static CinemaResponse ToResponse(Cinema cinema)
     {
-        return new CinemaResponse
-        {
-            Id = cinema.Id,
-            Name = cinema.Name,
-            Address = cinema.Address,
-            Rooms = cinema.Rooms.Select(ToResponse).ToList()
-        };
+        return new CinemaResponse(
+            cinema.Id,
+            cinema.Name,
+            cinema.Address,
+            cinema.City,
+            cinema.Description,
+            cinema.IsActive,
+            cinema.Rooms.Select(ToResponse).ToList());
     }
 
     private static RoomResponse ToResponse(Room room)

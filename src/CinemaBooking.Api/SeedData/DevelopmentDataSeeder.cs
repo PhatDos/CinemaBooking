@@ -104,10 +104,24 @@ public static class DevelopmentDataSeeder
             cinema = new Cinema
             {
                 Name = CinemaName,
-                Address = "123 Seed Street, District 1"
+                Address = "123 Seed Street, District 1",
+                City = "Ho Chi Minh City",
+                Description = "Development seed cinema",
+                IsActive = true
             };
 
             dbContext.Cinemas.Add(cinema);
+
+            await dbContext.SaveChangesAsync();
+        }
+        else
+        {
+            cinema.Address = "123 Seed Street, District 1";
+            cinema.City = string.IsNullOrWhiteSpace(cinema.City)
+                ? "Ho Chi Minh City"
+                : cinema.City;
+            cinema.Description ??= "Development seed cinema";
+            cinema.IsActive = true;
 
             await dbContext.SaveChangesAsync();
         }

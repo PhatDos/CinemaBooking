@@ -1,15 +1,13 @@
 namespace CinemaBooking.Modules.Theater.Application.Cinemas;
 
-public class CinemaResponse
-{
-    public Guid Id { get; set; }
-
-    public string Name { get; set; } = string.Empty;
-
-    public string Address { get; set; } = string.Empty;
-
-    public List<RoomResponse> Rooms { get; set; } = [];
-}
+public sealed record CinemaResponse(
+    Guid Id,
+    string Name,
+    string Address,
+    string City,
+    string? Description,
+    bool IsActive,
+    List<RoomResponse> Rooms);
 
 public class RoomResponse
 {

@@ -15,6 +15,9 @@ public class IdentityDbContext : IdentityDbContextBase
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<StaffCinemaAssignment> StaffCinemaAssignments =>
+        Set<StaffCinemaAssignment>();
+
     protected override void OnModelCreating(
         ModelBuilder builder)
     {
