@@ -17,12 +17,27 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
             .IsRequired();
 
         builder.Property(movie => movie.Description)
-            .HasMaxLength(2000);
+            .HasMaxLength(2000)
+            .IsRequired();
 
         builder.Property(movie => movie.DurationMinutes)
             .IsRequired();
 
         builder.Property(movie => movie.ReleaseDate)
             .IsRequired();
+
+        builder.Property(movie => movie.PosterUrl)
+            .HasMaxLength(1000);
+
+        builder.Property(movie => movie.TrailerUrl)
+            .HasMaxLength(1000);
+
+        builder.Property(movie => movie.Genre)
+            .HasMaxLength(100);
+
+        builder.Property(movie => movie.IsActive)
+            .IsRequired();
+
+        builder.HasIndex(movie => movie.IsActive);
     }
 }

@@ -28,10 +28,31 @@ public class MovieRepository : IMovieRepository
             .FirstOrDefaultAsync(movie => movie.Id == id);
     }
 
+    public async Task<Movie?> GetByIdForUpdateAsync(Guid id)
+    {
+        return await _dbContext.Movies
+            .FirstOrDefaultAsync(movie => movie.Id == id);
+    }
+
     public async Task AddAsync(Movie movie)
     {
         _dbContext.Movies.Add(movie);
 
         await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task AddRangeAsync(
+        IReadOnlyCollection<Movie> movies,
+        CancellationToken cancellationToken = default)
+    {
+        _dbContext.Movies.AddRange(movies);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

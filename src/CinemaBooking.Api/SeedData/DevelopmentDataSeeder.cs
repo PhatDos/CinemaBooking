@@ -76,7 +76,9 @@ public static class DevelopmentDataSeeder
                 Title = seedMovie.Title,
                 Description = seedMovie.Description,
                 DurationMinutes = seedMovie.DurationMinutes,
-                ReleaseDate = seedMovie.ReleaseDate
+                ReleaseDate = seedMovie.ReleaseDate,
+                Genre = "Drama",
+                IsActive = true
             });
         }
 

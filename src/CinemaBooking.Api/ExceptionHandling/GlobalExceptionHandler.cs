@@ -30,6 +30,9 @@ public class GlobalExceptionHandler : IExceptionHandler
             BusinessRuleException =>
                 (StatusCodes.Status400BadRequest, "Bad Request"),
 
+            ForbiddenException =>
+                (StatusCodes.Status403Forbidden, "Forbidden"),
+
             UnauthorizedAccessException =>
                 (StatusCodes.Status401Unauthorized, "Unauthorized"),
 

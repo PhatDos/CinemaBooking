@@ -60,6 +60,30 @@ public class TheaterModule : ITheaterModule
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CinemaInfo>> GetCinemasByIdsAsync(
+        IReadOnlyCollection<Guid> cinemaIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (cinemaIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await _dbContext.Cinemas
+            .AsNoTracking()
+            .Where(cinema => cinemaIds.Contains(cinema.Id))
+            .OrderBy(cinema => cinema.City)
+            .ThenBy(cinema => cinema.Name)
+            .Select(cinema => new CinemaInfo(
+                cinema.Id,
+                cinema.Name,
+                cinema.Address,
+                cinema.City,
+                cinema.Description,
+                cinema.IsActive))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<CinemaInfo> CreateCinemaAsync(
         string name,
         string address,

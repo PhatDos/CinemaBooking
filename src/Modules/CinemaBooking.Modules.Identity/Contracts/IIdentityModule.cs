@@ -15,4 +15,8 @@ public interface IIdentityModule
         Guid userId,
         Guid cinemaId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Guid>> GetAssignedCinemaIdsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

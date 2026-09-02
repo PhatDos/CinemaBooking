@@ -1,3 +1,4 @@
+using CinemaBooking.Api.Authorization;
 using CinemaBooking.Modules.Scheduling.Application.Showtimes;
 using CinemaBooking.Modules.Identity.Application.Roles;
 using Microsoft.AspNetCore.Authorization;
@@ -10,11 +11,14 @@ namespace CinemaBooking.Api.Controllers;
 public class ShowtimesController : ControllerBase
 {
     private readonly ShowtimeService _showtimeService;
+    private readonly CinemaManagementAuthorizer _authorizer;
 
     public ShowtimesController(
-        ShowtimeService showtimeService)
+        ShowtimeService showtimeService,
+        CinemaManagementAuthorizer authorizer)
     {
         _showtimeService = showtimeService;
+        _authorizer = authorizer;
     }
 
     [HttpGet]
@@ -40,17 +44,44 @@ public class ShowtimesController : ControllerBase
         return Ok(showtime);
     }
 
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.Admin + "," + AppRoles.Staff)]
     [HttpPost]
     public async Task<IActionResult> Create(
-        CreateShowtimeRequest request)
+        CreateShowtimeRequest request,
+        CancellationToken cancellationToken)
     {
+        await _authorizer.AuthorizeRoomAsync(
+            User,
+            request.RoomId,
+            cancellationToken);
+
         var showtime =
-            await _showtimeService.CreateAsync(request);
+            await _showtimeService.CreateAsync(
+                request,
+                cancellationToken);
 
         return CreatedAtAction(
             nameof(GetById),
             new { id = showtime.Id },
             showtime);
+    }
+
+    [Authorize(Roles = AppRoles.Admin + "," + AppRoles.Staff)]
+    [HttpPost("bulk")]
+    public async Task<IActionResult> BulkCreate(
+        BulkCreateShowtimesRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _authorizer.AuthorizeRoomAsync(
+            User,
+            request.RoomId,
+            cancellationToken);
+
+        var result =
+            await _showtimeService.BulkCreateAsync(
+                request,
+                cancellationToken);
+
+        return Ok(result);
     }
 }

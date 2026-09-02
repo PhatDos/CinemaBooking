@@ -13,6 +13,10 @@ public interface ITheaterModule
     Task<IReadOnlyList<CinemaInfo>> GetCinemasAsync(
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<CinemaInfo>> GetCinemasByIdsAsync(
+        IReadOnlyCollection<Guid> cinemaIds,
+        CancellationToken cancellationToken = default);
+
     Task<CinemaInfo> CreateCinemaAsync(
         string name,
         string address,

@@ -74,4 +74,29 @@ public class MoviesController : ControllerBase
             new { id = movie.Id },
             movie);
     }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost("bulk")]
+    public async Task<IActionResult> BulkCreate(
+        BulkCreateMoviesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result =
+            await _movieService.BulkCreateAsync(
+                request.Movies,
+                cancellationToken);
+
+        return Ok(result);
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        UpdateMovieRequest request)
+    {
+        await _movieService.UpdateAsync(id, request);
+
+        return NoContent();
+    }
 }

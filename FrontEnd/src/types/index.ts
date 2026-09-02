@@ -38,12 +38,35 @@ export type ProblemDetails = {
 export type Movie = {
   id: string;
   title: string;
-  description: string | null;
+  description: string;
   durationMinutes: number;
   releaseDate: string;
+  posterUrl: string | null;
+  trailerUrl: string | null;
+  genre: string | null;
+  isActive: boolean;
 };
 
 export type MovieDetail = Movie;
+
+export type CreateMovieRequest = {
+  title: string;
+  description: string;
+  durationMinutes: number;
+  releaseDate: string;
+  posterUrl?: string | null;
+  trailerUrl?: string | null;
+  genre?: string | null;
+};
+
+export type BulkCreateMoviesRequest = {
+  movies: CreateMovieRequest[];
+};
+
+export type BulkCreateMoviesResult = {
+  createdCount: number;
+  movieIds: string[];
+};
 
 export type Showtime = {
   id: string;
@@ -52,6 +75,25 @@ export type Showtime = {
   startTime: string;
   endTime: string;
   basePrice: number;
+};
+
+export type CreateShowtimeRequest = {
+  movieId: string;
+  roomId: string;
+  startTime: string;
+  basePrice: number;
+};
+
+export type BulkCreateShowtimesRequest = {
+  movieId: string;
+  roomId: string;
+  startTimes: string[];
+  basePrice: number;
+};
+
+export type BulkCreateShowtimesResult = {
+  createdCount: number;
+  showtimeIds: string[];
 };
 
 export type BookingStatus =
@@ -138,7 +180,10 @@ export type Cinema = {
   id: string;
   name: string;
   address: string;
-  rooms: Room[];
+  city: string;
+  description?: string | null;
+  isActive: boolean;
+  rooms?: Room[];
 };
 
 export type Payment = {

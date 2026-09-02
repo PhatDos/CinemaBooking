@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CinemaBooking.Modules.Catalog.Application.Movies;
 
-public class CreateMovieRequest
+public class UpdateMovieRequest
 {
     [Required]
     [MaxLength(200)]
@@ -25,4 +25,6 @@ public class CreateMovieRequest
 
     [MaxLength(100)]
     public string? Genre { get; set; }
+
+    public bool IsActive { get; set; }
 }

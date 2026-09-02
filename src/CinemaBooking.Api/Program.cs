@@ -1,4 +1,5 @@
 using System.Text;
+using CinemaBooking.Api.Authorization;
 using CinemaBooking.Api.Database;
 using CinemaBooking.Api.ExceptionHandling;
 using CinemaBooking.Api.SeedData;
@@ -47,6 +48,7 @@ builder.Services.AddSchedulingModule(builder.Configuration);
 builder.Services.AddBookingModule(builder.Configuration);
 builder.Services.AddPaymentModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
+builder.Services.AddScoped<CinemaManagementAuthorizer>();
 
 var jwtOptions =
     builder.Configuration

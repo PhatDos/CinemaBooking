@@ -92,6 +92,20 @@ public sealed class IdentityModule : IIdentityModule
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetAssignedCinemaIdsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await FindUserAsync(userId);
+
+        return await _dbContext.StaffCinemaAssignments
+            .AsNoTracking()
+            .Where(assignment => assignment.UserId == userId)
+            .OrderBy(assignment => assignment.CreatedAt)
+            .Select(assignment => assignment.CinemaId)
+            .ToListAsync(cancellationToken);
+    }
+
     private async Task<ApplicationUser> FindUserAsync(
         Guid userId)
     {

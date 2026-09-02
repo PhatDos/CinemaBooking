@@ -17,8 +17,8 @@ services:
       Jwt__ExpirationMinutes: "15"
       AdminSeed__Email: "${ADMIN_EMAIL}"
       AdminSeed__Password: "${ADMIN_PASSWORD}"
-      StaffSeed__Email: "staff@cinema.com"
-      StaffSeed__Password: "staff12345"
+      StaffSeed__Email: "${STAFF_EMAIL}"
+      StaffSeed__Password: "${STAFF_PASSWORD}"
     depends_on:
       sqlserver:
         condition: service_healthy
