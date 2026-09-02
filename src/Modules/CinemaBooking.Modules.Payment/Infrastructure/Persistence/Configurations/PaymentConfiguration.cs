@@ -19,6 +19,8 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
         builder.Property(payment => payment.UserId)
             .IsRequired();
 
+        builder.Property(payment => payment.OrderCode);
+
         builder.Property(payment => payment.Amount)
             .HasPrecision(18, 2)
             .IsRequired();
@@ -28,6 +30,22 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(payment => payment.Provider)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(payment => payment.PaymentLinkId)
+            .HasMaxLength(100);
+
+        builder.Property(payment => payment.ProviderTransactionId)
+            .HasMaxLength(100);
+
+        builder.Property(payment => payment.CheckoutUrl)
+            .HasMaxLength(1000);
+
+        builder.Property(payment => payment.QrCode)
+            .HasMaxLength(4000);
+
         builder.Property(payment => payment.CreatedAt)
             .IsRequired();
 
@@ -35,6 +53,10 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
 
         builder.HasIndex(payment => payment.BookingId)
             .IsUnique();
+
+        builder.HasIndex(payment => payment.OrderCode)
+            .IsUnique()
+            .HasFilter("[OrderCode] IS NOT NULL");
 
         builder.HasIndex(payment => payment.UserId);
     }

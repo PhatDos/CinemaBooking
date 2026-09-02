@@ -2,7 +2,9 @@ namespace CinemaBooking.Modules.Booking.Contracts;
 
 public interface IBookingModule
 {
-    Task<BookingPaymentInfo?> GetForPaymentAsync(Guid bookingId);
+    Task<BookingPaymentInfo?> GetForPaymentAsync(
+        Guid bookingId,
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SeatAvailabilityInfo>> GetSeatAvailabilityAsync(
         Guid showtimeId);
@@ -18,5 +20,6 @@ public interface IBookingModule
 
     Task ConfirmAsync(
         Guid bookingId,
-        Guid userId);
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

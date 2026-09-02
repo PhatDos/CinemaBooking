@@ -15,22 +15,51 @@ public class PaymentRepository : IPaymentRepository
         _dbContext = dbContext;
     }
 
-    public async Task AddAsync(PaymentEntity payment)
+    public async Task AddAsync(
+        PaymentEntity payment,
+        CancellationToken cancellationToken = default)
     {
-        await _dbContext.Payments.AddAsync(payment);
+        await _dbContext.Payments.AddAsync(
+            payment,
+            cancellationToken);
 
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<PaymentEntity?> GetByBookingIdAsync(Guid bookingId)
+    public async Task<PaymentEntity?> GetByBookingIdAsync(
+        Guid bookingId,
+        CancellationToken cancellationToken = default)
     {
         return await _dbContext.Payments
             .FirstOrDefaultAsync(payment =>
-                payment.BookingId == bookingId);
+                payment.BookingId == bookingId,
+                cancellationToken);
     }
 
-    public async Task SaveChangesAsync()
+    public async Task<PaymentEntity?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
-        await _dbContext.SaveChangesAsync();
+        return await _dbContext.Payments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(payment =>
+                payment.Id == id,
+                cancellationToken);
+    }
+
+    public async Task<PaymentEntity?> GetByOrderCodeAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Payments
+            .FirstOrDefaultAsync(payment =>
+                payment.OrderCode == orderCode,
+                cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

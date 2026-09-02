@@ -19,6 +19,11 @@ services:
       AdminSeed__Password: "${ADMIN_PASSWORD}"
       StaffSeed__Email: "${STAFF_EMAIL}"
       StaffSeed__Password: "${STAFF_PASSWORD}"
+      PayOS__ClientId: "${PAYOS_CLIENT_ID}"
+      PayOS__ApiKey: "${PAYOS_API_KEY}"
+      PayOS__ChecksumKey: "${PAYOS_CHECKSUM_KEY}"
+      PayOS__ReturnUrl: "${PAYOS_RETURN_URL}"
+      PayOS__CancelUrl: "${PAYOS_CANCEL_URL}"
     depends_on:
       sqlserver:
         condition: service_healthy

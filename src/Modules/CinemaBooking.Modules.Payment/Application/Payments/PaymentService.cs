@@ -1,7 +1,9 @@
 using CinemaBooking.Modules.Booking.Contracts;
 using CinemaBooking.Modules.Payment.Application.Interfaces;
+using CinemaBooking.Modules.Payment.Application.PayOS;
 using CinemaBooking.Modules.Payment.Domain;
 using CinemaBooking.SharedKernel.Exceptions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PaymentEntity = CinemaBooking.Modules.Payment.Domain.Payment;
 
@@ -9,20 +11,29 @@ namespace CinemaBooking.Modules.Payment.Application.Payments;
 
 public class PaymentService
 {
+    private const int MaximumOrderCodeAttempts = 3;
+
     private readonly IPaymentRepository _paymentRepository;
     private readonly IBookingModule _bookingModule;
+    private readonly IPaymentGateway _paymentGateway;
+    private readonly PayOSPaymentOptions _payOSOptions;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
-        IBookingModule bookingModule)
+        IBookingModule bookingModule,
+        IPaymentGateway paymentGateway,
+        Microsoft.Extensions.Options.IOptions<PayOSPaymentOptions> payOSOptions)
     {
         _paymentRepository = paymentRepository;
         _bookingModule = bookingModule;
+        _paymentGateway = paymentGateway;
+        _payOSOptions = payOSOptions.Value;
     }
 
     public async Task<PaymentResponse> PayAsync(
         Guid userId,
-        CreatePaymentRequest request)
+        CreatePaymentRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (userId == Guid.Empty)
         {
@@ -36,7 +47,8 @@ public class PaymentService
 
         var booking =
             await _bookingModule.GetForPaymentAsync(
-                request.BookingId);
+                request.BookingId,
+                cancellationToken);
 
         if (booking is null ||
             booking.UserId != userId)
@@ -46,7 +58,8 @@ public class PaymentService
 
         var existing =
             await _paymentRepository.GetByBookingIdAsync(
-                booking.Id);
+                booking.Id,
+                cancellationToken);
 
         if (existing is not null)
         {
@@ -65,48 +78,133 @@ public class PaymentService
             throw new ConflictException("Booking has expired.");
         }
 
-        var now = DateTime.UtcNow;
-
-        var payment = new PaymentEntity
+        for (var attempt = 0; attempt < MaximumOrderCodeAttempts; attempt++)
         {
-            BookingId = booking.Id,
-            UserId = userId,
-            Amount = booking.TotalAmount,
-            Status = PaymentStatus.Pending,
-            CreatedAt = now
-        };
+            var orderCode = GenerateOrderCode();
 
-        try
-        {
-            await _paymentRepository.AddAsync(payment);
+            var paymentLink =
+                await _paymentGateway.CreatePaymentLinkAsync(
+                    new PaymentLinkRequest(
+                        orderCode,
+                        booking.TotalAmount,
+                        BuildPaymentDescription(orderCode),
+                        _payOSOptions.ReturnUrl,
+                        _payOSOptions.CancelUrl),
+                    cancellationToken);
+
+            var now = DateTime.UtcNow;
+
+            var payment = new PaymentEntity
+            {
+                BookingId = booking.Id,
+                UserId = userId,
+                OrderCode = paymentLink.OrderCode,
+                Amount = booking.TotalAmount,
+                Status = PaymentStatus.Pending,
+                Provider = "PayOS",
+                PaymentLinkId = paymentLink.PaymentLinkId,
+                CheckoutUrl = paymentLink.CheckoutUrl,
+                QrCode = paymentLink.QrCode,
+                CreatedAt = now
+            };
+
+            try
+            {
+                await _paymentRepository.AddAsync(
+                    payment,
+                    cancellationToken);
+
+                return ToResponse(payment);
+            }
+            catch (DbUpdateException ex) when (
+                attempt + 1 < MaximumOrderCodeAttempts &&
+                IsUniqueViolation(ex))
+            {
+                var existingPayment =
+                    await _paymentRepository.GetByBookingIdAsync(
+                        booking.Id,
+                        cancellationToken);
+
+                if (existingPayment is not null)
+                {
+                    return ToResponse(existingPayment);
+                }
+            }
         }
-        catch (DbUpdateException)
+
+        throw new ConflictException(
+            "Could not create a unique payment order code.");
+    }
+
+    public async Task<PaymentResponse?> GetByIdAsync(
+        Guid userId,
+        Guid paymentId,
+        bool canReadAnyPayment,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
         {
-            throw new ConflictException("Payment already exists.");
+            throw new BusinessRuleException("User id is required.");
         }
 
-        await _bookingModule.ConfirmAsync(
-            booking.Id,
-            userId);
+        if (paymentId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Payment id is required.");
+        }
 
-        payment.Status = PaymentStatus.Succeeded;
-        payment.PaidAt = DateTime.UtcNow;
+        var payment =
+            await _paymentRepository.GetByIdAsync(
+                paymentId,
+                cancellationToken);
 
-        await _paymentRepository.SaveChangesAsync();
+        if (payment is null)
+        {
+            return null;
+        }
+
+        if (!canReadAnyPayment &&
+            payment.UserId != userId)
+        {
+            return null;
+        }
 
         return ToResponse(payment);
     }
 
-    private static PaymentResponse ToResponse(PaymentEntity payment)
+    internal static PaymentResponse ToResponse(PaymentEntity payment)
     {
         return new PaymentResponse
         {
             Id = payment.Id,
             BookingId = payment.BookingId,
+            OrderCode = payment.OrderCode,
             Amount = payment.Amount,
             Status = payment.Status.ToString(),
+            Provider = payment.Provider,
+            PaymentLinkId = payment.PaymentLinkId,
+            CheckoutUrl = payment.CheckoutUrl,
+            QrCode = payment.QrCode,
             CreatedAt = payment.CreatedAt,
             PaidAt = payment.PaidAt
         };
+    }
+
+    private static long GenerateOrderCode()
+    {
+        return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000 +
+               Random.Shared.Next(0, 1000);
+    }
+
+    private static string BuildPaymentDescription(long orderCode)
+    {
+        return $"CB {orderCode}";
+    }
+
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException sqlException &&
+               sqlException.Errors
+                   .Cast<SqlError>()
+                   .Any(error => error.Number is 2601 or 2627);
     }
 }

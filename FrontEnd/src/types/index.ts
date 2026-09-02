@@ -189,8 +189,24 @@ export type Cinema = {
 export type Payment = {
   id: string;
   bookingId: string;
+  orderCode: number | null;
   amount: number;
   status: PaymentStatus;
+  provider: string;
+  paymentLinkId: string | null;
+  checkoutUrl: string | null;
+  qrCode: string | null;
   createdAt: string;
   paidAt: string | null;
+};
+
+export type TicketStatus = 'Valid' | 'Used' | 'Cancelled';
+
+export type Ticket = {
+  id: string;
+  bookingId: string;
+  showtimeId: string;
+  seatId: string;
+  code: string;
+  status: TicketStatus;
 };

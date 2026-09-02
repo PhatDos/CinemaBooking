@@ -3,6 +3,7 @@ using CinemaBooking.Modules.Catalog.Infrastructure.Persistence;
 using CinemaBooking.Modules.Identity.Infrastructure.Persistence;
 using CinemaBooking.Modules.Payment.Infrastructure.Persistence;
 using CinemaBooking.Modules.Scheduling.Infrastructure.Persistence;
+using CinemaBooking.Modules.Ticketing.Infrastructure.Persistence;
 using CinemaBooking.Modules.Theater.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,11 +33,15 @@ public static class DatabaseMigrationExtensions
         var payment =
             scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
 
+        var ticketing =
+            scope.ServiceProvider.GetRequiredService<TicketingDbContext>();
+
         await catalog.Database.MigrateAsync();
         await theater.Database.MigrateAsync();
         await scheduling.Database.MigrateAsync();
         await booking.Database.MigrateAsync();
         await identity.Database.MigrateAsync();
+        await ticketing.Database.MigrateAsync();
         await payment.Database.MigrateAsync();
     }
 }

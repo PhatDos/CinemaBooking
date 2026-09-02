@@ -5,9 +5,21 @@ namespace CinemaBooking.Modules.Payment.Application.Interfaces;
 
 public interface IPaymentRepository
 {
-    Task AddAsync(PaymentEntity payment);
+    Task AddAsync(
+        PaymentEntity payment,
+        CancellationToken cancellationToken = default);
 
-    Task<PaymentEntity?> GetByBookingIdAsync(Guid bookingId);
+    Task<PaymentEntity?> GetByBookingIdAsync(
+        Guid bookingId,
+        CancellationToken cancellationToken = default);
 
-    Task SaveChangesAsync();
+    Task<PaymentEntity?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
+    Task<PaymentEntity?> GetByOrderCodeAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -16,6 +16,7 @@ COPY ["src/Modules/CinemaBooking.Modules.Scheduling/CinemaBooking.Modules.Schedu
 COPY ["src/Modules/CinemaBooking.Modules.Booking/CinemaBooking.Modules.Booking.csproj", "src/Modules/CinemaBooking.Modules.Booking/"]
 COPY ["src/Modules/CinemaBooking.Modules.Identity/CinemaBooking.Modules.Identity.csproj", "src/Modules/CinemaBooking.Modules.Identity/"]
 COPY ["src/Modules/CinemaBooking.Modules.Payment/CinemaBooking.Modules.Payment.csproj", "src/Modules/CinemaBooking.Modules.Payment/"]
+COPY ["src/Modules/CinemaBooking.Modules.Ticketing/CinemaBooking.Modules.Ticketing.csproj", "src/Modules/CinemaBooking.Modules.Ticketing/"]
 
 RUN dotnet restore "src/CinemaBooking.Api/CinemaBooking.Api.csproj"
 

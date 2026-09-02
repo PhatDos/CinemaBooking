@@ -1,4 +1,5 @@
 using CinemaBooking.Api.Authentication;
+using CinemaBooking.Modules.Identity.Application.Roles;
 using CinemaBooking.Modules.Payment.Application.Payments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,14 +18,38 @@ public class PaymentsController : ControllerBase
     }
 
     [Authorize]
-    [HttpPost]
-    public async Task<IActionResult> Pay(
-        CreatePaymentRequest request)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(
+        Guid id,
+        CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
 
         var result =
-            await _service.PayAsync(userId, request);
+            await _service.GetByIdAsync(
+                userId,
+                id,
+                User.IsInRole(AppRoles.Admin),
+                cancellationToken);
+
+        return result is null
+            ? NotFound()
+            : Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> Pay(
+        CreatePaymentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+
+        var result =
+            await _service.PayAsync(
+                userId,
+                request,
+                cancellationToken);
 
         return Ok(result);
     }

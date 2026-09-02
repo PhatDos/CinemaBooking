@@ -29,7 +29,8 @@ public class BookingModule : IBookingModule
     }
 
     public async Task<BookingPaymentInfo?> GetForPaymentAsync(
-        Guid bookingId)
+        Guid bookingId,
+        CancellationToken cancellationToken = default)
     {
         return await _dbContext.Bookings
             .AsNoTracking()
@@ -38,11 +39,17 @@ public class BookingModule : IBookingModule
             {
                 Id = booking.Id,
                 UserId = booking.UserId,
+                ShowtimeId = booking.ShowtimeId,
                 TotalAmount = booking.TotalAmount,
                 Status = booking.Status.ToString(),
-                ExpiresAt = booking.ExpiresAt
+                ExpiresAt = booking.ExpiresAt,
+                Seats = booking.Seats
+                    .Select(seat => new BookingPaymentSeatInfo(
+                        seat.SeatId,
+                        seat.Price))
+                    .ToArray()
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<SeatAvailabilityInfo>> GetSeatAvailabilityAsync(
@@ -81,13 +88,15 @@ public class BookingModule : IBookingModule
 
     public async Task ConfirmAsync(
         Guid bookingId,
-        Guid userId)
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         var booking =
             await _dbContext.Bookings
                 .FirstOrDefaultAsync(item =>
                     item.Id == bookingId &&
-                    item.UserId == userId);
+                    item.UserId == userId,
+                    cancellationToken);
 
         if (booking is null)
         {
@@ -111,7 +120,7 @@ public class BookingModule : IBookingModule
 
         try
         {
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {

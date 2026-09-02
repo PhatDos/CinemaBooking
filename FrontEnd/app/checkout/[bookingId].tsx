@@ -1,10 +1,10 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getBooking } from '@/src/api/bookings';
 import { ApiError } from '@/src/api/client';
-import { payBooking } from '@/src/api/payments';
+import { getPayment, payBooking } from '@/src/api/payments';
 import { useAuth } from '@/src/auth/AuthContext';
 import type { Booking, Payment } from '@/src/types';
 
@@ -39,6 +39,44 @@ export default function CheckoutScreen() {
 
     void loadBooking();
   }, [bookingId, isAuthenticated]);
+
+  useEffect(() => {
+    if (!payment?.id || payment.status !== 'Pending' || !isAuthenticated) {
+      return;
+    }
+
+    let cancelled = false;
+    const paymentId = payment.id;
+
+    async function pollPayment() {
+      while (!cancelled) {
+        await sleep(2500);
+
+        if (cancelled) {
+          return;
+        }
+
+        try {
+          const refreshedPayment = await getPayment(paymentId);
+          setPayment(refreshedPayment);
+
+          if (refreshedPayment.status === 'Succeeded') {
+            const refreshedBooking = await getBooking(refreshedPayment.bookingId);
+            setBooking(refreshedBooking);
+            return;
+          }
+        } catch (pollError) {
+          console.error(pollError);
+        }
+      }
+    }
+
+    void pollPayment();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [payment?.id, payment?.status, isAuthenticated]);
 
   async function handlePay() {
     if (
@@ -89,7 +127,8 @@ export default function CheckoutScreen() {
 
   const status = normalizeStatus(booking.status);
   const paid = payment?.status === 'Succeeded' || status === 'confirmed';
-  const canPay = status === 'pending' && !paid;
+  const hasPaymentLink = payment?.status === 'Pending' && !!payment.checkoutUrl;
+  const canPay = status === 'pending' && !paid && !hasPaymentLink;
 
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.container}>
@@ -108,6 +147,14 @@ export default function CheckoutScreen() {
       </View>
 
       <Text style={styles.stateText}>{getCheckoutStateText(status, paid)}</Text>
+
+      {hasPaymentLink ? (
+        <Pressable
+          onPress={() => void Linking.openURL(payment.checkoutUrl!)}
+          style={styles.paymentLinkButton}>
+          <Text style={styles.paymentLinkText}>Open PayOS checkout</Text>
+        </Pressable>
+      ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -194,6 +241,12 @@ function formatDate(value: string) {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function getPaymentErrorMessage(error: unknown) {
@@ -291,6 +344,21 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontWeight: '600',
+  },
+  paymentLinkButton: {
+    marginTop: 16,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#111827',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  paymentLinkText: {
+    color: '#111827',
+    fontWeight: '700',
   },
   error: {
     marginTop: 18,
