@@ -1,5 +1,4 @@
 using CinemaBooking.Api.Authentication;
-using CinemaBooking.Modules.Booking.Application.SeatHolds;
 using CinemaBooking.Modules.Booking.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,25 +31,5 @@ public class SeatHoldsController : ControllerBase
                 request.SeatIds);
 
         return Ok(response);
-    }
-
-    [Authorize]
-    [HttpPost("seats/{seatId:guid}/hold")]
-    public async Task<IActionResult> HoldSeat(
-        Guid showtimeId,
-        Guid seatId)
-    {
-        var userId = User.GetUserId();
-
-        await _bookingModule.HoldSeatsAsync(
-            userId,
-            showtimeId,
-            [seatId]);
-
-        return Ok(new
-        {
-            message = "Seat held successfully.",
-            expiresInSeconds = SeatHoldService.HoldDurationSeconds
-        });
     }
 }
