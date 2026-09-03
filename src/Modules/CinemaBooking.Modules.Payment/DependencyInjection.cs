@@ -1,6 +1,7 @@
 using CinemaBooking.Modules.Payment.Application.Interfaces;
 using CinemaBooking.Modules.Payment.Application.PayOS;
 using CinemaBooking.Modules.Payment.Application.Payments;
+using CinemaBooking.Modules.Payment.Infrastructure.BackgroundJobs;
 using CinemaBooking.Modules.Payment.Infrastructure.Persistence;
 using CinemaBooking.Modules.Payment.Infrastructure.PayOS;
 using CinemaBooking.Modules.Payment.Infrastructure.Repositories;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IPaymentGateway, PayOSPaymentGateway>();
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
         services.AddScoped<PaymentService>();
+        services.AddHostedService<PaymentOutboxWorker>();
 
         return services;
     }

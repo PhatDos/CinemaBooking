@@ -103,6 +103,11 @@ public class BookingModule : IBookingModule
             throw new NotFoundException("Booking not found.");
         }
 
+        if (booking.Status == BookingStatus.Confirmed)
+        {
+            return;
+        }
+
         if (booking.Status != BookingStatus.Pending)
         {
             throw new ConflictException(

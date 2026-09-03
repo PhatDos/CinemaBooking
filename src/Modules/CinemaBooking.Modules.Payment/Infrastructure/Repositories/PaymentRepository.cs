@@ -57,6 +57,15 @@ public class PaymentRepository : IPaymentRepository
                 cancellationToken);
     }
 
+    public async Task AddOutboxMessageAsync(
+        OutboxMessage message,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.OutboxMessages.AddAsync(
+            message,
+            cancellationToken);
+    }
+
     public async Task SaveChangesAsync(
         CancellationToken cancellationToken = default)
     {

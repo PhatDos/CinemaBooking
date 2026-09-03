@@ -21,5 +21,9 @@ public interface IPaymentRepository
         long orderCode,
         CancellationToken cancellationToken = default);
 
+    Task AddOutboxMessageAsync(
+        OutboxMessage message,
+        CancellationToken cancellationToken = default);
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

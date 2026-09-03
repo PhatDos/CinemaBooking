@@ -13,6 +13,8 @@ public class PaymentDbContext : DbContext
 
     public DbSet<PaymentEntity> Payments => Set<PaymentEntity>();
 
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(
