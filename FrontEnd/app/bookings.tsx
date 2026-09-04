@@ -12,10 +12,11 @@ import {
 
 import { getBookings } from '@/src/api/bookings';
 import { useAuth } from '@/src/auth/AuthContext';
+import { LogoutButton } from '@/src/components/LogoutButton';
 import type { Booking, BookingStatus } from '@/src/types';
 
 export default function BookingsScreen() {
-  const { isAuthenticated, isLoading, signOut, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,9 +72,7 @@ export default function BookingsScreen() {
             <Text style={styles.actionText}>Movies</Text>
           </Pressable>
 
-          <Pressable onPress={signOut} style={styles.actionButton}>
-            <Text style={styles.actionText}>Logout</Text>
-          </Pressable>
+          <LogoutButton style={styles.actionButton} textStyle={styles.actionText} />
         </View>
       </View>
 

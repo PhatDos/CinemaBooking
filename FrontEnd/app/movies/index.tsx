@@ -12,12 +12,13 @@ import {
 
 import { getMovies } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
+import { LogoutButton } from '@/src/components/LogoutButton';
 import type { Movie } from '@/src/types';
 
 const scanTicketRoute = '/staff/scan-ticket' as Href;
 
 export default function MoviesScreen() {
-  const { isAuthenticated, isLoading, signOut, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,9 +86,7 @@ export default function MoviesScreen() {
             <Text style={styles.actionText}>My Bookings</Text>
           </Pressable>
 
-          <Pressable onPress={signOut} style={styles.actionButton}>
-            <Text style={styles.actionText}>Logout</Text>
-          </Pressable>
+          <LogoutButton style={styles.actionButton} textStyle={styles.actionText} />
         </View>
       </View>
 

@@ -85,6 +85,41 @@ public sealed class PayOSPaymentGateway : IPaymentGateway
             paymentLink.QrCode);
     }
 
+    public async Task<PaymentLinkStatusResult> GetPaymentLinkAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        var client = new PayOSClient(
+            _options.ClientId,
+            _options.ApiKey,
+            _options.ChecksumKey,
+            _options.PartnerCode ?? string.Empty);
+
+        try
+        {
+            var paymentLink =
+                await client.PaymentRequests.GetAsync(
+                    orderCode,
+                    new RequestOptions
+                    {
+                        CancellationToken = cancellationToken
+                    });
+
+            return new PaymentLinkStatusResult(
+                paymentLink.OrderCode,
+                paymentLink.Amount,
+                paymentLink.Status.ToString(),
+                null);
+        }
+        catch (PayOSException ex)
+        {
+            throw new BusinessRuleException(
+                $"PayOS payment link could not be loaded: {ex.Message}");
+        }
+    }
+
     public async Task<PayOSWebhookResult> VerifyWebhookAsync(
         Webhook webhook,
         CancellationToken cancellationToken = default)

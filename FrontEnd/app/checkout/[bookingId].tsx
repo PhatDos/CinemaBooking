@@ -132,9 +132,15 @@ export default function CheckoutScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.container}>
-      <Pressable onPress={() => router.replace('/movies')} style={styles.backLink}>
-        <Text style={styles.backLinkText}>Movies</Text>
-      </Pressable>
+      <View style={styles.topActions}>
+        <Pressable onPress={goBack} style={styles.backLink}>
+          <Text style={styles.backLinkText}>Go back</Text>
+        </Pressable>
+
+        <Pressable onPress={() => router.replace('/movies')} style={styles.backLink}>
+          <Text style={styles.backLinkText}>Movies</Text>
+        </Pressable>
+      </View>
 
       <Text style={styles.title}>Checkout</Text>
       <Text style={styles.text}>Booking: {booking.id}</Text>
@@ -187,6 +193,15 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
+}
+
+function goBack() {
+  if (router.canGoBack()) {
+    router.back();
+    return;
+  }
+
+  router.replace('/movies');
 }
 
 function normalizeStatus(status: string) {
@@ -275,8 +290,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   backLink: {
-    alignSelf: 'flex-start',
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
@@ -287,6 +300,11 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: 14,
     fontWeight: '600',
+  },
+  topActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
   },
   title: {
     color: '#111827',

@@ -1,10 +1,12 @@
 using CinemaBooking.Modules.Booking.Contracts;
 using CinemaBooking.Modules.Payment.Application.Interfaces;
+using CinemaBooking.Modules.Payment.Application.Outbox;
 using CinemaBooking.Modules.Payment.Application.PayOS;
 using CinemaBooking.Modules.Payment.Domain;
 using CinemaBooking.SharedKernel.Exceptions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PaymentEntity = CinemaBooking.Modules.Payment.Domain.Payment;
 
 namespace CinemaBooking.Modules.Payment.Application.Payments;
@@ -17,17 +19,20 @@ public class PaymentService
     private readonly IBookingModule _bookingModule;
     private readonly IPaymentGateway _paymentGateway;
     private readonly PayOSPaymentOptions _payOSOptions;
+    private readonly ILogger<PaymentService> _logger;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
         IBookingModule bookingModule,
         IPaymentGateway paymentGateway,
-        Microsoft.Extensions.Options.IOptions<PayOSPaymentOptions> payOSOptions)
+        Microsoft.Extensions.Options.IOptions<PayOSPaymentOptions> payOSOptions,
+        ILogger<PaymentService> logger)
     {
         _paymentRepository = paymentRepository;
         _bookingModule = bookingModule;
         _paymentGateway = paymentGateway;
         _payOSOptions = payOSOptions.Value;
+        _logger = logger;
     }
 
     public async Task<PaymentResponse> PayAsync(
@@ -153,7 +158,7 @@ public class PaymentService
         }
 
         var payment =
-            await _paymentRepository.GetByIdAsync(
+            await _paymentRepository.GetByIdForUpdateAsync(
                 paymentId,
                 cancellationToken);
 
@@ -168,7 +173,86 @@ public class PaymentService
             return null;
         }
 
+        await SyncPendingPaymentAsync(
+            payment,
+            cancellationToken);
+
         return ToResponse(payment);
+    }
+
+    private async Task SyncPendingPaymentAsync(
+        PaymentEntity payment,
+        CancellationToken cancellationToken)
+    {
+        if (payment.Status != PaymentStatus.Pending ||
+            payment.OrderCode is null)
+        {
+            return;
+        }
+
+        PaymentLinkStatusResult paymentLink;
+
+        try
+        {
+            paymentLink =
+                await _paymentGateway.GetPaymentLinkAsync(
+                    payment.OrderCode.Value,
+                    cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Could not reconcile PayOS payment status for Payment {PaymentId}.",
+                payment.Id);
+
+            return;
+        }
+
+        if (payment.Amount != paymentLink.Amount)
+        {
+            _logger.LogWarning(
+                "PayOS reconcile amount mismatch for Payment {PaymentId}. Expected {ExpectedAmount}, got {ActualAmount}.",
+                payment.Id,
+                payment.Amount,
+                paymentLink.Amount);
+
+            return;
+        }
+
+        if (!IsPaidStatus(paymentLink.Status))
+        {
+            return;
+        }
+
+        payment.Status = PaymentStatus.Succeeded;
+        payment.PaidAt = DateTime.UtcNow;
+
+        await _paymentRepository.AddOutboxMessageAsync(
+            new OutboxMessage
+            {
+                Type = PaymentOutboxMessageTypes.PaymentSucceeded,
+                AggregateId = payment.Id,
+                Payload = System.Text.Json.JsonSerializer.Serialize(
+                    new PaymentSucceededOutboxMessage(
+                        payment.Id,
+                        payment.BookingId,
+                        payment.UserId)),
+                CreatedAt = DateTime.UtcNow
+            },
+            cancellationToken);
+
+        try
+        {
+            await _paymentRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            _logger.LogInformation(
+                ex,
+                "PayOS reconcile found an existing outbox message for Payment {PaymentId}.",
+                payment.Id);
+        }
     }
 
     internal static PaymentResponse ToResponse(PaymentEntity payment)
@@ -198,6 +282,13 @@ public class PaymentService
     private static string BuildPaymentDescription(long orderCode)
     {
         return $"CB {orderCode}";
+    }
+
+    private static bool IsPaidStatus(string? status)
+    {
+        return string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(status, "Paid", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(status, "Succeeded", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsUniqueViolation(DbUpdateException exception)

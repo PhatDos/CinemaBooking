@@ -35,6 +35,13 @@ public sealed class PaymentWebhookService : IPaymentWebhookService
                 webhook,
                 cancellationToken);
 
+        _logger.LogInformation(
+            "Verified PayOS webhook. OrderCode={OrderCode}, Amount={Amount}, Code={Code}, PaymentLinkId={PaymentLinkId}.",
+            data.OrderCode,
+            data.Amount,
+            data.Code,
+            data.PaymentLinkId);
+
         var payment =
             await _paymentRepository.GetByOrderCodeAsync(
                 data.OrderCode,

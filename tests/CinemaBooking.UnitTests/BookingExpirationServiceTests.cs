@@ -10,7 +10,7 @@ namespace CinemaBooking.UnitTests;
 public class BookingExpirationServiceTests
 {
     [Fact]
-    public async Task ExpireBookingsAsync_ExpiresPendingBookingsAndRemovesSeats()
+    public async Task ExpireBookingsAsync_ExpiresPendingBookingsAndKeepsSeats()
     {
         var seat = new BookingSeat
         {
@@ -36,7 +36,8 @@ public class BookingExpirationServiceTests
         await service.ExpireBookingsAsync();
 
         Assert.Equal(BookingStatus.Expired, booking.Status);
-        Assert.Contains(seat, repository.RemovedSeats);
+        Assert.Empty(repository.RemovedSeats);
+        Assert.Contains(seat, booking.Seats);
         Assert.True(repository.SaveChangesCalled);
     }
 

@@ -47,6 +47,16 @@ public class PaymentRepository : IPaymentRepository
                 cancellationToken);
     }
 
+    public async Task<PaymentEntity?> GetByIdForUpdateAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Payments
+            .FirstOrDefaultAsync(payment =>
+                payment.Id == id,
+                cancellationToken);
+    }
+
     public async Task<PaymentEntity?> GetByOrderCodeAsync(
         long orderCode,
         CancellationToken cancellationToken = default)

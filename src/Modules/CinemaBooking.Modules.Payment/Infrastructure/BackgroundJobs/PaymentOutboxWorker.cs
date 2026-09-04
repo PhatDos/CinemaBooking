@@ -14,6 +14,7 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.BackgroundJobs;
 public sealed class PaymentOutboxWorker : BackgroundService
 {
     private const int BatchSize = 10;
+    private const int MaximumAttempts = 10;
     private const int MaximumLastErrorLength = 2000;
 
     private static readonly TimeSpan Interval =
@@ -65,7 +66,9 @@ public sealed class PaymentOutboxWorker : BackgroundService
 
         var messages =
             await dbContext.OutboxMessages
-                .Where(message => message.ProcessedAt == null)
+                .Where(message =>
+                    message.ProcessedAt == null &&
+                    message.AttemptCount < MaximumAttempts)
                 .OrderBy(message => message.CreatedAt)
                 .Take(BatchSize)
                 .ToListAsync(cancellationToken);

@@ -26,10 +26,6 @@ public class BookingExpirationService
 
         foreach (var booking in bookings)
         {
-            var seats = booking.Seats.ToList();
-
-            _repository.RemoveSeats(seats);
-
             booking.Status = BookingStatus.Expired;
         }
 

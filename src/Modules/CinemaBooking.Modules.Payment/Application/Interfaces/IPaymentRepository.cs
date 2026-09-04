@@ -17,6 +17,10 @@ public interface IPaymentRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<PaymentEntity?> GetByIdForUpdateAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
     Task<PaymentEntity?> GetByOrderCodeAsync(
         long orderCode,
         CancellationToken cancellationToken = default);

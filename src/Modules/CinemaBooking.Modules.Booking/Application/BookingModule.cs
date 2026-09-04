@@ -93,6 +93,7 @@ public class BookingModule : IBookingModule
     {
         var booking =
             await _dbContext.Bookings
+                .Include(item => item.Seats)
                 .FirstOrDefaultAsync(item =>
                     item.Id == bookingId &&
                     item.UserId == userId,
@@ -108,16 +109,36 @@ public class BookingModule : IBookingModule
             return;
         }
 
-        if (booking.Status != BookingStatus.Pending)
+        if (booking.Status is not (
+                BookingStatus.Pending or
+                BookingStatus.Expired))
         {
             throw new ConflictException(
                 "Booking is no longer pending.");
         }
 
-        if (booking.ExpiresAt is null ||
-            booking.ExpiresAt <= DateTime.UtcNow)
+        var seatIds =
+            booking.Seats
+                .Select(seat => seat.SeatId)
+                .ToArray();
+
+        var hasSeatConflict =
+            await _dbContext.Bookings
+                .AsNoTracking()
+                .Where(item =>
+                    item.Id != booking.Id &&
+                    item.ShowtimeId == booking.ShowtimeId &&
+                    item.Status != BookingStatus.Cancelled &&
+                    item.Status != BookingStatus.Expired)
+                .SelectMany(item => item.Seats)
+                .AnyAsync(
+                    seat => seatIds.Contains(seat.SeatId),
+                    cancellationToken);
+
+        if (hasSeatConflict)
         {
-            throw new ConflictException("Booking has expired.");
+            throw new ConflictException(
+                "Paid booking seats are no longer available.");
         }
 
         booking.Status = BookingStatus.Confirmed;
