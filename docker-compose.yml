@@ -24,6 +24,14 @@ services:
       PayOS__ChecksumKey: "${PAYOS_CHECKSUM_KEY}"
       PayOS__ReturnUrl: "${PAYOS_RETURN_URL}"
       PayOS__CancelUrl: "${PAYOS_CANCEL_URL}"
+      Email__Provider: "${EMAIL_PROVIDER:-Logging}"
+      Email__Smtp__Host: "${EMAIL_SMTP_HOST:-}"
+      Email__Smtp__Port: "${EMAIL_SMTP_PORT:-587}"
+      Email__Smtp__UseStartTls: "${EMAIL_SMTP_USE_START_TLS:-true}"
+      Email__Smtp__Username: "${EMAIL_SMTP_USERNAME:-}"
+      Email__Smtp__Password: "${EMAIL_SMTP_PASSWORD:-}"
+      Email__Smtp__FromEmail: "${EMAIL_SMTP_FROM_EMAIL:-}"
+      Email__Smtp__FromName: "${EMAIL_SMTP_FROM_NAME:-Cinema Booking}"
     depends_on:
       sqlserver:
         condition: service_healthy

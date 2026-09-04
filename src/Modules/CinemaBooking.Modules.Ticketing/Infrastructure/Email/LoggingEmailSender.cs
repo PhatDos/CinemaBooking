@@ -17,9 +17,10 @@ public sealed class LoggingEmailSender : IEmailSender
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "Ticket email queued for {Recipient}. Subject: {Subject}. Body: {HtmlBody}",
+            "Ticket email queued for {Recipient}. Subject: {Subject}. InlineAttachments: {InlineAttachmentCount}. Body: {HtmlBody}",
             message.To,
             message.Subject,
+            message.InlineAttachments?.Count ?? 0,
             message.HtmlBody);
 
         return Task.CompletedTask;

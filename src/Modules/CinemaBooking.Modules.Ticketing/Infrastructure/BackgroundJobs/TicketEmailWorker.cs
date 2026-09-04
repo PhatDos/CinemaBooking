@@ -232,12 +232,14 @@ public sealed class TicketEmailWorker : BackgroundService
                     : $"{seat.Row}{seat.Number}";
                 var payload = TicketQrPayload.Create(ticket.Code);
                 var qrCodeBytes = qrCodeGenerator.GeneratePng(ticket.Code);
+                var contentId = $"ticket-qr-{ticket.Id:N}";
 
                 return new TicketEmailRow(
                     label,
                     ticket.Code,
                     payload,
-                    qrCodeBytes.Length);
+                    contentId,
+                    qrCodeBytes);
             }).ToArray();
 
         var email =
@@ -250,7 +252,13 @@ public sealed class TicketEmailWorker : BackgroundService
                     cinema,
                     room,
                     showtime,
-                    ticketRows));
+                    ticketRows),
+                ticketRows
+                    .Select(ticket => new EmailInlineAttachment(
+                        ticket.QrContentId,
+                        "image/png",
+                        ticket.QrPngBytes))
+                    .ToArray());
 
         await emailSender.SendAsync(
             email,
@@ -266,48 +274,94 @@ public sealed class TicketEmailWorker : BackgroundService
         IReadOnlyCollection<TicketEmailRow> tickets)
     {
         var builder = new StringBuilder();
+        var recipientName = string.IsNullOrWhiteSpace(user.DisplayName)
+            ? user.Email
+            : user.DisplayName;
+        var ticketCount = tickets.Count;
 
-        builder.AppendLine("<h1>Your Cinema Tickets</h1>");
-        builder.Append("<p>Hello ");
-        builder.Append(WebUtility.HtmlEncode(
-            string.IsNullOrWhiteSpace(user.DisplayName)
-                ? user.Email
-                : user.DisplayName));
-        builder.AppendLine(",</p>");
-        builder.Append("<p><strong>Movie:</strong> ");
+        builder.AppendLine("<!doctype html>");
+        builder.AppendLine("<html>");
+        builder.AppendLine("<body style=\"margin:0;background:#f3f4f6;color:#111827;font-family:Arial,Helvetica,sans-serif;\">");
+        builder.AppendLine("<div style=\"display:none;max-height:0;overflow:hidden;color:#f3f4f6;\">Your Cinema Booking tickets are ready.</div>");
+        builder.AppendLine("<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background:#f3f4f6;padding:24px 12px;\">");
+        builder.AppendLine("<tr><td align=\"center\">");
+        builder.AppendLine("<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:680px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;\">");
+        builder.AppendLine("<tr><td style=\"background:#111827;color:#ffffff;padding:28px 32px;\">");
+        builder.AppendLine("<div style=\"font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;\">Cinema Booking</div>");
+        builder.Append("<h1 style=\"margin:8px 0 0;font-size:28px;line-height:34px;font-weight:700;\">");
         builder.Append(WebUtility.HtmlEncode(movie.Title));
+        builder.AppendLine("</h1>");
+        builder.Append("<p style=\"margin:10px 0 0;color:#d1d5db;font-size:15px;line-height:22px;\">");
+        builder.Append(WebUtility.HtmlEncode(ticketCount == 1
+            ? "1 ticket confirmed"
+            : $"{ticketCount} tickets confirmed"));
         builder.AppendLine("</p>");
-        builder.Append("<p><strong>Cinema:</strong> ");
-        builder.Append(WebUtility.HtmlEncode(cinema.Name));
-        builder.Append(" - ");
-        builder.Append(WebUtility.HtmlEncode(cinema.Address));
-        builder.AppendLine("</p>");
-        builder.Append("<p><strong>Room:</strong> ");
-        builder.Append(WebUtility.HtmlEncode(room.Name));
-        builder.AppendLine("</p>");
-        builder.Append("<p><strong>Showtime:</strong> ");
-        builder.Append(WebUtility.HtmlEncode(
-            showtime.StartTime.ToString("yyyy-MM-dd HH:mm")));
-        builder.AppendLine("</p>");
+        builder.AppendLine("</td></tr>");
+
+        builder.AppendLine("<tr><td style=\"padding:28px 32px 8px;\">");
+        builder.Append("<p style=\"margin:0 0 20px;font-size:16px;line-height:24px;\">Hello ");
+        builder.Append(WebUtility.HtmlEncode(recipientName));
+        builder.AppendLine(", your tickets are ready. Show the QR code at check-in.</p>");
+
+        builder.AppendLine("<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse:collapse;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;\">");
+        AppendSummaryRow(builder, "Cinema", $"{cinema.Name} - {cinema.Address}");
+        AppendSummaryRow(builder, "Room", room.Name);
+        AppendSummaryRow(builder, "Showtime", showtime.StartTime.ToString("yyyy-MM-dd HH:mm"));
+        builder.AppendLine("</table>");
+        builder.AppendLine("</td></tr>");
+
+        builder.AppendLine("<tr><td style=\"padding:12px 32px 32px;\">");
 
         foreach (var ticket in tickets)
         {
-            builder.AppendLine("<hr />");
-            builder.Append("<h2>Seat ");
+            builder.AppendLine("<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse:collapse;margin-top:16px;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;\">");
+            builder.AppendLine("<tr>");
+            builder.AppendLine("<td style=\"padding:20px;vertical-align:top;\">");
+            builder.Append("<div style=\"font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#6b7280;\">Seat</div>");
+            builder.Append("<div style=\"margin-top:4px;font-size:32px;line-height:38px;font-weight:700;color:#111827;\">");
             builder.Append(WebUtility.HtmlEncode(ticket.SeatLabel));
-            builder.AppendLine("</h2>");
-            builder.Append("<p><strong>Ticket code:</strong> ");
+            builder.AppendLine("</div>");
+            builder.Append("<div style=\"margin-top:14px;font-size:13px;line-height:18px;color:#4b5563;\">Ticket code</div>");
+            builder.Append("<div style=\"margin-top:4px;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:18px;color:#111827;word-break:break-all;\">");
             builder.Append(WebUtility.HtmlEncode(ticket.TicketCode));
-            builder.AppendLine("</p>");
-            builder.Append("<p><strong>QR payload:</strong> ");
+            builder.AppendLine("</div>");
+            builder.Append("<div style=\"margin-top:12px;font-size:12px;line-height:18px;color:#6b7280;word-break:break-all;\">QR payload: ");
             builder.Append(WebUtility.HtmlEncode(ticket.QrPayload));
-            builder.AppendLine("</p>");
-            builder.Append("<p><strong>QR PNG bytes:</strong> ");
-            builder.Append(ticket.QrPngByteCount);
-            builder.AppendLine("</p>");
+            builder.AppendLine("</div>");
+            builder.AppendLine("</td>");
+            builder.AppendLine("<td align=\"center\" style=\"width:170px;padding:20px;background:#f9fafb;vertical-align:middle;\">");
+            builder.Append("<img alt=\"Ticket QR\" src=\"cid:");
+            builder.Append(WebUtility.HtmlEncode(ticket.QrContentId));
+            builder.AppendLine("\" width=\"128\" height=\"128\" style=\"display:block;width:128px;height:128px;border:8px solid #ffffff;border-radius:12px;\" />");
+            builder.AppendLine("</td>");
+            builder.AppendLine("</tr>");
+            builder.AppendLine("</table>");
         }
 
+        builder.AppendLine("<p style=\"margin:24px 0 0;font-size:12px;line-height:18px;color:#6b7280;\">Keep this email available until the end of your movie session.</p>");
+        builder.AppendLine("</td></tr>");
+        builder.AppendLine("</table>");
+        builder.AppendLine("</td></tr>");
+        builder.AppendLine("</table>");
+        builder.AppendLine("</body>");
+        builder.AppendLine("</html>");
+
         return builder.ToString();
+    }
+
+    private static void AppendSummaryRow(
+        StringBuilder builder,
+        string label,
+        string value)
+    {
+        builder.AppendLine("<tr>");
+        builder.Append("<td style=\"width:120px;padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;line-height:18px;\">");
+        builder.Append(WebUtility.HtmlEncode(label));
+        builder.AppendLine("</td>");
+        builder.Append("<td style=\"padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;line-height:20px;font-weight:600;\">");
+        builder.Append(WebUtility.HtmlEncode(value));
+        builder.AppendLine("</td>");
+        builder.AppendLine("</tr>");
     }
 
     private static string Truncate(string value)
@@ -321,5 +375,6 @@ public sealed class TicketEmailWorker : BackgroundService
         string SeatLabel,
         string TicketCode,
         string QrPayload,
-        int QrPngByteCount);
+        string QrContentId,
+        byte[] QrPngBytes);
 }
