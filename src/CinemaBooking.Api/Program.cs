@@ -51,6 +51,7 @@ builder.Services.AddTicketingModule(builder.Configuration);
 builder.Services.AddPaymentModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddScoped<CinemaManagementAuthorizer>();
+builder.Services.AddScoped<TicketCheckInAuthorizer>();
 
 var jwtOptions =
     builder.Configuration

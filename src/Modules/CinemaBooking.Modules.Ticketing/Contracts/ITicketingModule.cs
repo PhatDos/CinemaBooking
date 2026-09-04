@@ -10,4 +10,12 @@ public interface ITicketingModule
         Guid bookingId,
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    Task<TicketCheckInInfo?> GetByCodeAsync(
+        string code,
+        CancellationToken cancellationToken = default);
+
+    Task<CheckInTicketResult> CheckInAsync(
+        string code,
+        CancellationToken cancellationToken = default);
 }

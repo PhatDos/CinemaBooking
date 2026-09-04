@@ -172,6 +172,79 @@ public sealed class TicketingModule : ITicketingModule
             .ToList();
     }
 
+    public async Task<TicketCheckInInfo?> GetByCodeAsync(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedCode = NormalizeTicketCode(code);
+
+        var ticket =
+            await _dbContext.Tickets
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    ticket => ticket.Code == normalizedCode,
+                    cancellationToken);
+
+        return ticket is null
+            ? null
+            : ToCheckInInfo(ticket);
+    }
+
+    public async Task<CheckInTicketResult> CheckInAsync(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedCode = NormalizeTicketCode(code);
+
+        var ticket =
+            await _dbContext.Tickets
+                .SingleOrDefaultAsync(
+                    ticket => ticket.Code == normalizedCode,
+                    cancellationToken)
+            ?? throw new NotFoundException("Ticket not found.");
+
+        if (ticket.Status == TicketStatus.Used)
+        {
+            throw new ConflictException(
+                "Ticket has already been used.");
+        }
+
+        if (ticket.Status == TicketStatus.Cancelled)
+        {
+            throw new BusinessRuleException(
+                "Ticket is cancelled.");
+        }
+
+        if (ticket.Status != TicketStatus.Valid)
+        {
+            throw new BusinessRuleException(
+                "Ticket cannot be checked in.");
+        }
+
+        var usedAt = DateTime.UtcNow;
+
+        ticket.Status = TicketStatus.Used;
+        ticket.UsedAt = usedAt;
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException(
+                "Ticket has already been checked in.");
+        }
+
+        return new CheckInTicketResult(
+            ticket.Id,
+            ticket.BookingId,
+            ticket.ShowtimeId,
+            ticket.SeatId,
+            ticket.Status.ToString(),
+            usedAt);
+    }
+
     private async Task<List<Ticket>> GetTicketEntitiesByBookingAsync(
         Guid bookingId,
         Guid userId,
@@ -228,6 +301,32 @@ public sealed class TicketingModule : ITicketingModule
             RandomNumberGenerator.GetBytes(32))}";
     }
 
+    private static string NormalizeTicketCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new BusinessRuleException("Ticket code is required.");
+        }
+
+        var normalized = code.Trim();
+
+        const string qrPayloadPrefix = "ticket:";
+
+        if (normalized.StartsWith(
+                qrPayloadPrefix,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized[qrPayloadPrefix.Length..].Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new BusinessRuleException("Ticket code is required.");
+        }
+
+        return normalized;
+    }
+
     private static bool IsUniqueViolation(DbUpdateException exception)
     {
         return exception.InnerException is SqlException sqlException &&
@@ -245,5 +344,16 @@ public sealed class TicketingModule : ITicketingModule
             ticket.SeatId,
             ticket.Code,
             ticket.Status.ToString());
+    }
+
+    private static TicketCheckInInfo ToCheckInInfo(Ticket ticket)
+    {
+        return new TicketCheckInInfo(
+            ticket.Id,
+            ticket.BookingId,
+            ticket.ShowtimeId,
+            ticket.SeatId,
+            ticket.Status.ToString(),
+            ticket.UsedAt);
     }
 }

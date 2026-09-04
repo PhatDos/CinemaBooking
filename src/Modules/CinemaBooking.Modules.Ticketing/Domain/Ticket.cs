@@ -19,4 +19,6 @@ public sealed class Ticket
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UsedAt { get; set; }
+
+    public byte[] RowVersion { get; set; } = [];
 }

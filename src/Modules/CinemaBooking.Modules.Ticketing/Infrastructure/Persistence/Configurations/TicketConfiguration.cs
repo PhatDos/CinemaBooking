@@ -38,6 +38,9 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
 
         builder.Property(ticket => ticket.UsedAt);
 
+        builder.Property(ticket => ticket.RowVersion)
+            .IsRowVersion();
+
         builder.HasIndex(ticket => ticket.Code)
             .IsUnique();
 
