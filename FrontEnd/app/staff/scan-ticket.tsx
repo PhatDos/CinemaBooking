@@ -104,7 +104,7 @@ export default function ScanTicketScreen() {
         }}
         facing="back"
         onBarcodeScanned={isScanned ? undefined : handleBarcodeScanned}
-        style={StyleSheet.absoluteFillObject}
+        style={styles.camera}
       />
 
       <View style={styles.topBar}>
@@ -202,6 +202,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#111827',
+  },
+  camera: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   center: {
     flex: 1,

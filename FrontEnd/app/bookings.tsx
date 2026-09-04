@@ -42,7 +42,11 @@ export default function BookingsScreen() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      void loadBookings();
+      const timeoutId = setTimeout(() => {
+        void loadBookings();
+      }, 0);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated]);
 

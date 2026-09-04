@@ -44,7 +44,11 @@ export default function MoviesScreen() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadMovies();
+      const timeoutId = setTimeout(() => {
+        void loadMovies();
+      }, 0);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated]);
 

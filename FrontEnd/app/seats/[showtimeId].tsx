@@ -49,12 +49,15 @@ export default function SeatsScreen() {
   );
 
   useEffect(() => {
-    void loadSeats();
+    const timeoutId = setTimeout(() => {
+      void loadSeats();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [loadSeats]);
 
   useEffect(() => {
     if (!hold) {
-      setRemainingSeconds(0);
       handledExpiryRef.current = false;
       return;
     }
@@ -85,8 +88,6 @@ export default function SeatsScreen() {
         }
       }
     }
-
-    syncCountdown();
 
     const timer = setInterval(syncCountdown, 1000);
 
@@ -127,6 +128,7 @@ export default function SeatsScreen() {
       });
 
       setHold(response);
+      setRemainingSeconds(calculateRemainingSeconds(response.expiresAt));
       setBookingError('');
       setSelectedSeatIds(new Set());
       await loadSeats(false);
@@ -330,6 +332,10 @@ function formatCountdown(totalSeconds: number) {
   const seconds = totalSeconds % 60;
 
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function calculateRemainingSeconds(expiresAt: string) {
+  return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000));
 }
 
 function getHoldErrorMessage(error: unknown) {
