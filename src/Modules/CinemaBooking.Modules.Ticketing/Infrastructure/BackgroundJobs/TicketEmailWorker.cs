@@ -230,14 +230,12 @@ public sealed class TicketEmailWorker : BackgroundService
                 var label = seat is null
                     ? ticket.SeatId.ToString()
                     : $"{seat.Row}{seat.Number}";
-                var payload = TicketQrPayload.Create(ticket.Code);
                 var qrCodeBytes = qrCodeGenerator.GeneratePng(ticket.Code);
                 var contentId = $"ticket-qr-{ticket.Id:N}";
 
                 return new TicketEmailRow(
                     label,
                     ticket.Code,
-                    payload,
                     contentId,
                     qrCodeBytes);
             }).ToArray();
@@ -321,13 +319,12 @@ public sealed class TicketEmailWorker : BackgroundService
             builder.Append("<div style=\"margin-top:4px;font-size:32px;line-height:38px;font-weight:700;color:#111827;\">");
             builder.Append(WebUtility.HtmlEncode(ticket.SeatLabel));
             builder.AppendLine("</div>");
-            builder.Append("<div style=\"margin-top:14px;font-size:13px;line-height:18px;color:#4b5563;\">Ticket code</div>");
-            builder.Append("<div style=\"margin-top:4px;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:18px;color:#111827;word-break:break-all;\">");
-            builder.Append(WebUtility.HtmlEncode(ticket.TicketCode));
+            builder.Append("<div style=\"margin-top:14px;font-size:13px;line-height:18px;color:#4b5563;\">Ticket</div>");
+            builder.Append("<div style=\"display:inline-block;margin-top:6px;padding:7px 10px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:16px;font-weight:700;color:#3730a3;\">");
+            builder.Append(WebUtility.HtmlEncode(
+                FormatTicketCode(ticket.TicketCode)));
             builder.AppendLine("</div>");
-            builder.Append("<div style=\"margin-top:12px;font-size:12px;line-height:18px;color:#6b7280;word-break:break-all;\">QR payload: ");
-            builder.Append(WebUtility.HtmlEncode(ticket.QrPayload));
-            builder.AppendLine("</div>");
+            builder.AppendLine("<div style=\"margin-top:12px;font-size:12px;line-height:18px;color:#6b7280;\">Scan the QR code at the entrance.</div>");
             builder.AppendLine("</td>");
             builder.AppendLine("<td align=\"center\" style=\"width:170px;padding:20px;background:#f9fafb;vertical-align:middle;\">");
             builder.Append("<img alt=\"Ticket QR\" src=\"cid:");
@@ -364,6 +361,23 @@ public sealed class TicketEmailWorker : BackgroundService
         builder.AppendLine("</tr>");
     }
 
+    private static string FormatTicketCode(string ticketCode)
+    {
+        const int visiblePrefixLength = 8;
+        const int visibleSuffixLength = 6;
+
+        if (ticketCode.Length <=
+            visiblePrefixLength + visibleSuffixLength + 3)
+        {
+            return ticketCode;
+        }
+
+        return string.Concat(
+            ticketCode.AsSpan(0, visiblePrefixLength),
+            "...",
+            ticketCode.AsSpan(ticketCode.Length - visibleSuffixLength));
+    }
+
     private static string Truncate(string value)
     {
         return value.Length <= MaximumLastErrorLength
@@ -374,7 +388,6 @@ public sealed class TicketEmailWorker : BackgroundService
     private sealed record TicketEmailRow(
         string SeatLabel,
         string TicketCode,
-        string QrPayload,
         string QrContentId,
         byte[] QrPngBytes);
 }
