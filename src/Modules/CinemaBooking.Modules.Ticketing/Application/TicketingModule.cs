@@ -3,6 +3,7 @@ using CinemaBooking.Modules.Ticketing.Contracts;
 using CinemaBooking.Modules.Ticketing.Domain;
 using CinemaBooking.Modules.Ticketing.Infrastructure.Persistence;
 using CinemaBooking.SharedKernel.Exceptions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CinemaBooking.Modules.Ticketing.Application;
@@ -52,6 +53,11 @@ public sealed class TicketingModule : ITicketingModule
 
             if (missing.Length == 0)
             {
+                await EnsureTicketEmailQueuedAsync(
+                    request.BookingId,
+                    request.UserId,
+                    cancellationToken);
+
                 return existing
                     .OrderBy(ticket => ticket.CreatedAt)
                     .Select(ToInfo)
@@ -59,6 +65,10 @@ public sealed class TicketingModule : ITicketingModule
             }
 
             _dbContext.Tickets.AddRange(missing);
+            await QueueTicketEmailIfMissingAsync(
+                request.BookingId,
+                request.UserId,
+                cancellationToken);
 
             try
             {
@@ -86,6 +96,53 @@ public sealed class TicketingModule : ITicketingModule
             .OrderBy(ticket => ticket.CreatedAt)
             .Select(ToInfo)
             .ToList();
+    }
+
+    private async Task EnsureTicketEmailQueuedAsync(
+        Guid bookingId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        await QueueTicketEmailIfMissingAsync(
+            bookingId,
+            userId,
+            cancellationToken);
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            _dbContext.ChangeTracker.Clear();
+        }
+    }
+
+    private async Task QueueTicketEmailIfMissingAsync(
+        Guid bookingId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var queued =
+            await _dbContext.TicketEmailOutbox
+                .AsNoTracking()
+                .AnyAsync(
+                    message => message.BookingId == bookingId,
+                    cancellationToken);
+
+        if (queued)
+        {
+            return;
+        }
+
+        _dbContext.TicketEmailOutbox.Add(
+            new TicketEmailOutbox
+            {
+                BookingId = bookingId,
+                UserId = userId,
+                Status = TicketEmailStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            });
     }
 
     public async Task<IReadOnlyList<TicketInfo>> GetTicketsByBookingAsync(
@@ -169,6 +226,14 @@ public sealed class TicketingModule : ITicketingModule
     {
         return $"TKT_{Convert.ToHexString(
             RandomNumberGenerator.GetBytes(32))}";
+    }
+
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException sqlException &&
+               sqlException.Errors
+                   .Cast<SqlError>()
+                   .Any(error => error.Number is 2601 or 2627);
     }
 
     private static TicketInfo ToInfo(Ticket ticket)

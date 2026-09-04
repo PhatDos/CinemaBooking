@@ -13,7 +13,7 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.BackgroundJobs;
 
 public sealed class PaymentOutboxWorker : BackgroundService
 {
-    private const int BatchSize = 20;
+    private const int BatchSize = 10;
     private const int MaximumLastErrorLength = 2000;
 
     private static readonly TimeSpan Interval =

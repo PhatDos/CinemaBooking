@@ -2,6 +2,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\CinemaBooking.SharedKernel\CinemaBooking.SharedKernel.csproj" />
+    <ProjectReference Include="..\CinemaBooking.Modules.Catalog\CinemaBooking.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\CinemaBooking.Modules.Identity\CinemaBooking.Modules.Identity.csproj" />
+    <ProjectReference Include="..\CinemaBooking.Modules.Scheduling\CinemaBooking.Modules.Scheduling.csproj" />
+    <ProjectReference Include="..\CinemaBooking.Modules.Theater\CinemaBooking.Modules.Theater.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -11,6 +15,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
   </ItemGroup>
 
   <PropertyGroup>

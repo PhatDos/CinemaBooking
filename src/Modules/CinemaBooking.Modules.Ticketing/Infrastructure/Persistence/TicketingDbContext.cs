@@ -12,6 +12,9 @@ public sealed class TicketingDbContext : DbContext
 
     public DbSet<Ticket> Tickets => Set<Ticket>();
 
+    public DbSet<TicketEmailOutbox> TicketEmailOutbox =>
+        Set<TicketEmailOutbox>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(

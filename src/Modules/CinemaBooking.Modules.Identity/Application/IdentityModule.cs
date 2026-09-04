@@ -106,6 +106,25 @@ public sealed class IdentityModule : IIdentityModule
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<UserContactInfo?> GetUserContactAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        return await _dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.Id == userId)
+            .Select(user => new UserContactInfo(
+                user.Id,
+                user.Email ?? string.Empty,
+                user.UserName))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private async Task<ApplicationUser> FindUserAsync(
         Guid userId)
     {
