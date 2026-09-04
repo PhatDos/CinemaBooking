@@ -39,7 +39,13 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Cinema Booking to scan ticket QR codes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

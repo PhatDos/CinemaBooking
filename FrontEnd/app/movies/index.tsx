@@ -1,4 +1,4 @@
-import { router, Redirect } from 'expo-router';
+import { router, Redirect, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,6 +13,8 @@ import {
 import { getMovies } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
 import type { Movie } from '@/src/types';
+
+const scanTicketRoute = '/staff/scan-ticket' as Href;
 
 export default function MoviesScreen() {
   const { isAuthenticated, isLoading, signOut, user } = useAuth();
@@ -58,6 +60,8 @@ export default function MoviesScreen() {
     return <CenteredLoader />;
   }
 
+  const canCheckIn = user?.roles.some((role) => role === 'Staff' || role === 'Admin') ?? false;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -67,6 +71,12 @@ export default function MoviesScreen() {
         </View>
 
         <View style={styles.actions}>
+          {canCheckIn && (
+            <Pressable onPress={() => router.push(scanTicketRoute)} style={styles.primaryActionButton}>
+              <Text style={styles.primaryActionText}>Scan Ticket</Text>
+            </Pressable>
+          )}
+
           <Pressable onPress={() => router.push('/bookings')} style={styles.actionButton}>
             <Text style={styles.actionText}>My Bookings</Text>
           </Pressable>
@@ -181,10 +191,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
+  primaryActionButton: {
+    borderRadius: 8,
+    backgroundColor: '#111827',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
   actionText: {
     color: '#111827',
     fontSize: 14,
     fontWeight: '600',
+  },
+  primaryActionText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   list: {
     padding: 20,
