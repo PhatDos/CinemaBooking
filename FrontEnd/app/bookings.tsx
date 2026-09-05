@@ -1,9 +1,12 @@
 import {
   Redirect,
-  router } from 'expo-router';
-import { useCallback,
+  router,
+} from 'expo-router';
+import {
+  useCallback,
   useEffect,
-  useState } from 'react';
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -13,26 +16,31 @@ import {
   View,
 } from 'react-native';
 
-import { getBookings } from '@/src/api/bookings';
+import { cancelBooking, getBookings } from '@/src/api/bookings';
 import { getCinema, getRoom } from '@/src/api/cinemas';
 import { getMovieById } from '@/src/api/movies';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
+import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
 import { LogoutButton } from '@/src/components/LogoutButton';
+import { useAppNotification } from '@/src/components/AppNotification';
 import { formatVenueName } from '@/src/display';
-import type { Booking, BookingStatus } from '@/src/types';
 import { styles } from '@/src/styles/screens/bookings.styles';
+import type { Booking, BookingStatus } from '@/src/types';
 
 export default function BookingsScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { showNotification } = useAppNotification();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [showtimeLabels, setShowtimeLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
 
   const loadShowtimeLabels = useCallback(async (items: Booking[]) => {
     const uniqueShowtimeIds = Array.from(new Set(items.map((item) => item.showtimeId)));
@@ -89,6 +97,31 @@ export default function BookingsScreen() {
       return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated, loadBookings]);
+
+  async function handleCancelBooking() {
+    if (!bookingToCancel || cancellingBookingId) {
+      return;
+    }
+
+    setCancellingBookingId(bookingToCancel.id);
+    setError('');
+
+    try {
+      await cancelBooking(bookingToCancel.id);
+      setBookingToCancel(null);
+      showNotification('Booking cancelled. Seats are available again.', {
+        tone: 'success',
+      });
+      await loadBookings(false);
+    } catch (cancelError) {
+      console.error(cancelError);
+      showNotification('Cannot cancel this booking right now.', {
+        tone: 'error',
+      });
+    } finally {
+      setCancellingBookingId(null);
+    }
+  }
 
   if (isLoading || loading) {
     return <CenteredLoader />;
@@ -183,6 +216,24 @@ export default function BookingsScreen() {
                 </View>
 
                 <Text style={styles.total}>{formatCurrency(item.totalAmount)}</Text>
+
+                {isPendingStatus(item.status) ? (
+                  <View style={styles.cardActions}>
+                    <AnimatedPressable
+                      contentStyle={styles.cancelBookingButton}
+                      disabled={cancellingBookingId === item.id}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        setBookingToCancel(item);
+                      }}>
+                      {cancellingBookingId === item.id ? (
+                        <ActivityIndicator color="#dc2626" />
+                      ) : (
+                        <Text style={styles.cancelBookingText}>Cancel booking</Text>
+                      )}
+                    </AnimatedPressable>
+                  </View>
+                ) : null}
               </AnimatedPressable>
             </FadeInView>
           )}
@@ -190,6 +241,21 @@ export default function BookingsScreen() {
       )}
 
       <BottomNav />
+      <ConfirmDialog
+        cancelLabel="Keep booking"
+        confirmLabel="Cancel booking"
+        destructive
+        loading={cancellingBookingId !== null}
+        message="This will release the selected seats for other customers."
+        onCancel={() => {
+          if (!cancellingBookingId) {
+            setBookingToCancel(null);
+          }
+        }}
+        onConfirm={handleCancelBooking}
+        title="Cancel pending booking?"
+        visible={bookingToCancel !== null}
+      />
     </View>
   );
 }
@@ -236,6 +302,10 @@ function getStatusBadgeTextStyle(status: BookingStatus) {
     default:
       return styles.badgeTextPending;
   }
+}
+
+function isPendingStatus(status: BookingStatus) {
+  return normalizeStatus(status) === 'pending';
 }
 
 function formatCurrency(value: number) {

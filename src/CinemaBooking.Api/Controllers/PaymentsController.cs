@@ -38,6 +38,26 @@ public class PaymentsController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("by-hold/{holdId:guid}")]
+    public async Task<IActionResult> GetByHoldId(
+        Guid holdId,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+
+        var result =
+            await _service.GetByHoldIdAsync(
+                userId,
+                holdId,
+                User.IsInRole(AppRoles.Admin),
+                cancellationToken);
+
+        return result is null
+            ? NotFound()
+            : Ok(result);
+    }
+
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(
         Guid id,

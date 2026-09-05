@@ -124,7 +124,7 @@ export default function CheckoutScreen() {
           const refreshedPayment = await getPayment(paymentId);
           setPayment(refreshedPayment);
 
-          if (refreshedPayment.status === 'Succeeded') {
+          if (refreshedPayment.status === 'Succeeded' && refreshedPayment.bookingId) {
             const refreshedBooking = await getBooking(refreshedPayment.bookingId);
             setBooking(refreshedBooking);
             return;

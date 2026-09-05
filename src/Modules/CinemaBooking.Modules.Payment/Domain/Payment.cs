@@ -4,9 +4,13 @@ public class Payment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public Guid BookingId { get; set; }
+    public Guid? BookingId { get; set; }
+
+    public Guid? HoldId { get; set; }
 
     public Guid UserId { get; set; }
+
+    public Guid? ShowtimeId { get; set; }
 
     public long? OrderCode { get; set; }
 
@@ -31,6 +35,8 @@ public class Payment
     public DateTime CreatedAt { get; set; } =
         DateTime.UtcNow;
 
+    public DateTime? ExpiresAt { get; set; }
+
     public DateTime? PaidAt { get; set; }
 
     public DateTime? FulfilledAt { get; set; }
@@ -38,4 +44,7 @@ public class Payment
     public DateTime? FulfillmentFailedAt { get; set; }
 
     public string? FulfillmentLastError { get; set; }
+
+    public ICollection<PaymentSeat> Seats { get; set; } =
+        new List<PaymentSeat>();
 }

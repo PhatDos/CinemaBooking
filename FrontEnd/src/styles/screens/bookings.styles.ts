@@ -141,6 +141,27 @@ export const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
   },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 14,
+  },
+  cancelBookingButton: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: radius.md,
+    backgroundColor: '#fef2f2',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  cancelBookingText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '900',
+  },
   date: {
     marginTop: 5,
     color: colors.muted,

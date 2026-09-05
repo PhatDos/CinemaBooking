@@ -197,7 +197,9 @@ export type Cinema = {
 
 export type Payment = {
   id: string;
-  bookingId: string;
+  bookingId: string | null;
+  holdId: string | null;
+  showtimeId: string | null;
   orderCode: number | null;
   amount: number;
   status: PaymentStatus;
@@ -208,6 +210,7 @@ export type Payment = {
   checkoutUrl: string | null;
   qrCode: string | null;
   createdAt: string;
+  expiresAt: string | null;
   paidAt: string | null;
   fulfilledAt: string | null;
   fulfillmentFailedAt: string | null;

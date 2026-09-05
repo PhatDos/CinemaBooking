@@ -1,5 +1,6 @@
 using CinemaBooking.Modules.Booking.Application.Interfaces;
 using CinemaBooking.Modules.Booking.Application.Pricing;
+using CinemaBooking.Modules.Booking.Contracts;
 using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Scheduling.Contracts;
 using CinemaBooking.Modules.Theater.Contracts;
@@ -181,6 +182,110 @@ public class BookingService
         }
 
         await _seatHoldService.ReleaseAsync(hold);
+
+        return ToResponse(booking);
+    }
+
+    public async Task<BookingResponse> CreateConfirmedAsync(
+        Guid userId,
+        Guid holdId,
+        Guid showtimeId,
+        IReadOnlyCollection<CreateConfirmedBookingSeat> seats)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        if (holdId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Hold id is required.");
+        }
+
+        if (showtimeId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Showtime id is required.");
+        }
+
+        if (seats.Count == 0)
+        {
+            throw new BusinessRuleException(
+                "At least one seat is required.");
+        }
+
+        var existingBooking =
+            await _repository.GetByHoldIdAsync(holdId);
+
+        if (existingBooking is not null)
+        {
+            if (existingBooking.UserId != userId)
+            {
+                throw new ConflictException(
+                    "Seat hold does not belong to the current user.");
+            }
+
+            return ToResponse(existingBooking);
+        }
+
+        var distinctSeats = seats
+            .GroupBy(seat => seat.SeatId)
+            .Select(group => group.First())
+            .ToList();
+
+        if (distinctSeats.Count != seats.Count)
+        {
+            throw new BusinessRuleException(
+                "Duplicate seats are not allowed.");
+        }
+
+        var now = DateTime.UtcNow;
+
+        var booking = new BookingEntity
+        {
+            UserId = userId,
+            ShowtimeId = showtimeId,
+            HoldId = holdId,
+            Status = BookingStatus.Confirmed,
+            CreatedAt = now,
+            ExpiresAt = null
+        };
+
+        foreach (var seat in distinctSeats)
+        {
+            booking.Seats.Add(new BookingSeat
+            {
+                ShowtimeId = showtimeId,
+                SeatId = seat.SeatId,
+                Price = seat.Price
+            });
+        }
+
+        booking.TotalAmount =
+            booking.Seats.Sum(seat => seat.Price);
+
+        try
+        {
+            await _repository.AddAsync(booking);
+        }
+        catch (DbUpdateException ex)
+        {
+            var bookingFromRetry =
+                await _repository.GetByHoldIdAsync(holdId);
+
+            if (bookingFromRetry is not null &&
+                bookingFromRetry.UserId == userId)
+            {
+                return ToResponse(bookingFromRetry);
+            }
+
+            if (IsUniqueViolation(ex))
+            {
+                throw new ConflictException(
+                    "One or more seats are already booked.");
+            }
+
+            throw;
+        }
 
         return ToResponse(booking);
     }

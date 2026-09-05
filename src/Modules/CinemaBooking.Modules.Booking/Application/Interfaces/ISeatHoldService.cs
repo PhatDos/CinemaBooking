@@ -18,6 +18,10 @@ public interface ISeatHoldService
         SeatHoldMetadata hold,
         TimeSpan duration);
 
+    Task<bool> ExtendAsync(
+        SeatHoldMetadata hold,
+        DateTimeOffset expiresAt);
+
     Task<bool> IsHeldByAsync(
         Guid showtimeId,
         Guid seatId,

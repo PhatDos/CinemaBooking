@@ -13,6 +13,10 @@ public interface IPaymentRepository
         Guid bookingId,
         CancellationToken cancellationToken = default);
 
+    Task<PaymentEntity?> GetByHoldIdAsync(
+        Guid holdId,
+        CancellationToken cancellationToken = default);
+
     Task<PaymentEntity?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default);

@@ -4,7 +4,11 @@ public class PaymentResponse
 {
     public Guid Id { get; set; }
 
-    public Guid BookingId { get; set; }
+    public Guid? BookingId { get; set; }
+
+    public Guid? HoldId { get; set; }
+
+    public Guid? ShowtimeId { get; set; }
 
     public long? OrderCode { get; set; }
 
@@ -25,6 +29,8 @@ public class PaymentResponse
     public string? QrCode { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public DateTime? ExpiresAt { get; set; }
 
     public DateTime? PaidAt { get; set; }
 

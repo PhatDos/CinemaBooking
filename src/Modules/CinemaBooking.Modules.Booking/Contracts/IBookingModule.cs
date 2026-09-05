@@ -18,9 +18,27 @@ public interface IBookingModule
         Guid userId,
         Guid holdId);
 
+    Task<HoldPaymentInfo> GetHoldForPaymentAsync(
+        Guid userId,
+        Guid holdId,
+        CancellationToken cancellationToken = default);
+
+    Task ExtendHoldAsync(
+        Guid userId,
+        Guid holdId,
+        DateTimeOffset expiresAt,
+        CancellationToken cancellationToken = default);
+
     Task<CreateBookingResult> CreateBookingAsync(
         Guid userId,
         Guid holdId);
+
+    Task<CreateBookingResult> CreateConfirmedBookingAsync(
+        Guid userId,
+        Guid holdId,
+        Guid showtimeId,
+        IReadOnlyCollection<CreateConfirmedBookingSeat> seats,
+        CancellationToken cancellationToken = default);
 
     Task ExtendExpirationAsync(
         Guid bookingId,

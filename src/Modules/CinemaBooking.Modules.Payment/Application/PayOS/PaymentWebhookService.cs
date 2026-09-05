@@ -81,6 +81,7 @@ public sealed class PaymentWebhookService : IPaymentWebhookService
                     new PaymentSucceededOutboxMessage(
                         payment.Id,
                         payment.BookingId,
+                        payment.HoldId,
                         payment.UserId)),
                 CreatedAt = DateTime.UtcNow
             },

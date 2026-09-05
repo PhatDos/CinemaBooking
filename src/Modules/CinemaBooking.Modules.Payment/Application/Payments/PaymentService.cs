@@ -45,14 +45,144 @@ public class PaymentService
             throw new BusinessRuleException("User id is required.");
         }
 
-        if (request.BookingId == Guid.Empty)
+        if (request.HoldId is not null &&
+            request.HoldId != Guid.Empty)
+        {
+            return await PayHoldAsync(
+                userId,
+                request.HoldId.Value,
+                cancellationToken);
+        }
+
+        if (request.BookingId is not null &&
+            request.BookingId != Guid.Empty)
+        {
+            return await PayBookingAsync(
+                userId,
+                request.BookingId.Value,
+                cancellationToken);
+        }
+
+        throw new BusinessRuleException(
+            "Hold id is required.");
+    }
+
+    private async Task<PaymentResponse> PayHoldAsync(
+        Guid userId,
+        Guid holdId,
+        CancellationToken cancellationToken)
+    {
+        var hold =
+            await _bookingModule.GetHoldForPaymentAsync(
+                userId,
+                holdId,
+                cancellationToken);
+
+        var existing =
+            await _paymentRepository.GetByHoldIdAsync(
+                hold.HoldId,
+                cancellationToken);
+
+        if (existing is not null)
+        {
+            await SyncPendingPaymentAsync(
+                existing,
+                cancellationToken);
+
+            return ToResponse(existing);
+        }
+
+        var paymentExpiresAt =
+            DateTime.UtcNow.AddMinutes(GetPaymentExpirationMinutes());
+
+        for (var attempt = 0; attempt < MaximumOrderCodeAttempts; attempt++)
+        {
+            var orderCode = GenerateOrderCode();
+
+            var paymentLink =
+                await _paymentGateway.CreatePaymentLinkAsync(
+                    new PaymentLinkRequest(
+                        orderCode,
+                        hold.TotalAmount,
+                        BuildPaymentDescription(orderCode),
+                        _payOSOptions.ReturnUrl,
+                        _payOSOptions.CancelUrl),
+                    cancellationToken);
+
+            await _bookingModule.ExtendHoldAsync(
+                userId,
+                hold.HoldId,
+                paymentExpiresAt,
+                cancellationToken);
+
+            var now = DateTime.UtcNow;
+
+            var payment = new PaymentEntity
+            {
+                BookingId = null,
+                HoldId = hold.HoldId,
+                UserId = userId,
+                ShowtimeId = hold.ShowtimeId,
+                OrderCode = paymentLink.OrderCode,
+                Amount = hold.TotalAmount,
+                Status = PaymentStatus.Pending,
+                FulfillmentStatus = PaymentFulfillmentStatus.Pending,
+                Provider = "PayOS",
+                PaymentLinkId = paymentLink.PaymentLinkId,
+                CheckoutUrl = paymentLink.CheckoutUrl,
+                QrCode = paymentLink.QrCode,
+                CreatedAt = now,
+                ExpiresAt = paymentExpiresAt,
+                Seats = hold.Seats
+                    .Select(seat => new PaymentSeat
+                    {
+                        SeatId = seat.SeatId,
+                        Price = seat.Price
+                    })
+                    .ToList()
+            };
+
+            try
+            {
+                await _paymentRepository.AddAsync(
+                    payment,
+                    cancellationToken);
+
+                return ToResponse(payment);
+            }
+            catch (DbUpdateException ex) when (
+                attempt + 1 < MaximumOrderCodeAttempts &&
+                IsUniqueViolation(ex))
+            {
+                var existingPayment =
+                    await _paymentRepository.GetByHoldIdAsync(
+                        hold.HoldId,
+                        cancellationToken);
+
+                if (existingPayment is not null)
+                {
+                    return ToResponse(existingPayment);
+                }
+            }
+        }
+
+        throw new ConflictException(
+            "Could not create a unique payment order code.");
+    }
+
+    private async Task<PaymentResponse> PayBookingAsync(
+        Guid userId,
+        Guid bookingId,
+        CancellationToken cancellationToken)
+    {
+        if (bookingId == Guid.Empty)
         {
             throw new BusinessRuleException("Booking id is required.");
         }
 
         var booking =
             await _bookingModule.GetForPaymentAsync(
-                request.BookingId,
+                bookingId,
                 cancellationToken);
 
         if (booking is null ||
@@ -115,16 +245,26 @@ public class PaymentService
             var payment = new PaymentEntity
             {
                 BookingId = booking.Id,
+                HoldId = null,
                 UserId = userId,
+                ShowtimeId = booking.ShowtimeId,
                 OrderCode = paymentLink.OrderCode,
-            Amount = booking.TotalAmount,
-            Status = PaymentStatus.Pending,
-            FulfillmentStatus = PaymentFulfillmentStatus.Pending,
-            Provider = "PayOS",
+                Amount = booking.TotalAmount,
+                Status = PaymentStatus.Pending,
+                FulfillmentStatus = PaymentFulfillmentStatus.Pending,
+                Provider = "PayOS",
                 PaymentLinkId = paymentLink.PaymentLinkId,
                 CheckoutUrl = paymentLink.CheckoutUrl,
                 QrCode = paymentLink.QrCode,
-                CreatedAt = now
+                CreatedAt = now,
+                ExpiresAt = paymentExpiresAt,
+                Seats = booking.Seats
+                    .Select(seat => new PaymentSeat
+                    {
+                        SeatId = seat.SeatId,
+                        Price = seat.Price
+                    })
+                    .ToList()
             };
 
             try
@@ -174,6 +314,45 @@ public class PaymentService
         var payment =
             await _paymentRepository.GetByBookingIdAsync(
                 bookingId,
+                cancellationToken);
+
+        if (payment is null)
+        {
+            return null;
+        }
+
+        if (!canReadAnyPayment &&
+            payment.UserId != userId)
+        {
+            return null;
+        }
+
+        await SyncPendingPaymentAsync(
+            payment,
+            cancellationToken);
+
+        return ToResponse(payment);
+    }
+
+    public async Task<PaymentResponse?> GetByHoldIdAsync(
+        Guid userId,
+        Guid holdId,
+        bool canReadAnyPayment,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        if (holdId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Hold id is required.");
+        }
+
+        var payment =
+            await _paymentRepository.GetByHoldIdAsync(
+                holdId,
                 cancellationToken);
 
         if (payment is null)
@@ -290,6 +469,7 @@ public class PaymentService
                     new PaymentSucceededOutboxMessage(
                         payment.Id,
                         payment.BookingId,
+                        payment.HoldId,
                         payment.UserId)),
                 CreatedAt = DateTime.UtcNow
             },
@@ -314,6 +494,8 @@ public class PaymentService
         {
             Id = payment.Id,
             BookingId = payment.BookingId,
+            HoldId = payment.HoldId,
+            ShowtimeId = payment.ShowtimeId,
             OrderCode = payment.OrderCode,
             Amount = payment.Amount,
             Status = payment.Status.ToString(),
@@ -324,6 +506,7 @@ public class PaymentService
             CheckoutUrl = payment.CheckoutUrl,
             QrCode = payment.QrCode,
             CreatedAt = payment.CreatedAt,
+            ExpiresAt = payment.ExpiresAt,
             PaidAt = payment.PaidAt,
             FulfilledAt = payment.FulfilledAt,
             FulfillmentFailedAt = payment.FulfillmentFailedAt

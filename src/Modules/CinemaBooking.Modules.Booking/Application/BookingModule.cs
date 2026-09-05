@@ -82,6 +82,28 @@ public class BookingModule : IBookingModule
         await _seatHoldService.ReleaseAsync(userId, holdId);
     }
 
+    public async Task<HoldPaymentInfo> GetHoldForPaymentAsync(
+        Guid userId,
+        Guid holdId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _seatHoldService.GetForPaymentAsync(
+            userId,
+            holdId);
+    }
+
+    public async Task ExtendHoldAsync(
+        Guid userId,
+        Guid holdId,
+        DateTimeOffset expiresAt,
+        CancellationToken cancellationToken = default)
+    {
+        await _seatHoldService.ExtendAsync(
+            userId,
+            holdId,
+            expiresAt);
+    }
+
     public async Task<CreateBookingResult> CreateBookingAsync(
         Guid userId,
         Guid holdId)
@@ -90,6 +112,23 @@ public class BookingModule : IBookingModule
             await _bookingService.CreateAsync(
                 userId,
                 holdId);
+
+        return ToResult(booking);
+    }
+
+    public async Task<CreateBookingResult> CreateConfirmedBookingAsync(
+        Guid userId,
+        Guid holdId,
+        Guid showtimeId,
+        IReadOnlyCollection<CreateConfirmedBookingSeat> seats,
+        CancellationToken cancellationToken = default)
+    {
+        var booking =
+            await _bookingService.CreateConfirmedAsync(
+                userId,
+                holdId,
+                showtimeId,
+                seats);
 
         return ToResult(booking);
     }

@@ -199,6 +199,44 @@ public class RedisSeatHoldService : ISeatHoldService
         return extended;
     }
 
+    public async Task<bool> ExtendAsync(
+        SeatHoldMetadata hold,
+        DateTimeOffset expiresAt)
+    {
+        var ttl = expiresAt - DateTimeOffset.UtcNow;
+
+        if (ttl <= TimeSpan.Zero)
+        {
+            return false;
+        }
+
+        var extended =
+            await VerifyAndExtendAsync(
+                hold,
+                ttl);
+
+        if (!extended)
+        {
+            return false;
+        }
+
+        var updatedHold = hold with
+        {
+            ExpiresAt = expiresAt
+        };
+
+        await _database.StringSetAsync(
+            GetMetadataKey(hold.ShowtimeId, hold.HoldId),
+            JsonSerializer.Serialize(updatedHold),
+            ttl);
+
+        await _database.KeyExpireAsync(
+            GetHoldIndexKey(hold.HoldId),
+            ttl);
+
+        return true;
+    }
+
     public async Task<bool> IsHeldByAsync(
         Guid showtimeId,
         Guid seatId,

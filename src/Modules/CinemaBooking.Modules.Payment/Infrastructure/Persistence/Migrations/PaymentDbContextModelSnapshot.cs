@@ -73,7 +73,7 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<Guid>("BookingId")
+                    b.Property<Guid?>("BookingId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CheckoutUrl")
@@ -81,6 +81,9 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FulfilledAt")
@@ -97,6 +100,9 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid?>("HoldId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long?>("OrderCode")
                         .HasColumnType("bigint");
@@ -126,13 +132,21 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<Guid?>("ShowtimeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[BookingId] IS NOT NULL");
+
+                    b.HasIndex("HoldId")
+                        .IsUnique()
+                        .HasFilter("[HoldId] IS NOT NULL");
 
                     b.HasIndex("OrderCode")
                         .IsUnique()
@@ -141,6 +155,46 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Payments", "payment");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Payment.Domain.PaymentSeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("SeatId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId", "SeatId")
+                        .IsUnique();
+
+                    b.ToTable("PaymentSeats", "payment");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Payment.Domain.PaymentSeat", b =>
+                {
+                    b.HasOne("CinemaBooking.Modules.Payment.Domain.Payment", "Payment")
+                        .WithMany("Seats")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Payment.Domain.Payment", b =>
+                {
+                    b.Navigation("Seats");
                 });
 #pragma warning restore 612, 618
         }

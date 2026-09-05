@@ -13,11 +13,14 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
 
         builder.HasKey(payment => payment.Id);
 
-        builder.Property(payment => payment.BookingId)
-            .IsRequired();
+        builder.Property(payment => payment.BookingId);
+
+        builder.Property(payment => payment.HoldId);
 
         builder.Property(payment => payment.UserId)
             .IsRequired();
+
+        builder.Property(payment => payment.ShowtimeId);
 
         builder.Property(payment => payment.OrderCode);
 
@@ -57,6 +60,8 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
         builder.Property(payment => payment.CreatedAt)
             .IsRequired();
 
+        builder.Property(payment => payment.ExpiresAt);
+
         builder.Property(payment => payment.PaidAt);
 
         builder.Property(payment => payment.FulfilledAt);
@@ -64,12 +69,22 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
         builder.Property(payment => payment.FulfillmentFailedAt);
 
         builder.HasIndex(payment => payment.BookingId)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[BookingId] IS NOT NULL");
+
+        builder.HasIndex(payment => payment.HoldId)
+            .IsUnique()
+            .HasFilter("[HoldId] IS NOT NULL");
 
         builder.HasIndex(payment => payment.OrderCode)
             .IsUnique()
             .HasFilter("[OrderCode] IS NOT NULL");
 
         builder.HasIndex(payment => payment.UserId);
+
+        builder.HasMany(payment => payment.Seats)
+            .WithOne(seat => seat.Payment)
+            .HasForeignKey(seat => seat.PaymentId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

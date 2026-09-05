@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PaymentEntity = CinemaBooking.Modules.Payment.Domain.Payment;
 
 namespace CinemaBooking.Modules.Payment.Infrastructure.BackgroundJobs;
 
@@ -148,6 +149,7 @@ public sealed class PaymentOutboxWorker : BackgroundService
 
         var payment =
             await dbContext.Payments
+                .Include(item => item.Seats)
                 .FirstOrDefaultAsync(
                     item => item.Id == data.PaymentId,
                     cancellationToken)
@@ -166,23 +168,18 @@ public sealed class PaymentOutboxWorker : BackgroundService
 
         try
         {
-            await bookingModule.ConfirmAsync(
-                data.BookingId,
-                data.UserId,
-                cancellationToken);
-
             var booking =
-                await bookingModule.GetForPaymentAsync(
-                    data.BookingId,
-                    cancellationToken)
-                ?? throw new InvalidOperationException(
-                    "Booking not found for paid payment.");
-
-            if (booking.UserId != data.UserId)
-            {
-                throw new InvalidOperationException(
-                    "Booking owner does not match paid payment.");
-            }
+                data.BookingId is not null
+                    ? await FulfillExistingBookingAsync(
+                        bookingModule,
+                        data.BookingId.Value,
+                        data.UserId,
+                        cancellationToken)
+                    : await CreateBookingFromPaidHoldAsync(
+                        bookingModule,
+                        payment,
+                        data,
+                        cancellationToken);
 
             await ticketingModule.IssueTicketsAsync(
                 new IssueTicketsRequest(
@@ -198,6 +195,13 @@ public sealed class PaymentOutboxWorker : BackgroundService
             payment.FulfilledAt = DateTime.UtcNow;
             payment.FulfillmentFailedAt = null;
             payment.FulfillmentLastError = null;
+
+            if (data.HoldId is not null)
+            {
+                await bookingModule.ReleaseHoldAsync(
+                    data.UserId,
+                    data.HoldId.Value);
+            }
         }
         catch (ConflictException ex)
         {
@@ -205,6 +209,67 @@ public sealed class PaymentOutboxWorker : BackgroundService
             payment.FulfillmentFailedAt = DateTime.UtcNow;
             payment.FulfillmentLastError = Truncate(ex.Message);
         }
+    }
+
+    private static async Task<BookingPaymentInfo> FulfillExistingBookingAsync(
+        IBookingModule bookingModule,
+        Guid bookingId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        await bookingModule.ConfirmAsync(
+            bookingId,
+            userId,
+            cancellationToken);
+
+        var booking =
+            await bookingModule.GetForPaymentAsync(
+                bookingId,
+                cancellationToken)
+            ?? throw new InvalidOperationException(
+                "Booking not found for paid payment.");
+
+        if (booking.UserId != userId)
+        {
+            throw new InvalidOperationException(
+                "Booking owner does not match paid payment.");
+        }
+
+        return booking;
+    }
+
+    private static async Task<BookingPaymentInfo> CreateBookingFromPaidHoldAsync(
+        IBookingModule bookingModule,
+        PaymentEntity payment,
+        PaymentSucceededOutboxMessage data,
+        CancellationToken cancellationToken)
+    {
+        if (data.HoldId is null ||
+            payment.ShowtimeId is null)
+        {
+            throw new InvalidOperationException(
+                "Paid hold payment is missing fulfillment data.");
+        }
+
+        var bookingResult =
+            await bookingModule.CreateConfirmedBookingAsync(
+                data.UserId,
+                data.HoldId.Value,
+                payment.ShowtimeId.Value,
+                payment.Seats
+                    .Select(seat => new CreateConfirmedBookingSeat(
+                        seat.SeatId,
+                        seat.Price))
+                    .ToArray(),
+                cancellationToken);
+
+        payment.BookingId = bookingResult.BookingId;
+
+        return await bookingModule.GetForPaymentAsync(
+            bookingResult.BookingId,
+            cancellationToken)
+            ?? throw new InvalidOperationException(
+                "Booking not found after paid hold fulfillment.");
     }
 
     private static string Truncate(string value)

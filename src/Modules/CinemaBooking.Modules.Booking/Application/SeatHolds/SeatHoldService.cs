@@ -1,4 +1,5 @@
 using CinemaBooking.Modules.Booking.Application.Interfaces;
+using CinemaBooking.Modules.Booking.Application.Pricing;
 using CinemaBooking.Modules.Booking.Contracts;
 using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Scheduling.Contracts;
@@ -9,7 +10,7 @@ namespace CinemaBooking.Modules.Booking.Application.SeatHolds;
 
 public class SeatHoldService
 {
-    public const int HoldDurationSeconds = 60;
+    public const int HoldDurationSeconds = 300;
 
     private readonly ISeatHoldService _seatHoldService;
     private readonly ISchedulingModule _schedulingModule;
@@ -160,6 +161,130 @@ public class SeatHoldService
         }
 
         await _seatHoldService.ReleaseAsync(hold);
+    }
+
+    public async Task<HoldPaymentInfo> GetForPaymentAsync(
+        Guid holderId,
+        Guid holdId)
+    {
+        if (holderId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Holder id is required.");
+        }
+
+        if (holdId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Hold id is required.");
+        }
+
+        var hold =
+            await _seatHoldService.GetHoldAsync(holdId);
+
+        if (hold is null)
+        {
+            throw new ConflictException(
+                "Seat hold does not exist or has expired.");
+        }
+
+        if (hold.UserId != holderId)
+        {
+            throw new NotFoundException("Seat hold not found.");
+        }
+
+        if (hold.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            throw new ConflictException("Seat hold has expired.");
+        }
+
+        var showtime =
+            await _schedulingModule.GetShowtimeAsync(hold.ShowtimeId);
+
+        if (showtime is null)
+        {
+            throw new NotFoundException("Showtime not found.");
+        }
+
+        var distinctSeatIds = hold.SeatIds
+            .Distinct()
+            .ToList();
+
+        await EnsureSeatsAreAvailableInSqlAsync(
+            hold.ShowtimeId,
+            distinctSeatIds);
+
+        var roomSeats =
+            await _theaterModule.GetSeatsByRoomAsync(showtime.RoomId);
+
+        var roomSeatsById =
+            roomSeats.ToDictionary(seat => seat.Id);
+
+        var seats = distinctSeatIds
+            .Select(seatId =>
+            {
+                if (!roomSeatsById.TryGetValue(seatId, out var seat))
+                {
+                    throw new BusinessRuleException(
+                        $"Seat {seatId} does not belong to this showtime.");
+                }
+
+                return new HoldPaymentSeatInfo(
+                    seatId,
+                    SeatPricing.Calculate(
+                        showtime.BasePrice,
+                        seat.Type));
+            })
+            .ToArray();
+
+        return new HoldPaymentInfo
+        {
+            HoldId = hold.HoldId,
+            UserId = hold.UserId,
+            ShowtimeId = hold.ShowtimeId,
+            TotalAmount = seats.Sum(seat => seat.Price),
+            ExpiresAt = hold.ExpiresAt,
+            Seats = seats
+        };
+    }
+
+    public async Task ExtendAsync(
+        Guid holderId,
+        Guid holdId,
+        DateTimeOffset expiresAt)
+    {
+        if (holderId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Holder id is required.");
+        }
+
+        if (holdId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Hold id is required.");
+        }
+
+        var hold =
+            await _seatHoldService.GetHoldAsync(holdId);
+
+        if (hold is null)
+        {
+            throw new ConflictException(
+                "Seat hold does not exist or has expired.");
+        }
+
+        if (hold.UserId != holderId)
+        {
+            throw new NotFoundException("Seat hold not found.");
+        }
+
+        var extended =
+            await _seatHoldService.ExtendAsync(
+                hold,
+                expiresAt);
+
+        if (!extended)
+        {
+            throw new ConflictException(
+                "Seat hold is no longer valid.");
+        }
     }
 
     private async Task EnsureSeatsAreAvailableInSqlAsync(

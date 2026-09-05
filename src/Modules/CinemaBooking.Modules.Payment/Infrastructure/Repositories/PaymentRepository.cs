@@ -31,8 +31,20 @@ public class PaymentRepository : IPaymentRepository
         CancellationToken cancellationToken = default)
     {
         return await _dbContext.Payments
+            .Include(payment => payment.Seats)
             .FirstOrDefaultAsync(payment =>
                 payment.BookingId == bookingId,
+                cancellationToken);
+    }
+
+    public async Task<PaymentEntity?> GetByHoldIdAsync(
+        Guid holdId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Payments
+            .Include(payment => payment.Seats)
+            .FirstOrDefaultAsync(payment =>
+                payment.HoldId == holdId,
                 cancellationToken);
     }
 
@@ -42,6 +54,7 @@ public class PaymentRepository : IPaymentRepository
     {
         return await _dbContext.Payments
             .AsNoTracking()
+            .Include(payment => payment.Seats)
             .FirstOrDefaultAsync(payment =>
                 payment.Id == id,
                 cancellationToken);
@@ -52,6 +65,7 @@ public class PaymentRepository : IPaymentRepository
         CancellationToken cancellationToken = default)
     {
         return await _dbContext.Payments
+            .Include(payment => payment.Seats)
             .FirstOrDefaultAsync(payment =>
                 payment.Id == id,
                 cancellationToken);
@@ -62,6 +76,7 @@ public class PaymentRepository : IPaymentRepository
         CancellationToken cancellationToken = default)
     {
         return await _dbContext.Payments
+            .Include(payment => payment.Seats)
             .FirstOrDefaultAsync(payment =>
                 payment.OrderCode == orderCode,
                 cancellationToken);

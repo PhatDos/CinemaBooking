@@ -10,16 +10,16 @@ import {
   View,
 } from 'react-native';
 
-import { createBooking } from '@/src/api/bookings';
 import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
 import { getMovieById } from '@/src/api/movies';
-import { getSeatAvailability, holdSeats, releaseHold } from '@/src/api/seats';
+import { getSeatAvailability, holdSeats } from '@/src/api/seats';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
+import { useAppNotification } from '@/src/components/AppNotification';
 import {
   formatCinemaName,
   formatCurrency,
@@ -40,6 +40,7 @@ type ShowtimeContext = {
 export default function SeatsScreen() {
   const { showtimeId } = useLocalSearchParams<{ showtimeId: string }>();
   const { isAuthenticated, isLoading } = useAuth();
+  const { showNotification } = useAppNotification();
   const { width } = useWindowDimensions();
   const [seats, setSeats] = useState<SeatAvailability[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<Set<string>>(new Set());
@@ -185,36 +186,30 @@ export default function SeatsScreen() {
     setContinuing(true);
     setActionError('');
 
-    let holdId: string | null = null;
-
     try {
       const hold = await holdSeats(showtimeId, {
         seatIds: Array.from(selectedSeatIds),
       });
 
-      holdId = hold.holdId;
-
-      const booking = await createBooking({
-        holdId,
-      });
-
       setSelectedSeatIds(new Set());
 
       router.push({
-        pathname: '/checkout/[bookingId]',
-        params: { bookingId: booking.bookingId },
-      });
+        pathname: '/checkout/hold/[holdId]',
+        params: {
+          amount: selectedTotal?.toString() ?? '0',
+          expiresAt: hold.expiresAt,
+          holdId: hold.holdId,
+          seatCount: hold.seatIds.length.toString(),
+          showtimeId: hold.showtimeId,
+        },
+      } as never);
     } catch (continueError) {
       console.error(continueError);
 
-      if (holdId) {
-        await releaseHold(holdId).catch((releaseError) => {
-          console.error(releaseError);
-        });
-      }
-
       setSelectedSeatIds(new Set());
-      setActionError(getContinueErrorMessage(continueError));
+      const message = getContinueErrorMessage(continueError);
+      setActionError(message);
+      showNotification(message, { tone: 'error' });
     } finally {
       setContinuing(false);
     }
