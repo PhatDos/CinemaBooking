@@ -8,6 +8,8 @@ public class Room
 
     public Guid CinemaId { get; set; }
 
+    public bool IsActive { get; set; } = true;
+
     public Cinema Cinema { get; set; } = null!;
 
     public ICollection<Seat> Seats { get; set; } = new List<Seat>();

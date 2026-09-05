@@ -65,6 +65,7 @@ public class SeatAvailabilityService
                 SeatId = seat.Id,
                 Row = seat.Row,
                 Number = seat.Number,
+                Type = seat.Type,
                 Status = GetSeatStatus(
                     seat.Id,
                     statusBySeat,

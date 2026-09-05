@@ -306,6 +306,8 @@ export default function SeatsScreen() {
                     contentStyle={[
                       styles.seat,
                       { height: seatSize, width: seatSize },
+                      seat.type === 'VIP' && styles.seatVip,
+                      seat.type === 'Couple' && styles.seatCouple,
                       held && styles.seatHeld,
                       seat.status === 'reserved' && styles.seatReserved,
                       seat.status === 'booked' && styles.seatBooked,
@@ -319,6 +321,8 @@ export default function SeatsScreen() {
                     <Text
                       style={[
                         styles.seatText,
+                        seat.type === 'VIP' && styles.seatTextVip,
+                        seat.type === 'Couple' && styles.seatTextCouple,
                         held && styles.seatTextHeld,
                         seat.status === 'reserved' && styles.seatTextReserved,
                         seat.status === 'booked' && styles.seatTextBooked,
@@ -337,6 +341,8 @@ export default function SeatsScreen() {
 
       <View style={styles.legend}>
         <LegendItem color="#ffffff" label="Available" />
+        <LegendItem color="#ede9fe" label="VIP" />
+        <LegendItem color="#ffe4e6" label="Couple" />
         <LegendItem color={colors.primary} label="Selected" />
         <LegendItem color="#fde68a" label="Holding" />
         <LegendItem color="#344054" label="Unavailable" />
@@ -601,6 +607,14 @@ const styles = StyleSheet.create({
     borderColor: '#facc15',
     backgroundColor: '#fde68a',
   },
+  seatVip: {
+    borderColor: '#a78bfa',
+    backgroundColor: '#ede9fe',
+  },
+  seatCouple: {
+    borderColor: '#fb7185',
+    backgroundColor: '#ffe4e6',
+  },
   seatReserved: {
     borderColor: '#344054',
     backgroundColor: '#344054',
@@ -626,6 +640,12 @@ const styles = StyleSheet.create({
   },
   seatTextHeld: {
     color: '#854d0e',
+  },
+  seatTextVip: {
+    color: '#5b21b6',
+  },
+  seatTextCouple: {
+    color: '#9f1239',
   },
   seatTextReserved: {
     color: colors.surface,

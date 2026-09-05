@@ -8,5 +8,7 @@ public class SeatAvailabilityInfo
 
     public int Number { get; set; }
 
+    public string Type { get; set; } = "Standard";
+
     public string Status { get; set; } = string.Empty;
 }

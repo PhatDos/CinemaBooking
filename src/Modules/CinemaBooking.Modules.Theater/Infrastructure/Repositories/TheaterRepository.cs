@@ -43,9 +43,22 @@ public class TheaterRepository : ITheaterRepository
             .ToListAsync();
     }
 
+    public async Task<List<Room>> GetRoomsByCinemaIdAsync(Guid cinemaId)
+    {
+        return await _dbContext.Rooms
+            .AsNoTracking()
+            .Where(room => room.CinemaId == cinemaId)
+            .Include(room => room.Seats)
+            .AsSplitQuery()
+            .OrderBy(room => room.Name)
+            .ToListAsync();
+    }
+
     public async Task<Room?> GetRoomByIdAsync(Guid id)
     {
         return await _dbContext.Rooms
+            .Include(room => room.Seats)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(room => room.Id == id);
     }
 
@@ -53,6 +66,16 @@ public class TheaterRepository : ITheaterRepository
     {
         return await _dbContext.Seats
             .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<List<Seat>> GetSeatsByRoomIdAsync(Guid roomId)
+    {
+        return await _dbContext.Seats
+            .AsNoTracking()
+            .Where(seat => seat.RoomId == roomId)
+            .OrderBy(seat => seat.Row)
+            .ThenBy(seat => seat.Number)
             .ToListAsync();
     }
 
@@ -74,6 +97,18 @@ public class TheaterRepository : ITheaterRepository
     {
         _dbContext.Seats.Add(seat);
 
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task AddSeatsAsync(IReadOnlyCollection<Seat> seats)
+    {
+        _dbContext.Seats.AddRange(seats);
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task SaveChangesAsync()
+    {
         await _dbContext.SaveChangesAsync();
     }
 }

@@ -19,6 +19,9 @@ public class SeatConfiguration : IEntityTypeConfiguration<Seat>
         builder.Property(seat => seat.Number)
             .IsRequired();
 
+        builder.Property(seat => seat.Type)
+            .IsRequired();
+
         builder.HasIndex(seat => new
         {
             seat.RoomId,

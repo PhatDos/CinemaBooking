@@ -10,4 +10,6 @@ public class CreateSeatRequest
 
     [Range(1, 500)]
     public int Number { get; set; }
+
+    public string Type { get; set; } = "Standard";
 }

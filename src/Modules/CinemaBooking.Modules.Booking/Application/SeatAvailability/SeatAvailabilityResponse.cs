@@ -8,5 +8,7 @@ public class SeatAvailabilityResponse
 
     public int Number { get; set; }
 
+    public string Type { get; set; } = "Standard";
+
     public SeatStatus Status { get; set; }
 }

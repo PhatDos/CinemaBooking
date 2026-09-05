@@ -146,7 +146,8 @@ public class TheaterModule : ITheaterModule
             .Select(room => new RoomInfo(
                 room.Id,
                 room.CinemaId,
-                room.Name))
+                room.Name,
+                room.IsActive))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -188,7 +189,8 @@ public class TheaterModule : ITheaterModule
             {
                 Id = seat.Id,
                 Row = seat.Row,
-                Number = seat.Number
+                Number = seat.Number,
+                Type = seat.Type.ToString()
             })
             .ToListAsync(cancellationToken);
     }

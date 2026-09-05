@@ -109,6 +109,8 @@ export type BookingStatus =
 
 export type SeatStatus = 'available' | 'held' | 'reserved' | 'booked';
 
+export type SeatType = 'Standard' | 'VIP' | 'Couple';
+
 export type PaymentStatus = 'Pending' | 'Succeeded' | 'Failed';
 
 export type BookingSeat = {
@@ -133,6 +135,7 @@ export type SeatAvailability = {
   seatId: string;
   row: string;
   number: number;
+  type: SeatType;
   status: SeatStatus;
 };
 
@@ -168,12 +171,14 @@ export type Seat = {
   roomId: string;
   row: string;
   number: number;
+  type: SeatType;
 };
 
 export type Room = {
   id: string;
   cinemaId: string;
   name: string;
+  isActive: boolean;
   seats?: Seat[];
 };
 

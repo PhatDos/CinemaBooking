@@ -163,6 +163,7 @@ public class BookingModule : IBookingModule
             SeatId = seat.SeatId,
             Row = seat.Row,
             Number = seat.Number,
+            Type = seat.Type,
             Status = seat.Status switch
             {
                 SeatStatus.Available => "available",

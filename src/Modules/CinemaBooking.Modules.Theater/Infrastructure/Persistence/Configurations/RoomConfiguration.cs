@@ -16,6 +16,9 @@ public class RoomConfiguration : IEntityTypeConfiguration<Room>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(room => room.IsActive)
+            .IsRequired();
+
         builder.HasMany(room => room.Seats)
             .WithOne(seat => seat.Room)
             .HasForeignKey(seat => seat.RoomId)

@@ -17,6 +17,8 @@ public class RoomResponse
 
     public string Name { get; set; } = string.Empty;
 
+    public bool IsActive { get; set; }
+
     public List<SeatResponse> Seats { get; set; } = [];
 }
 
@@ -29,4 +31,6 @@ public class SeatResponse
     public string Row { get; set; } = string.Empty;
 
     public int Number { get; set; }
+
+    public string Type { get; set; } = "Standard";
 }

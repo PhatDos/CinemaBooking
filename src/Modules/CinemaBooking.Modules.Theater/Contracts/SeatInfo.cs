@@ -7,4 +7,6 @@ public class SeatInfo
     public string Row { get; set; } = string.Empty;
 
     public int Number { get; set; }
+
+    public string Type { get; set; } = "Standard";
 }

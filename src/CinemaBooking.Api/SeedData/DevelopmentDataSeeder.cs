@@ -158,10 +158,17 @@ public static class DevelopmentDataSeeder
             room = new Room
             {
                 CinemaId = cinema.Id,
-                Name = RoomName
+                Name = RoomName,
+                IsActive = true
             };
 
             dbContext.Rooms.Add(room);
+
+            await dbContext.SaveChangesAsync();
+        }
+        else
+        {
+            room.IsActive = true;
 
             await dbContext.SaveChangesAsync();
         }
@@ -178,6 +185,14 @@ public static class DevelopmentDataSeeder
 
                 if (exists)
                 {
+                    var seat =
+                        await dbContext.Seats.FirstAsync(item =>
+                            item.RoomId == room.Id &&
+                            item.Row == row &&
+                            item.Number == number);
+
+                    seat.Type = GetSeedSeatType(row);
+
                     continue;
                 }
 
@@ -185,7 +200,8 @@ public static class DevelopmentDataSeeder
                 {
                     RoomId = room.Id,
                     Row = row,
-                    Number = number
+                    Number = number,
+                    Type = GetSeedSeatType(row)
                 });
             }
         }
@@ -193,6 +209,16 @@ public static class DevelopmentDataSeeder
         await dbContext.SaveChangesAsync();
 
         return room;
+    }
+
+    private static SeatType GetSeedSeatType(string row)
+    {
+        return row switch
+        {
+            "D" => SeatType.Couple,
+            "C" or "E" => SeatType.VIP,
+            _ => SeatType.Standard
+        };
     }
 
     private static async Task EnsureShowtimesAsync(
