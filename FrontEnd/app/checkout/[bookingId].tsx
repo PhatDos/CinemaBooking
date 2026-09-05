@@ -1,12 +1,27 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getBooking } from '@/src/api/bookings';
+import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
+import { getMovieById } from '@/src/api/movies';
 import { getPayment, payBooking } from '@/src/api/payments';
+import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { BottomNav, bottomNavHeight } from '@/src/components/BottomNav';
+import { FadeInView } from '@/src/components/FadeInView';
+import { formatDateTime, formatVenueName } from '@/src/display';
+import { colors, radius, shadow } from '@/src/theme';
 import type { Booking, Payment } from '@/src/types';
+
+type CheckoutContext = {
+  cinemaName: string;
+  movieTitle: string;
+  roomName: string;
+  startTime: string;
+};
 
 export default function CheckoutScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
@@ -16,6 +31,28 @@ export default function CheckoutScreen() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
+  const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
+
+  const loadCheckoutContext = useCallback(async (showtimeId: string) => {
+    try {
+      const showtime = await getShowtimeById(showtimeId);
+      const [movie, room] = await Promise.all([
+        getMovieById(showtime.movieId),
+        getRoom(showtime.roomId),
+      ]);
+      const cinema = await getCinema(room.cinemaId);
+
+      setCheckoutContext({
+        cinemaName: cinema.name,
+        movieTitle: movie.title,
+        roomName: room.name,
+        startTime: showtime.startTime,
+      });
+    } catch (contextError) {
+      console.error(contextError);
+      setCheckoutContext(null);
+    }
+  }, []);
 
   useEffect(() => {
     async function loadBooking() {
@@ -29,6 +66,7 @@ export default function CheckoutScreen() {
       try {
         const result = await getBooking(bookingId);
         setBooking(result);
+        void loadCheckoutContext(result.showtimeId);
       } catch (loadError) {
         console.error(loadError);
         setError('Cannot load booking');
@@ -38,7 +76,7 @@ export default function CheckoutScreen() {
     }
 
     void loadBooking();
-  }, [bookingId, isAuthenticated]);
+  }, [bookingId, isAuthenticated, loadCheckoutContext]);
 
   useEffect(() => {
     if (!payment?.id || payment.status !== 'Pending' || !isAuthenticated) {
@@ -131,50 +169,78 @@ export default function CheckoutScreen() {
   const canPay = status === 'pending' && !paid && !hasPaymentLink;
 
   return (
-    <ScrollView contentContainerStyle={styles.content} style={styles.container}>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.topActions}>
-        <Pressable onPress={goBack} style={styles.backLink}>
+        <AnimatedPressable contentStyle={styles.backLink} onPress={goBack}>
           <Text style={styles.backLinkText}>Go back</Text>
-        </Pressable>
+        </AnimatedPressable>
 
-        <Pressable onPress={() => router.replace('/movies')} style={styles.backLink}>
+        <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.replace('/movies')}>
           <Text style={styles.backLinkText}>Movies</Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
 
-      <Text style={styles.title}>Checkout</Text>
-      <Text style={styles.text}>Booking: {booking.id}</Text>
+      <FadeInView>
+        <Text style={styles.kicker}>Payment</Text>
+        <Text style={styles.title}>Checkout</Text>
+        <Text style={styles.text}>
+          {checkoutContext
+            ? `${checkoutContext.movieTitle} | ${formatDateTime(checkoutContext.startTime)}`
+            : 'Loading booking details...'}
+        </Text>
+      </FadeInView>
 
-      <View style={styles.panel}>
-        <InfoRow label="Status" value={getStatusLabel(status)} />
-        <InfoRow label="Seats" value={booking.seatIds.length.toString()} />
-        <InfoRow label="Total" value={formatCurrency(booking.totalAmount)} />
-        <InfoRow label="Expires" value={booking.expiresAt ? formatDate(booking.expiresAt) : '-'} />
-      </View>
+      <FadeInView delay={70}>
+        <View style={styles.panel}>
+          <View style={styles.statusHeader}>
+            <View>
+              <Text style={styles.statusLabel}>Current status</Text>
+              <Text style={styles.stateText}>{getCheckoutStateText(status, paid)}</Text>
+            </View>
+            <View style={[styles.statusPill, getStatusPillStyle(status, paid)]}>
+              <Text style={[styles.statusPillText, getStatusPillTextStyle(status, paid)]}>
+                {paid ? 'Paid' : getStatusLabel(status)}
+              </Text>
+            </View>
+          </View>
 
-      <Text style={styles.stateText}>{getCheckoutStateText(status, paid)}</Text>
+          <View style={styles.divider} />
+
+          <InfoRow label="Seats" value={booking.seatIds.length.toString()} />
+          <InfoRow label="Total" value={formatCurrency(booking.totalAmount)} highlight />
+          {checkoutContext ? (
+            <InfoRow label="Cinema" value={formatVenueName(checkoutContext.cinemaName, checkoutContext.roomName)} />
+          ) : null}
+          <InfoRow label="Expires" value={booking.expiresAt ? formatDate(booking.expiresAt) : '-'} />
+        </View>
+      </FadeInView>
 
       {hasPaymentLink ? (
-        <Pressable
+        <AnimatedPressable
+          contentStyle={styles.paymentLinkButton}
           onPress={() => void Linking.openURL(payment.checkoutUrl!)}
-          style={styles.paymentLinkButton}>
+          pressedScale={0.97}>
           <Text style={styles.paymentLinkText}>Open PayOS checkout</Text>
-        </Pressable>
+        </AnimatedPressable>
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable
+      <AnimatedPressable
         disabled={paying || !canPay}
         onPress={handlePay}
-        style={[styles.button, (paying || !canPay) && styles.buttonDisabled]}>
+        contentStyle={[styles.button, (paying || !canPay) && styles.buttonDisabled]}>
         {paying ? (
           <ActivityIndicator color="#ffffff" />
         ) : (
           <Text style={styles.buttonText}>{getButtonText(status, paid)}</Text>
         )}
-      </Pressable>
-    </ScrollView>
+      </AnimatedPressable>
+      </ScrollView>
+
+      <BottomNav />
+    </View>
   );
 }
 
@@ -186,11 +252,11 @@ function CenteredLoader() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      <Text style={[styles.infoValue, highlight && styles.infoValueHighlight]}>{value}</Text>
     </View>
   );
 }
@@ -244,6 +310,30 @@ function getButtonText(status: string, paid: boolean) {
   return 'Pay now';
 }
 
+function getStatusPillStyle(status: string, paid: boolean) {
+  if (paid || status === 'confirmed') {
+    return styles.statusPillSuccess;
+  }
+
+  if (status === 'expired' || status === 'cancelled') {
+    return styles.statusPillDanger;
+  }
+
+  return styles.statusPillPending;
+}
+
+function getStatusPillTextStyle(status: string, paid: boolean) {
+  if (paid || status === 'confirmed') {
+    return styles.statusPillTextSuccess;
+  }
+
+  if (status === 'expired' || status === 'cancelled') {
+    return styles.statusPillTextDanger;
+  }
+
+  return styles.statusPillTextPending;
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -275,59 +365,114 @@ function getPaymentErrorMessage(error: unknown) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 20,
     paddingTop: 64,
-    paddingBottom: 40,
+    paddingBottom: bottomNavHeight + 24,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
     padding: 24,
   },
   backLink: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   backLinkText: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   topActions: {
     flexDirection: 'row',
     gap: 10,
     marginBottom: 16,
   },
+  kicker: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   title: {
-    color: '#111827',
-    fontSize: 30,
-    fontWeight: '700',
+    marginTop: 4,
+    color: colors.ink,
+    fontSize: 34,
+    fontWeight: '900',
   },
   text: {
     marginTop: 12,
-    color: '#374151',
+    color: colors.muted,
     fontSize: 14,
+    fontWeight: '600',
   },
   panel: {
     marginTop: 24,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 16,
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    padding: 18,
+    ...shadow.card,
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 14,
+  },
+  statusLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  divider: {
+    height: 1,
+    marginVertical: 16,
+    backgroundColor: '#eef1f5',
   },
   stateText: {
-    marginTop: 18,
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '700',
+    marginTop: 6,
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  statusPill: {
+    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusPillPending: {
+    backgroundColor: '#e0f2fe',
+  },
+  statusPillSuccess: {
+    backgroundColor: '#dcfce7',
+  },
+  statusPillDanger: {
+    backgroundColor: '#fee2e2',
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  statusPillTextPending: {
+    color: colors.blue,
+  },
+  statusPillTextSuccess: {
+    color: colors.success,
+  },
+  statusPillTextDanger: {
+    color: colors.danger,
   },
   infoRow: {
     flexDirection: 'row',
@@ -336,52 +481,59 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   infoLabel: {
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 14,
   },
   infoValue: {
     flex: 1,
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'right',
+  },
+  infoValueHighlight: {
+    color: colors.primary,
+    fontSize: 18,
+    fontWeight: '900',
   },
   button: {
     marginTop: 24,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
+    ...shadow.soft,
   },
   buttonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: colors.disabled,
   },
   buttonText: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: colors.surface,
+    fontWeight: '900',
   },
   paymentLinkButton: {
     marginTop: 16,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#111827',
+    borderColor: colors.primary,
+    backgroundColor: '#fff7f6',
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   paymentLinkText: {
-    color: '#111827',
-    fontWeight: '700',
+    color: colors.primary,
+    fontWeight: '900',
   },
   error: {
     marginTop: 18,
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '800',
   },
 });

@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -12,6 +11,9 @@ import {
 } from 'react-native';
 
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { FadeInView } from '@/src/components/FadeInView';
+import { colors, radius, shadow } from '@/src/theme';
 
 export default function LoginScreen() {
   const { isAuthenticated, isLoading, signIn } = useAuth();
@@ -53,9 +55,14 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}>
-      <View style={styles.form}>
+      <FadeInView style={styles.form}>
+        <View style={styles.brandMark}>
+          <Text style={styles.brandMarkText}>CB</Text>
+        </View>
+
+        <Text style={styles.kicker}>Welcome back</Text>
         <Text style={styles.title}>Cinema Booking</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={styles.subtitle}>Sign in to reserve seats, pay securely, and manage your tickets.</Text>
 
         <TextInput
           autoCapitalize="none"
@@ -65,6 +72,7 @@ export default function LoginScreen() {
           keyboardType="email-address"
           onChangeText={setEmail}
           placeholder="Email"
+          placeholderTextColor="#98a2b3"
           style={styles.input}
           value={email}
         />
@@ -73,6 +81,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
           onChangeText={setPassword}
           placeholder="Password"
+          placeholderTextColor="#98a2b3"
           secureTextEntry
           style={styles.input}
           value={password}
@@ -80,17 +89,17 @@ export default function LoginScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable
+        <AnimatedPressable
           disabled={disabled}
           onPress={handleLogin}
-          style={[styles.button, disabled && styles.buttonDisabled]}>
+          contentStyle={[styles.button, disabled && styles.buttonDisabled]}>
           {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.buttonText}>Sign in</Text>
           )}
-        </Pressable>
-      </View>
+        </AnimatedPressable>
+      </FadeInView>
     </KeyboardAvoidingView>
   );
 }
@@ -99,53 +108,83 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     padding: 24,
   },
   form: {
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    padding: 22,
+    ...shadow.card,
+  },
+  brandMark: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+  },
+  brandMarkText: {
+    color: colors.surface,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  kicker: {
+    marginTop: 18,
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   title: {
-    color: '#111827',
-    fontSize: 32,
-    fontWeight: '700',
+    marginTop: 4,
+    color: colors.ink,
+    fontSize: 34,
+    fontWeight: '900',
   },
   subtitle: {
     marginTop: 8,
     marginBottom: 28,
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 16,
+    lineHeight: 23,
   },
   input: {
     height: 52,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: '#fbfcfe',
     paddingHorizontal: 14,
-    color: '#111827',
+    color: colors.ink,
     fontSize: 16,
   },
   error: {
     marginBottom: 14,
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 14,
+    fontWeight: '700',
   },
   button: {
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
   },
   buttonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: colors.disabled,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '900',
   },
 });

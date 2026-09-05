@@ -9,10 +9,10 @@ public class CreateMovieRequest
     public string Title { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(2000)]
+    [MaxLength(4000)]
     public string Description { get; set; } = string.Empty;
 
-    [Range(1, 600)]
+    [Range(1, 500)]
     public int DurationMinutes { get; set; }
 
     public DateTime ReleaseDate { get; set; }
@@ -25,4 +25,6 @@ public class CreateMovieRequest
 
     [MaxLength(100)]
     public string? Genre { get; set; }
+
+    public bool IsActive { get; set; } = true;
 }

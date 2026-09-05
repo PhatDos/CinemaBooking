@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
-import { Pressable, Text } from 'react-native';
+import { Text } from 'react-native';
 
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 
 type LogoutButtonProps = {
@@ -28,9 +29,9 @@ export function LogoutButton({ style, textStyle }: LogoutButtonProps) {
 
   return (
     <>
-      <Pressable onPress={() => setConfirmVisible(true)} style={style}>
+      <AnimatedPressable contentStyle={style} onPress={() => setConfirmVisible(true)}>
         <Text style={textStyle}>Logout</Text>
-      </Pressable>
+      </AnimatedPressable>
 
       <ConfirmDialog
         confirmLabel="Logout"

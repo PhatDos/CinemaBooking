@@ -1,9 +1,10 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { Redirect, router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
+  Animated,
+  Easing,
   StyleSheet,
   Text,
   View,
@@ -12,7 +13,21 @@ import {
 import { ApiError } from '@/src/api/client';
 import { checkInTicket } from '@/src/api/tickets';
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { FadeInView } from '@/src/components/FadeInView';
+import { colors, radius, shadow } from '@/src/theme';
 import type { CheckInTicketResponse } from '@/src/types';
+import { getCinema, getRoom, getSeats } from '@/src/api/cinemas';
+import { getMovieById } from '@/src/api/movies';
+import { getShowtimeById } from '@/src/api/showtimes';
+import { formatCinemaName, formatRoomName, getSeatLabel } from '@/src/display';
+
+type CheckInDetails = {
+  cinemaName: string;
+  movieTitle: string;
+  roomName: string;
+  seatLabel: string;
+};
 
 export default function ScanTicketScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -20,10 +35,35 @@ export default function ScanTicketScreen() {
   const [isScanned, setIsScanned] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<CheckInTicketResponse | null>(null);
+  const [details, setDetails] = useState<CheckInDetails | null>(null);
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState<'success' | 'error' | 'info'>('info');
+  const [scanLine] = useState(() => new Animated.Value(0));
 
   const canCheckIn = user?.roles.some((role) => role === 'Staff' || role === 'Admin') ?? false;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLine, {
+          duration: 1400,
+          easing: Easing.inOut(Easing.cubic),
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanLine, {
+          duration: 1400,
+          easing: Easing.inOut(Easing.cubic),
+          toValue: 0,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [scanLine]);
 
   if (isLoading) {
     return <CenteredLoader />;
@@ -38,9 +78,11 @@ export default function ScanTicketScreen() {
       <View style={styles.center}>
         <Text style={styles.title}>Scanner unavailable</Text>
         <Text style={styles.bodyText}>Your account cannot check in tickets.</Text>
-        <Pressable onPress={() => router.replace('/movies')} style={styles.secondaryButton}>
+        <AnimatedPressable
+          contentStyle={styles.secondaryButton}
+          onPress={() => router.replace('/movies')}>
           <Text style={styles.secondaryButtonText}>Back to movies</Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
     );
   }
@@ -54,12 +96,12 @@ export default function ScanTicketScreen() {
       <View style={styles.center}>
         <Text style={styles.title}>Camera access</Text>
         <Text style={styles.bodyText}>Allow camera permission to scan ticket QR codes.</Text>
-        <Pressable onPress={requestPermission} style={styles.primaryButton}>
+        <AnimatedPressable contentStyle={styles.primaryButton} onPress={requestPermission}>
           <Text style={styles.primaryButtonText}>Allow camera</Text>
-        </Pressable>
-        <Pressable onPress={() => router.back()} style={styles.secondaryButton}>
+        </AnimatedPressable>
+        <AnimatedPressable contentStyle={styles.secondaryButton} onPress={() => router.back()}>
           <Text style={styles.secondaryButtonText}>Cancel</Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
     );
   }
@@ -72,12 +114,14 @@ export default function ScanTicketScreen() {
     setIsScanned(true);
     setIsSubmitting(true);
     setResult(null);
+    setDetails(null);
     setMessage('');
     setMessageTone('info');
 
     try {
       const checkInResult = await checkInTicket(scanningResult.data);
       setResult(checkInResult);
+      void loadCheckInDetails(checkInResult);
       setMessage('Check-in successful');
       setMessageTone('success');
     } catch (error) {
@@ -92,8 +136,32 @@ export default function ScanTicketScreen() {
   function scanAgain() {
     setIsScanned(false);
     setResult(null);
+    setDetails(null);
     setMessage('');
     setMessageTone('info');
+  }
+
+  async function loadCheckInDetails(checkInResult: CheckInTicketResponse) {
+    try {
+      const showtime = await getShowtimeById(checkInResult.showtimeId);
+      const [movie, room, seats] = await Promise.all([
+        getMovieById(showtime.movieId),
+        getRoom(showtime.roomId),
+        getSeats(),
+      ]);
+      const cinema = await getCinema(room.cinemaId);
+      const seat = seats.find((item) => item.id === checkInResult.seatId);
+
+      setDetails({
+        cinemaName: formatCinemaName(cinema.name),
+        movieTitle: movie.title,
+        roomName: formatRoomName(room.name),
+        seatLabel: seat ? getSeatLabel(seat) : 'Seat checked',
+      });
+    } catch (detailsError) {
+      console.error(detailsError);
+      setDetails(null);
+    }
   }
 
   return (
@@ -108,9 +176,9 @@ export default function ScanTicketScreen() {
       />
 
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <AnimatedPressable contentStyle={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Back</Text>
-        </Pressable>
+        </AnimatedPressable>
         <Text style={styles.screenTitle}>Scan Ticket</Text>
       </View>
 
@@ -120,12 +188,27 @@ export default function ScanTicketScreen() {
           <View style={[styles.corner, styles.cornerTopRight]} />
           <View style={[styles.corner, styles.cornerBottomLeft]} />
           <View style={[styles.corner, styles.cornerBottomRight]} />
+          <Animated.View
+            style={[
+              styles.scanLine,
+              {
+                transform: [
+                  {
+                    translateY: scanLine.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [18, 220],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
         </View>
         <Text style={styles.hint}>Place the ticket QR inside the frame</Text>
       </View>
 
       {(isSubmitting || message) && (
-        <View style={styles.resultPanel}>
+        <FadeInView distance={16} style={styles.resultPanel}>
           {isSubmitting ? (
             <>
               <ActivityIndicator size="large" />
@@ -144,17 +227,26 @@ export default function ScanTicketScreen() {
               {result && (
                 <View style={styles.resultDetails}>
                   <Text style={styles.detailText}>Status: {result.status}</Text>
-                  <Text style={styles.detailText}>Ticket: {shortenId(result.ticketId)}</Text>
+                  {details ? (
+                    <>
+                      <Text style={styles.detailText}>Movie: {details.movieTitle}</Text>
+                      <Text style={styles.detailText}>Cinema: {details.cinemaName}</Text>
+                      <Text style={styles.detailText}>Room: {details.roomName}</Text>
+                      <Text style={styles.detailText}>Seat: {details.seatLabel}</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.detailText}>Ticket checked in</Text>
+                  )}
                   <Text style={styles.detailText}>Checked in: {formatDateTime(result.usedAt)}</Text>
                 </View>
               )}
 
-              <Pressable onPress={scanAgain} style={styles.primaryButton}>
+              <AnimatedPressable contentStyle={styles.primaryButton} onPress={scanAgain}>
                 <Text style={styles.primaryButtonText}>Scan another ticket</Text>
-              </Pressable>
+              </AnimatedPressable>
             </>
           )}
-        </View>
+        </FadeInView>
       )}
     </View>
   );
@@ -187,10 +279,6 @@ function getCheckInErrorMessage(error: unknown) {
   return 'Check-in failed.';
 }
 
-function shortenId(value: string) {
-  return value.length <= 12 ? value : `${value.slice(0, 8)}...${value.slice(-4)}`;
-}
-
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('vi-VN', {
     dateStyle: 'short',
@@ -201,7 +289,7 @@ function formatDateTime(value: string) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: colors.ink,
   },
   camera: {
     position: 'absolute',
@@ -215,7 +303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   topBar: {
     position: 'absolute',
@@ -230,17 +318,17 @@ const styles = StyleSheet.create({
   backButton: {
     minHeight: 40,
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: 'rgba(17, 24, 39, 0.72)',
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(16, 24, 40, 0.72)',
     paddingHorizontal: 14,
   },
   backButtonText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 14,
     fontWeight: '700',
   },
   screenTitle: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 18,
     fontWeight: '800',
   },
@@ -253,45 +341,53 @@ const styles = StyleSheet.create({
   scanFrame: {
     width: 260,
     height: 260,
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   corner: {
     position: 'absolute',
     width: 54,
     height: 54,
-    borderColor: '#ffffff',
+    borderColor: colors.surface,
   },
   cornerTopLeft: {
     top: 0,
     left: 0,
     borderTopWidth: 4,
     borderLeftWidth: 4,
-    borderTopLeftRadius: 8,
+    borderTopLeftRadius: radius.md,
   },
   cornerTopRight: {
     top: 0,
     right: 0,
     borderTopWidth: 4,
     borderRightWidth: 4,
-    borderTopRightRadius: 8,
+    borderTopRightRadius: radius.md,
   },
   cornerBottomLeft: {
     bottom: 0,
     left: 0,
     borderBottomWidth: 4,
     borderLeftWidth: 4,
-    borderBottomLeftRadius: 8,
+    borderBottomLeftRadius: radius.md,
   },
   cornerBottomRight: {
     right: 0,
     bottom: 0,
     borderRightWidth: 4,
     borderBottomWidth: 4,
-    borderBottomRightRadius: 8,
+    borderBottomRightRadius: radius.md,
+  },
+  scanLine: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: '#5eead4',
   },
   hint: {
     marginTop: 20,
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
@@ -303,12 +399,13 @@ const styles = StyleSheet.create({
     bottom: 36,
     zIndex: 3,
     alignItems: 'stretch',
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     padding: 18,
+    ...shadow.card,
   },
   resultTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 20,
     fontWeight: '800',
     textAlign: 'center',
@@ -318,19 +415,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   detailText: {
-    color: '#374151',
+    color: '#475467',
     fontSize: 14,
     fontWeight: '600',
   },
   title: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 24,
     fontWeight: '800',
     textAlign: 'center',
   },
   bodyText: {
     marginTop: 10,
-    color: '#4b5563',
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
@@ -340,13 +437,13 @@ const styles = StyleSheet.create({
     minHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
   primaryButtonText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 15,
     fontWeight: '800',
   },
@@ -356,20 +453,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
   secondaryButtonText: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '700',
   },
   successText: {
-    color: '#047857',
+    color: colors.success,
   },
   errorText: {
-    color: '#b91c1c',
+    color: colors.danger,
   },
 });

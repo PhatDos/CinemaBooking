@@ -6,6 +6,12 @@ namespace CinemaBooking.Modules.Catalog.Application.Movies;
 
 public class MovieService
 {
+    private const int MaximumTitleLength = 200;
+    private const int MaximumDescriptionLength = 4000;
+    private const int MaximumDurationMinutes = 500;
+    private const int MaximumUrlLength = 1000;
+    private const int MaximumGenreLength = 100;
+
     private readonly IMovieRepository _movieRepository;
 
     public MovieService(IMovieRepository movieRepository)
@@ -13,11 +19,13 @@ public class MovieService
         _movieRepository = movieRepository;
     }
 
-    public async Task<List<MovieResponse>> GetAllAsync()
+    public async Task<List<MovieResponse>> GetAllAsync(
+        bool includeInactive = false)
     {
         var movies = await _movieRepository.GetAllAsync();
 
         return movies
+            .Where(movie => includeInactive || movie.IsActive)
             .Select(ToResponse)
             .ToList();
     }
@@ -40,8 +48,10 @@ public class MovieService
             request.Title,
             request.Description,
             request.DurationMinutes,
+            request.ReleaseDate,
             request.PosterUrl,
-            request.TrailerUrl);
+            request.TrailerUrl,
+            request.Genre);
 
         var movie = new Movie
         {
@@ -53,7 +63,7 @@ public class MovieService
             PosterUrl = NormalizeOptional(request.PosterUrl),
             TrailerUrl = NormalizeOptional(request.TrailerUrl),
             Genre = NormalizeOptional(request.Genre),
-            IsActive = true
+            IsActive = request.IsActive
         };
 
         await _movieRepository.AddAsync(movie);
@@ -83,8 +93,10 @@ public class MovieService
                 request.Title,
                 request.Description,
                 request.DurationMinutes,
+                request.ReleaseDate,
                 request.PosterUrl,
-                request.TrailerUrl);
+                request.TrailerUrl,
+                request.Genre);
         }
 
         var movies = requests
@@ -98,7 +110,7 @@ public class MovieService
                 PosterUrl = NormalizeOptional(request.PosterUrl),
                 TrailerUrl = NormalizeOptional(request.TrailerUrl),
                 Genre = NormalizeOptional(request.Genre),
-                IsActive = true
+                IsActive = request.IsActive
             })
             .ToList();
 
@@ -119,8 +131,10 @@ public class MovieService
             request.Title,
             request.Description,
             request.DurationMinutes,
+            request.ReleaseDate,
             request.PosterUrl,
-            request.TrailerUrl);
+            request.TrailerUrl,
+            request.Genre);
 
         var movie =
             await _movieRepository.GetByIdForUpdateAsync(id);
@@ -162,13 +176,21 @@ public class MovieService
         string? title,
         string? description,
         int durationMinutes,
+        DateTime releaseDate,
         string? posterUrl,
-        string? trailerUrl)
+        string? trailerUrl,
+        string? genre)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
             throw new BusinessRuleException(
                 "Movie title is required.");
+        }
+
+        if (title.Trim().Length > MaximumTitleLength)
+        {
+            throw new BusinessRuleException(
+                $"Movie title must be {MaximumTitleLength} characters or fewer.");
         }
 
         if (string.IsNullOrWhiteSpace(description))
@@ -177,10 +199,35 @@ public class MovieService
                 "Movie description is required.");
         }
 
+        if (description.Trim().Length > MaximumDescriptionLength)
+        {
+            throw new BusinessRuleException(
+                $"Movie description must be {MaximumDescriptionLength} characters or fewer.");
+        }
+
         if (durationMinutes <= 0)
         {
             throw new BusinessRuleException(
                 "Duration must be greater than zero.");
+        }
+
+        if (durationMinutes > MaximumDurationMinutes)
+        {
+            throw new BusinessRuleException(
+                $"Duration must be {MaximumDurationMinutes} minutes or fewer.");
+        }
+
+        if (releaseDate == default)
+        {
+            throw new BusinessRuleException(
+                "Release date is required.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(posterUrl) &&
+            posterUrl.Trim().Length > MaximumUrlLength)
+        {
+            throw new BusinessRuleException(
+                $"Poster URL must be {MaximumUrlLength} characters or fewer.");
         }
 
         if (!IsValidUrl(posterUrl))
@@ -189,10 +236,24 @@ public class MovieService
                 "Poster URL must be a valid HTTP or HTTPS URL.");
         }
 
+        if (!string.IsNullOrWhiteSpace(trailerUrl) &&
+            trailerUrl.Trim().Length > MaximumUrlLength)
+        {
+            throw new BusinessRuleException(
+                $"Trailer URL must be {MaximumUrlLength} characters or fewer.");
+        }
+
         if (!IsValidUrl(trailerUrl))
         {
             throw new BusinessRuleException(
                 "Trailer URL must be a valid HTTP or HTTPS URL.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(genre) &&
+            genre.Trim().Length > MaximumGenreLength)
+        {
+            throw new BusinessRuleException(
+                $"Genre must be {MaximumGenreLength} characters or fewer.");
         }
     }
 

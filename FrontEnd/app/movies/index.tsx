@@ -1,4 +1,5 @@
 import { router, Redirect, type Href } from 'expo-router';
+import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,7 +13,11 @@ import {
 
 import { getMovies } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { BottomNav, bottomNavHeight } from '@/src/components/BottomNav';
+import { FadeInView } from '@/src/components/FadeInView';
 import { LogoutButton } from '@/src/components/LogoutButton';
+import { colors, radius, shadow } from '@/src/theme';
 import type { Movie } from '@/src/types';
 
 const scanTicketRoute = '/staff/scan-ticket' as Href;
@@ -70,21 +75,26 @@ export default function MoviesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.heading}>Movies</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.kicker}>Cinema Booking</Text>
+          <Text style={styles.heading}>Now Showing</Text>
           <Text style={styles.subtitle}>{user?.email}</Text>
         </View>
 
         <View style={styles.actions}>
           {canCheckIn && (
-            <Pressable onPress={() => router.push(scanTicketRoute)} style={styles.primaryActionButton}>
+            <AnimatedPressable
+              contentStyle={styles.primaryActionButton}
+              onPress={() => router.push(scanTicketRoute)}>
               <Text style={styles.primaryActionText}>Scan Ticket</Text>
-            </Pressable>
+            </AnimatedPressable>
           )}
 
-          <Pressable onPress={() => router.push('/bookings')} style={styles.actionButton}>
+          <AnimatedPressable
+            contentStyle={styles.actionButton}
+            onPress={() => router.push('/bookings')}>
             <Text style={styles.actionText}>My Bookings</Text>
-          </Pressable>
+          </AnimatedPressable>
 
           <LogoutButton style={styles.actionButton} textStyle={styles.actionText} />
         </View>
@@ -111,29 +121,55 @@ export default function MoviesScreen() {
               refreshing={refreshing}
             />
           }
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/movies/[id]',
-                  params: { id: item.id },
-                })
-              }
-              style={styles.card}>
-              <View style={styles.poster}>
-                <Text style={styles.posterText}>{getInitials(item.title)}</Text>
-              </View>
+          renderItem={({ item, index }) => (
+            <FadeInView delay={index * 45}>
+              <AnimatedPressable
+                contentStyle={styles.card}
+                onPress={() =>
+                  router.push({
+                    pathname: '/movies/[id]',
+                    params: { id: item.id },
+                  })
+                }>
+                <View style={styles.poster}>
+                  {item.posterUrl ? (
+                    <Image
+                      contentFit="cover"
+                      source={{ uri: item.posterUrl }}
+                      style={StyleSheet.absoluteFill}
+                      transition={250}
+                    />
+                  ) : (
+                    <Text style={styles.posterText}>{getInitials(item.title)}</Text>
+                  )}
+                  {item.genre ? (
+                    <View style={styles.posterBadge}>
+                      <Text style={styles.posterBadgeText}>{item.genre}</Text>
+                    </View>
+                  ) : null}
+                </View>
 
-              <View style={styles.info}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.meta}>{item.durationMinutes} min</Text>
-                <Text style={styles.meta}>Release: {formatDate(item.releaseDate)}</Text>
-                <Text style={styles.detail}>View details</Text>
-              </View>
-            </Pressable>
+                <View style={styles.info}>
+                  <Text numberOfLines={2} style={styles.title}>
+                    {item.title}
+                  </Text>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.meta}>{item.durationMinutes} min</Text>
+                    <Text style={styles.dot}>|</Text>
+                    <Text style={styles.meta}>{formatDate(item.releaseDate)}</Text>
+                  </View>
+                  <Text numberOfLines={2} style={styles.description}>
+                    {item.description || 'No description yet.'}
+                  </Text>
+                  <Text style={styles.detail}>View showtimes</Text>
+                </View>
+              </AnimatedPressable>
+            </FadeInView>
           )}
         />
       )}
+
+      <BottomNav />
     </View>
   );
 }
@@ -147,7 +183,9 @@ function CenteredLoader() {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+  }).format(new Date(value));
 }
 
 function getInitials(title: string) {
@@ -162,25 +200,35 @@ function getInitials(title: string) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 16,
     paddingHorizontal: 20,
     paddingTop: 64,
-    paddingBottom: 16,
+    paddingBottom: 18,
+  },
+  headerText: {
+    flex: 1,
+  },
+  kicker: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   heading: {
-    color: '#111827',
-    fontSize: 30,
-    fontWeight: '700',
+    marginTop: 4,
+    color: colors.ink,
+    fontSize: 34,
+    fontWeight: '900',
   },
   subtitle: {
     marginTop: 4,
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 14,
   },
   actions: {
@@ -189,91 +237,129 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
   primaryActionButton: {
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
   actionText: {
-    color: '#111827',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  primaryActionText: {
-    color: '#ffffff',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '700',
   },
+  primaryActionText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: '800',
+  },
   list: {
     padding: 20,
-    gap: 14,
+    paddingTop: 10,
+    paddingBottom: bottomNavHeight + 24,
+    gap: 16,
   },
   card: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     overflow: 'hidden',
+    ...shadow.card,
   },
   poster: {
-    width: 96,
-    minHeight: 144,
+    width: 110,
+    minHeight: 164,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#111827',
+    backgroundColor: colors.ink,
   },
   posterText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '900',
+  },
+  posterBadge: {
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    bottom: 8,
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(16, 24, 40, 0.78)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  posterBadgeText: {
+    color: colors.surface,
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   info: {
     flex: 1,
-    padding: 14,
+    padding: 16,
   },
   title: {
-    color: '#111827',
-    fontSize: 18,
-    fontWeight: '700',
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 8,
   },
   meta: {
-    marginTop: 6,
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 14,
+    fontWeight: '600',
+  },
+  dot: {
+    color: colors.warning,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  description: {
+    marginTop: 12,
+    color: '#475467',
+    fontSize: 14,
+    lineHeight: 20,
   },
   detail: {
-    marginTop: 16,
-    color: '#2563eb',
+    marginTop: 18,
+    color: colors.primary,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
     padding: 24,
   },
   error: {
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 16,
   },
   retryButton: {
     marginTop: 16,
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   retryText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontWeight: '600',
   },
 });

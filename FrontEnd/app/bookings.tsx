@@ -1,5 +1,5 @@
 import { Redirect, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,18 +11,53 @@ import {
 } from 'react-native';
 
 import { getBookings } from '@/src/api/bookings';
+import { getCinema, getRoom } from '@/src/api/cinemas';
+import { getMovieById } from '@/src/api/movies';
+import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { BottomNav, bottomNavHeight } from '@/src/components/BottomNav';
+import { FadeInView } from '@/src/components/FadeInView';
 import { LogoutButton } from '@/src/components/LogoutButton';
+import { formatVenueName } from '@/src/display';
+import { colors, radius, shadow } from '@/src/theme';
 import type { Booking, BookingStatus } from '@/src/types';
 
 export default function BookingsScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [showtimeLabels, setShowtimeLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  async function loadBookings(showSpinner = true) {
+  const loadShowtimeLabels = useCallback(async (items: Booking[]) => {
+    const uniqueShowtimeIds = Array.from(new Set(items.map((item) => item.showtimeId)));
+    const entries = await Promise.all(
+      uniqueShowtimeIds.map(async (showtimeId) => {
+        try {
+          const showtime = await getShowtimeById(showtimeId);
+          const [movie, room] = await Promise.all([
+            getMovieById(showtime.movieId),
+            getRoom(showtime.roomId),
+          ]);
+          const cinema = await getCinema(room.cinemaId);
+
+          return [
+            showtimeId,
+            `${movie.title} | ${formatDateTime(showtime.startTime)} | ${formatVenueName(cinema.name, room.name)}`,
+          ] as const;
+        } catch (labelError) {
+          console.error(labelError);
+          return [showtimeId, 'Showtime details unavailable'] as const;
+        }
+      }),
+    );
+
+    setShowtimeLabels(Object.fromEntries(entries));
+  }, []);
+
+  const loadBookings = useCallback(async (showSpinner = true) => {
     if (showSpinner) {
       setLoading(true);
     }
@@ -32,6 +67,7 @@ export default function BookingsScreen() {
     try {
       const result = await getBookings();
       setBookings(result);
+      void loadShowtimeLabels(result);
     } catch (loadError) {
       console.error(loadError);
       setError('Cannot load bookings');
@@ -39,7 +75,7 @@ export default function BookingsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [loadShowtimeLabels]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -49,7 +85,7 @@ export default function BookingsScreen() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadBookings]);
 
   if (isLoading || loading) {
     return <CenteredLoader />;
@@ -68,9 +104,11 @@ export default function BookingsScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Pressable onPress={() => router.replace('/movies')} style={styles.actionButton}>
+          <AnimatedPressable
+            contentStyle={styles.actionButton}
+            onPress={() => router.replace('/movies')}>
             <Text style={styles.actionText}>Movies</Text>
-          </Pressable>
+          </AnimatedPressable>
 
           <LogoutButton style={styles.actionButton} textStyle={styles.actionText} />
         </View>
@@ -106,30 +144,49 @@ export default function BookingsScreen() {
               refreshing={refreshing}
             />
           }
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/checkout/[bookingId]',
-                  params: { bookingId: item.id },
-                })
-              }
-              style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.bookingId}>#{item.id.slice(0, 8)}</Text>
-                <View style={[styles.badge, getStatusBadgeStyle(item.status)]}>
-                  <Text style={styles.badgeText}>{getStatusLabel(item.status)}</Text>
+          renderItem={({ item, index }) => (
+            <FadeInView delay={index * 45}>
+              <AnimatedPressable
+                contentStyle={styles.card}
+                onPress={() =>
+                  router.push({
+                    pathname: '/checkout/[bookingId]',
+                    params: { bookingId: item.id },
+                  })
+                }>
+                <View style={styles.cardHeader}>
+                  <View style={styles.bookingTitleBlock}>
+                    <Text style={styles.bookingId}>Booking</Text>
+                    <Text style={styles.date}>Created: {formatDate(item.createdAt)}</Text>
+                  </View>
+                  <View style={[styles.badge, getStatusBadgeStyle(item.status)]}>
+                    <Text style={[styles.badgeText, getStatusBadgeTextStyle(item.status)]}>
+                      {getStatusLabel(item.status)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <Text style={styles.meta}>Showtime: {item.showtimeId}</Text>
-              <Text style={styles.meta}>Seats: {item.seatIds.length}</Text>
-              <Text style={styles.total}>{formatCurrency(item.totalAmount)}</Text>
-              <Text style={styles.date}>Created: {formatDate(item.createdAt)}</Text>
-            </Pressable>
+                <View style={styles.bookingMetaGrid}>
+                  <View style={styles.metaBlock}>
+                    <Text style={styles.metaLabel}>Seats</Text>
+                    <Text style={styles.metaValue}>{item.seatIds.length}</Text>
+                  </View>
+                  <View style={styles.metaBlock}>
+                    <Text style={styles.metaLabel}>Showtime</Text>
+                    <Text numberOfLines={3} style={styles.metaValue}>
+                      {showtimeLabels[item.showtimeId] ?? 'Loading details...'}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.total}>{formatCurrency(item.totalAmount)}</Text>
+              </AnimatedPressable>
+            </FadeInView>
           )}
         />
       )}
+
+      <BottomNav />
     </View>
   );
 }
@@ -165,6 +222,19 @@ function getStatusBadgeStyle(status: BookingStatus) {
   }
 }
 
+function getStatusBadgeTextStyle(status: BookingStatus) {
+  switch (normalizeStatus(status)) {
+    case 'confirmed':
+      return styles.badgeTextConfirmed;
+    case 'expired':
+      return styles.badgeTextExpired;
+    case 'cancelled':
+      return styles.badgeTextCancelled;
+    default:
+      return styles.badgeTextPending;
+  }
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -180,10 +250,17 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -198,13 +275,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heading: {
-    color: '#111827',
-    fontSize: 30,
-    fontWeight: '700',
+    color: colors.ink,
+    fontSize: 32,
+    fontWeight: '900',
   },
   subtitle: {
     marginTop: 4,
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 14,
   },
   actions: {
@@ -213,30 +290,34 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
   actionText: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   list: {
     padding: 20,
+    paddingBottom: bottomNavHeight + 24,
     gap: 12,
   },
   emptyList: {
     flexGrow: 1,
     padding: 20,
+    paddingBottom: bottomNavHeight + 24,
   },
   card: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     padding: 16,
+    ...shadow.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -246,17 +327,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   bookingId: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '900',
+  },
+  bookingTitleBlock: {
+    flex: 1,
   },
   badge: {
-    borderRadius: 6,
+    borderRadius: radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   badgePending: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#e0f2fe',
   },
   badgeConfirmed: {
     backgroundColor: '#dcfce7',
@@ -268,31 +352,60 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
   },
   badgeText: {
-    color: '#111827',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  badgeTextPending: {
+    color: colors.blue,
+  },
+  badgeTextConfirmed: {
+    color: colors.success,
+  },
+  badgeTextExpired: {
+    color: colors.danger,
+  },
+  badgeTextCancelled: {
+    color: colors.muted,
+  },
+  bookingMetaGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  metaBlock: {
+    flex: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    padding: 12,
+  },
+  metaLabel: {
+    color: colors.muted,
     fontSize: 12,
     fontWeight: '700',
+    textTransform: 'uppercase',
   },
-  meta: {
-    marginTop: 6,
-    color: '#4b5563',
+  metaValue: {
+    marginTop: 5,
+    color: colors.ink,
     fontSize: 14,
+    fontWeight: '900',
   },
   total: {
-    marginTop: 12,
-    color: '#111827',
-    fontSize: 20,
-    fontWeight: '800',
+    marginTop: 16,
+    color: colors.primary,
+    fontSize: 22,
+    fontWeight: '900',
   },
   date: {
-    marginTop: 8,
-    color: '#6b7280',
+    marginTop: 5,
+    color: colors.muted,
     fontSize: 13,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
     padding: 24,
   },
   empty: {
@@ -301,13 +414,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyTitle: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 22,
     fontWeight: '700',
   },
   emptyText: {
     marginTop: 8,
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 15,
     textAlign: 'center',
   },
@@ -316,17 +429,17 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: colors.surface,
+    fontWeight: '900',
   },
   error: {
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 16,
   },
 });

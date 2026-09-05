@@ -1,11 +1,14 @@
 import {
   ActivityIndicator,
   Modal,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { FadeInView } from '@/src/components/FadeInView';
+import { colors, radius, shadow } from '@/src/theme';
 
 type ConfirmDialogProps = {
   visible: boolean;
@@ -37,22 +40,22 @@ export function ConfirmDialog({
       transparent
       visible={visible}>
       <View style={styles.scrim}>
-        <View style={styles.dialog}>
+        <FadeInView distance={8} duration={180} style={styles.dialog}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
 
           <View style={styles.actions}>
-            <Pressable
+            <AnimatedPressable
               disabled={loading}
               onPress={onCancel}
-              style={[styles.button, styles.cancelButton, loading && styles.disabledButton]}>
+              contentStyle={[styles.button, styles.cancelButton, loading && styles.disabledButton]}>
               <Text style={styles.cancelText}>{cancelLabel}</Text>
-            </Pressable>
+            </AnimatedPressable>
 
-            <Pressable
+            <AnimatedPressable
               disabled={loading}
               onPress={onConfirm}
-              style={[
+              contentStyle={[
                 styles.button,
                 destructive ? styles.destructiveButton : styles.confirmButton,
                 loading && styles.disabledButton,
@@ -62,9 +65,9 @@ export function ConfirmDialog({
               ) : (
                 <Text style={styles.confirmText}>{confirmLabel}</Text>
               )}
-            </Pressable>
+            </AnimatedPressable>
           </View>
-        </View>
+        </FadeInView>
       </View>
     </Modal>
   );
@@ -75,24 +78,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(17, 24, 39, 0.45)',
+    backgroundColor: 'rgba(16, 24, 40, 0.52)',
     padding: 24,
   },
   dialog: {
     width: '100%',
     maxWidth: 380,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     padding: 20,
+    ...shadow.card,
   },
   title: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   message: {
     marginTop: 10,
-    color: '#4b5563',
+    color: colors.muted,
     fontSize: 15,
     lineHeight: 22,
   },
@@ -107,31 +111,31 @@ const styles = StyleSheet.create({
     minWidth: 96,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   cancelButton: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   confirmButton: {
-    backgroundColor: '#111827',
+    backgroundColor: colors.ink,
   },
   destructiveButton: {
-    backgroundColor: '#b91c1c',
+    backgroundColor: colors.danger,
   },
   disabledButton: {
     opacity: 0.65,
   },
   cancelText: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14,
     fontWeight: '700',
   },
   confirmText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 14,
     fontWeight: '700',
   },

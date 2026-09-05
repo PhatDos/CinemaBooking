@@ -19,17 +19,26 @@ public static class DevelopmentDataSeeder
             "Seed Movie: The Modular Monolith",
             "A clean architecture story for testing booking flow.",
             105,
-            new DateTime(2026, 8, 29)),
+            new DateTime(2026, 8, 29),
+            "https://picsum.photos/seed/cinema-booking-modular/600/900",
+            "https://www.youtube.com/results?search_query=modular+monolith+movie+trailer",
+            "Drama"),
         new(
             "Seed Movie: Redis Hold",
             "A thriller about one seat and too many users.",
             95,
-            new DateTime(2026, 8, 29)),
+            new DateTime(2026, 8, 29),
+            "https://picsum.photos/seed/cinema-booking-redis/600/900",
+            "https://www.youtube.com/results?search_query=cinema+thriller+trailer",
+            "Thriller"),
         new(
             "Seed Movie: SQL Final Boss",
             "A database correctness adventure.",
             120,
-            new DateTime(2026, 8, 29))
+            new DateTime(2026, 8, 29),
+            "https://picsum.photos/seed/cinema-booking-sql/600/900",
+            "https://www.youtube.com/results?search_query=database+adventure+movie+trailer",
+            "Adventure")
     ];
 
     public static async Task SeedAsync(IServiceProvider services)
@@ -62,12 +71,20 @@ public static class DevelopmentDataSeeder
     {
         foreach (var seedMovie in Movies)
         {
-            var exists =
-                await dbContext.Movies.AnyAsync(movie =>
+            var movie =
+                await dbContext.Movies.FirstOrDefaultAsync(movie =>
                     movie.Title == seedMovie.Title);
 
-            if (exists)
+            if (movie is not null)
             {
+                movie.Description = seedMovie.Description;
+                movie.DurationMinutes = seedMovie.DurationMinutes;
+                movie.ReleaseDate = seedMovie.ReleaseDate;
+                movie.PosterUrl ??= seedMovie.PosterUrl;
+                movie.TrailerUrl ??= seedMovie.TrailerUrl;
+                movie.Genre = seedMovie.Genre;
+                movie.IsActive = true;
+
                 continue;
             }
 
@@ -77,7 +94,9 @@ public static class DevelopmentDataSeeder
                 Description = seedMovie.Description,
                 DurationMinutes = seedMovie.DurationMinutes,
                 ReleaseDate = seedMovie.ReleaseDate,
-                Genre = "Drama",
+                PosterUrl = seedMovie.PosterUrl,
+                TrailerUrl = seedMovie.TrailerUrl,
+                Genre = seedMovie.Genre,
                 IsActive = true
             });
         }
@@ -225,5 +244,8 @@ public static class DevelopmentDataSeeder
         string Title,
         string Description,
         int DurationMinutes,
-        DateTime ReleaseDate);
+        DateTime ReleaseDate,
+        string PosterUrl,
+        string TrailerUrl,
+        string Genre);
 }

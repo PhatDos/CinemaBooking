@@ -1,16 +1,48 @@
+import * as Haptics from 'expo-haptics';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { createBooking } from '@/src/api/bookings';
+import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
+import { getMovieById } from '@/src/api/movies';
 import { getSeatAvailability, holdSeats } from '@/src/api/seats';
+import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { BottomNav, bottomNavHeight } from '@/src/components/BottomNav';
+import { FadeInView } from '@/src/components/FadeInView';
+import {
+  formatCinemaName,
+  formatCurrency,
+  formatDateTime,
+  formatRoomName,
+  getSeatLabels,
+} from '@/src/display';
+import { colors, radius, shadow } from '@/src/theme';
 import type { HoldSeatsResponse, SeatAvailability } from '@/src/types';
+
+type ShowtimeContext = {
+  cinemaName: string;
+  movieTitle: string;
+  roomName: string;
+  startTime: string;
+  basePrice: number;
+};
 
 export default function SeatsScreen() {
   const { showtimeId } = useLocalSearchParams<{ showtimeId: string }>();
   const { isAuthenticated, isLoading } = useAuth();
+  const { width } = useWindowDimensions();
   const [seats, setSeats] = useState<SeatAvailability[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -21,6 +53,7 @@ export default function SeatsScreen() {
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [showtimeContext, setShowtimeContext] = useState<ShowtimeContext | null>(null);
   const handledExpiryRef = useRef(false);
 
   const loadSeats = useCallback(
@@ -55,6 +88,36 @@ export default function SeatsScreen() {
 
     return () => clearTimeout(timeoutId);
   }, [loadSeats]);
+
+  useEffect(() => {
+    async function loadShowtimeContext() {
+      if (!showtimeId || !isAuthenticated) {
+        return;
+      }
+
+      try {
+        const showtime = await getShowtimeById(showtimeId);
+        const [movie, room] = await Promise.all([
+          getMovieById(showtime.movieId),
+          getRoom(showtime.roomId),
+        ]);
+        const cinema = await getCinema(room.cinemaId);
+
+        setShowtimeContext({
+          basePrice: showtime.basePrice,
+          cinemaName: cinema.name,
+          movieTitle: movie.title,
+          roomName: room.name,
+          startTime: showtime.startTime,
+        });
+      } catch (contextError) {
+        console.error(contextError);
+        setShowtimeContext(null);
+      }
+    }
+
+    void loadShowtimeContext();
+  }, [showtimeId, isAuthenticated]);
 
   useEffect(() => {
     if (!hold) {
@@ -95,11 +158,16 @@ export default function SeatsScreen() {
   }, [hold, loadSeats, showtimeId]);
 
   const rows = useMemo(() => groupSeatsByRow(seats), [seats]);
+  const maxSeatsPerRow = Math.max(1, ...rows.map(([, rowSeats]) => rowSeats.length));
+  const seatSize = calculateSeatSize(width, maxSeatsPerRow);
+  const heldSeatLabels = hold ? getSeatLabels(hold.seatIds, seats) : [];
 
   function toggleSeat(seat: SeatAvailability) {
     if (hold || seat.status !== 'available') {
       return;
     }
+
+    void Haptics.selectionAsync();
 
     setSelectedSeatIds((current) => {
       const next = new Set(current);
@@ -193,19 +261,35 @@ export default function SeatsScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} style={styles.container}>
-      <Pressable onPress={() => router.back()} style={styles.backLink}>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+      <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.back()}>
         <Text style={styles.backLinkText}>Back</Text>
-      </Pressable>
+      </AnimatedPressable>
 
-      <Text style={styles.title}>Select Seats</Text>
-      <Text style={styles.text}>Showtime: {showtimeId}</Text>
+      <FadeInView>
+        <Text style={styles.kicker}>Seat map</Text>
+        <Text style={styles.title}>Select Seats</Text>
+      </FadeInView>
+      <Text style={styles.text}>
+        {showtimeContext
+          ? `${showtimeContext.movieTitle} | ${formatDateTime(showtimeContext.startTime)}`
+          : 'Loading showtime...'}
+      </Text>
+
+      {showtimeContext ? (
+        <FadeInView delay={45} style={styles.contextPanel}>
+          <Text style={styles.contextTitle}>{formatCinemaName(showtimeContext.cinemaName)}</Text>
+          <Text style={styles.contextText}>{formatRoomName(showtimeContext.roomName)}</Text>
+          <Text style={styles.contextPrice}>{formatCurrency(showtimeContext.basePrice)} / seat</Text>
+        </FadeInView>
+      ) : null}
 
       <View style={styles.screen}>
         <Text style={styles.screenText}>Screen</Text>
       </View>
 
-      <View style={styles.map}>
+      <FadeInView delay={70} style={styles.map}>
         {rows.map(([row, rowSeats]) => (
           <View key={row} style={styles.row}>
             <Text style={styles.rowLabel}>{row}</Text>
@@ -213,38 +297,49 @@ export default function SeatsScreen() {
             <View style={styles.seats}>
               {rowSeats.map((seat) => {
                 const selected = selectedSeatIds.has(seat.seatId);
+                const heldByCurrentUser = hold?.seatIds.includes(seat.seatId) ?? false;
+                const held = heldByCurrentUser || seat.status === 'held';
 
                 return (
-                  <Pressable
+                  <AnimatedPressable
                     accessibilityRole="button"
-                    disabled={seat.status !== 'available'}
+                    contentStyle={[
+                      styles.seat,
+                      { height: seatSize, width: seatSize },
+                      held && styles.seatHeld,
+                      seat.status === 'reserved' && styles.seatReserved,
+                      seat.status === 'booked' && styles.seatBooked,
+                      selected && styles.seatSelected,
+                    ]}
+                    disabled={Boolean(hold) || seat.status !== 'available'}
+                    haptic={false}
                     key={seat.seatId}
                     onPress={() => toggleSeat(seat)}
-                    style={[
-                      styles.seat,
-                      seat.status !== 'available' && styles.seatUnavailable,
-                      selected && styles.seatSelected,
-                    ]}>
+                    pressedScale={0.9}>
                     <Text
                       style={[
                         styles.seatText,
-                        seat.status !== 'available' && styles.seatTextUnavailable,
+                        held && styles.seatTextHeld,
+                        seat.status === 'reserved' && styles.seatTextReserved,
+                        seat.status === 'booked' && styles.seatTextBooked,
                         selected && styles.seatTextSelected,
+                        seatSize <= 28 && styles.seatTextCompact,
                       ]}>
                       {seat.number}
                     </Text>
-                  </Pressable>
+                  </AnimatedPressable>
                 );
               })}
             </View>
           </View>
         ))}
-      </View>
+      </FadeInView>
 
       <View style={styles.legend}>
         <LegendItem color="#ffffff" label="Available" />
-        <LegendItem color="#2563eb" label="Selected" />
-        <LegendItem color="#d1d5db" label="Unavailable" />
+        <LegendItem color={colors.primary} label="Selected" />
+        <LegendItem color="#fde68a" label="Holding" />
+        <LegendItem color="#344054" label="Unavailable" />
       </View>
 
       <Text style={styles.note}>Selected: {selectedSeatIds.size}</Text>
@@ -256,12 +351,14 @@ export default function SeatsScreen() {
             Seats held for{' '}
             {formatCountdown(remainingSeconds)}
           </Text>
-          <Text style={styles.holdId}>Hold ID: {hold.holdId}</Text>
+          <Text style={styles.holdDetail}>
+            Holding: {heldSeatLabels.length > 0 ? heldSeatLabels.join(', ') : `${hold.seatIds.length} seats`}
+          </Text>
           {bookingError ? <Text style={styles.holdError}>{bookingError}</Text> : null}
-          <Pressable
+          <AnimatedPressable
             disabled={booking || remainingSeconds === 0}
             onPress={handleCreateBooking}
-            style={[
+            contentStyle={[
               styles.secondaryButton,
               (booking || remainingSeconds === 0) && styles.buttonDisabled,
             ]}>
@@ -270,16 +367,16 @@ export default function SeatsScreen() {
             ) : (
               <Text style={styles.buttonText}>Create booking</Text>
             )}
-          </Pressable>
+          </AnimatedPressable>
         </View>
       ) : null}
 
       {holdError ? <Text style={styles.holdError}>{holdError}</Text> : null}
 
-      <Pressable
+      <AnimatedPressable
         disabled={selectedSeatIds.size === 0 || holding || Boolean(hold)}
         onPress={handleHoldSeats}
-        style={[
+        contentStyle={[
           styles.button,
           (selectedSeatIds.size === 0 || holding || Boolean(hold)) && styles.buttonDisabled,
         ]}>
@@ -290,8 +387,11 @@ export default function SeatsScreen() {
             Hold {selectedSeatIds.size} seat{selectedSeatIds.size === 1 ? '' : 's'}
           </Text>
         )}
-      </Pressable>
-    </ScrollView>
+      </AnimatedPressable>
+      </ScrollView>
+
+      <BottomNav />
+    </View>
   );
 }
 
@@ -354,73 +454,131 @@ function getBookingErrorMessage(error: unknown) {
   return 'Cannot create booking';
 }
 
+function calculateSeatSize(screenWidth: number, seatsPerRow: number) {
+  const horizontalContentPadding = 40;
+  const mapHorizontalPaddingAndBorder = 26;
+  const rowLabelWidth = 18;
+  const rowGap = 8;
+  const seatGap = 5;
+  const availableWidth =
+    screenWidth -
+    horizontalContentPadding -
+    mapHorizontalPaddingAndBorder -
+    rowLabelWidth -
+    rowGap -
+    seatGap * (seatsPerRow - 1);
+
+  return Math.max(24, Math.min(34, Math.floor(availableWidth / seatsPerRow)));
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 20,
     paddingTop: 64,
-    paddingBottom: 40,
+    paddingBottom: bottomNavHeight + 24,
   },
   backLink: {
     alignSelf: 'flex-start',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   backLinkText: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
     padding: 24,
   },
+  kicker: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   title: {
-    color: '#111827',
-    fontSize: 30,
-    fontWeight: '700',
+    marginTop: 4,
+    color: colors.ink,
+    fontSize: 34,
+    fontWeight: '900',
   },
   text: {
     marginTop: 12,
-    color: '#374151',
+    color: colors.muted,
     fontSize: 15,
-    textAlign: 'center',
+    fontWeight: '600',
+  },
+  contextPanel: {
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    padding: 14,
+    ...shadow.soft,
+  },
+  contextTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  contextText: {
+    marginTop: 5,
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  contextPrice: {
+    marginTop: 8,
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '900',
   },
   screen: {
     alignItems: 'center',
     marginTop: 32,
     marginBottom: 24,
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
     paddingVertical: 10,
+    ...shadow.soft,
   },
   screenText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   map: {
-    gap: 12,
+    borderWidth: 1,
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    gap: 10,
+    padding: 12,
+    ...shadow.card,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   rowLabel: {
-    width: 20,
-    color: '#111827',
+    width: 18,
+    color: colors.ink,
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
@@ -428,37 +586,52 @@ const styles = StyleSheet.create({
   seats: {
     flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    flexWrap: 'nowrap',
+    gap: 5,
   },
   seat: {
-    width: 34,
-    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.border,
     borderRadius: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
+  },
+  seatHeld: {
+    borderColor: '#facc15',
+    backgroundColor: '#fde68a',
+  },
+  seatReserved: {
+    borderColor: '#344054',
+    backgroundColor: '#344054',
+  },
+  seatBooked: {
+    borderColor: '#344054',
+    backgroundColor: '#344054',
   },
   seatSelected: {
-    borderColor: '#2563eb',
-    backgroundColor: '#2563eb',
-  },
-  seatUnavailable: {
-    borderColor: '#d1d5db',
-    backgroundColor: '#d1d5db',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
   },
   seatText: {
-    color: '#111827',
-    fontSize: 13,
+    color: colors.ink,
+    fontSize: 12,
     fontWeight: '700',
   },
-  seatTextSelected: {
-    color: '#ffffff',
+  seatTextCompact: {
+    fontSize: 11,
   },
-  seatTextUnavailable: {
-    color: '#6b7280',
+  seatTextSelected: {
+    color: colors.surface,
+  },
+  seatTextHeld: {
+    color: '#854d0e',
+  },
+  seatTextReserved: {
+    color: colors.surface,
+  },
+  seatTextBooked: {
+    color: colors.surface,
   },
   legend: {
     flexDirection: 'row',
@@ -475,16 +648,16 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.border,
     borderRadius: 4,
   },
   legendText: {
-    color: '#374151',
+    color: colors.muted,
     fontSize: 13,
   },
   note: {
     marginTop: 20,
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 14,
   },
   button: {
@@ -492,8 +665,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
@@ -501,50 +674,52 @@ const styles = StyleSheet.create({
     backgroundColor: '#9ca3af',
   },
   buttonText: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: colors.surface,
+    fontWeight: '900',
   },
   holdPanel: {
     marginTop: 18,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    borderRadius: 8,
-    backgroundColor: '#eff6ff',
+    borderColor: '#99f6e4',
+    borderRadius: radius.md,
+    backgroundColor: '#ecfdf5',
     padding: 14,
+    ...shadow.soft,
   },
   holdTitle: {
-    color: '#1e3a8a',
+    color: colors.accent,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   holdText: {
     marginTop: 6,
-    color: '#1f2937',
+    color: colors.ink,
     fontSize: 14,
+    fontWeight: '700',
   },
-  holdId: {
+  holdDetail: {
     marginTop: 6,
-    color: '#4b5563',
+    color: colors.muted,
     fontSize: 12,
   },
   holdError: {
     marginTop: 18,
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   secondaryButton: {
     marginTop: 14,
     minHeight: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#1d4ed8',
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   error: {
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 16,
   },
 });

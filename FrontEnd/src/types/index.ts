@@ -57,6 +57,7 @@ export type CreateMovieRequest = {
   posterUrl?: string | null;
   trailerUrl?: string | null;
   genre?: string | null;
+  isActive?: boolean;
 };
 
 export type BulkCreateMoviesRequest = {
@@ -173,7 +174,7 @@ export type Room = {
   id: string;
   cinemaId: string;
   name: string;
-  seats: Seat[];
+  seats?: Seat[];
 };
 
 export type Cinema = {

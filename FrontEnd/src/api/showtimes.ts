@@ -6,6 +6,10 @@ import type {
   Showtime,
 } from '@/src/types';
 
+export function getShowtimeById(id: string) {
+  return apiFetch<Showtime>(`/api/showtimes/${id}`);
+}
+
 export function createShowtime(request: CreateShowtimeRequest) {
   return apiFetch<Showtime>('/api/showtimes', {
     method: 'POST',

@@ -1,7 +1,9 @@
 import { router, Redirect, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Image } from 'expo-image';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,8 +11,14 @@ import {
   View,
 } from 'react-native';
 
+import { getCinema, getRoom } from '@/src/api/cinemas';
 import { getMovieById, getMovieShowtimes } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { BottomNav, bottomNavHeight } from '@/src/components/BottomNav';
+import { FadeInView } from '@/src/components/FadeInView';
+import { formatVenueName } from '@/src/display';
+import { colors, radius, shadow } from '@/src/theme';
 import type { MovieDetail, Showtime } from '@/src/types';
 
 export default function MovieDetailScreen() {
@@ -18,8 +26,28 @@ export default function MovieDetailScreen() {
   const { isAuthenticated, isLoading } = useAuth();
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [venueLabels, setVenueLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const loadVenueLabels = useCallback(async (items: Showtime[]) => {
+    const uniqueRoomIds = Array.from(new Set(items.map((item) => item.roomId)));
+    const entries = await Promise.all(
+      uniqueRoomIds.map(async (roomId) => {
+        try {
+          const room = await getRoom(roomId);
+          const cinema = await getCinema(room.cinemaId);
+
+          return [roomId, formatVenueName(cinema.name, room.name)] as const;
+        } catch (venueError) {
+          console.error(venueError);
+          return [roomId, 'Room details unavailable'] as const;
+        }
+      }),
+    );
+
+    setVenueLabels(Object.fromEntries(entries));
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -38,6 +66,7 @@ export default function MovieDetailScreen() {
 
         setMovie(movieResult);
         setShowtimes(showtimeResult);
+        void loadVenueLabels(showtimeResult);
       } catch (loadError) {
         console.error(loadError);
         setError('Cannot load movie');
@@ -47,7 +76,7 @@ export default function MovieDetailScreen() {
     }
 
     loadData();
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, loadVenueLabels]);
 
   if (isLoading) {
     return <CenteredLoader />;
@@ -73,46 +102,75 @@ export default function MovieDetailScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} style={styles.container}>
-      <Pressable onPress={() => router.back()} style={styles.backLink}>
-        <Text style={styles.backLinkText}>Back</Text>
-      </Pressable>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.back()}>
+          <Text style={styles.backLinkText}>Back</Text>
+        </AnimatedPressable>
 
-      <View style={styles.poster}>
-        <Text style={styles.posterText}>{getInitials(movie.title)}</Text>
-      </View>
+        <FadeInView>
+          <View style={styles.poster}>
+            {movie.posterUrl ? (
+              <Image
+                contentFit="cover"
+                source={{ uri: movie.posterUrl }}
+                style={StyleSheet.absoluteFill}
+                transition={300}
+              />
+            ) : (
+              <Text style={styles.posterText}>{getInitials(movie.title)}</Text>
+            )}
+          </View>
+        </FadeInView>
 
-      <Text style={styles.title}>{movie.title}</Text>
+        <Text style={styles.title}>{movie.title}</Text>
 
-      {movie.description ? <Text style={styles.description}>{movie.description}</Text> : null}
+        {movie.description ? <Text style={styles.description}>{movie.description}</Text> : null}
 
-      <View style={styles.metaRow}>
-        <Text style={styles.meta}>{movie.durationMinutes} min</Text>
-        <Text style={styles.meta}>Release: {formatDate(movie.releaseDate)}</Text>
-      </View>
+        <View style={styles.metaRow}>
+          <Text style={styles.meta}>{movie.durationMinutes} min</Text>
+          <Text style={styles.meta}>Release: {formatDate(movie.releaseDate)}</Text>
+          {movie.genre ? <Text style={styles.genre}>{movie.genre}</Text> : null}
+        </View>
 
-      <Text style={styles.heading}>Showtimes</Text>
+        {movie.trailerUrl ? (
+          <AnimatedPressable
+            contentStyle={styles.trailerButton}
+            onPress={() => void Linking.openURL(movie.trailerUrl!)}>
+            <Text style={styles.trailerText}>Open trailer</Text>
+          </AnimatedPressable>
+        ) : null}
 
-      {showtimes.length === 0 ? (
-        <Text style={styles.empty}>No showtimes available</Text>
-      ) : (
-        showtimes.map((showtime) => (
-          <Pressable
-            key={showtime.id}
-            onPress={() =>
-              router.push({
-                pathname: '/seats/[showtimeId]',
-                params: { showtimeId: showtime.id },
-              })
-            }
-            style={styles.showtime}>
-            <Text style={styles.showtimeTime}>{formatDateTime(showtime.startTime)}</Text>
-            <Text style={styles.meta}>Room: {showtime.roomId}</Text>
-            <Text style={styles.meta}>Price: {formatCurrency(showtime.basePrice)}</Text>
-          </Pressable>
-        ))
-      )}
-    </ScrollView>
+        <Text style={styles.heading}>Showtimes</Text>
+
+        {showtimes.length === 0 ? (
+          <Text style={styles.empty}>No showtimes available</Text>
+        ) : (
+          showtimes.map((showtime, index) => (
+            <FadeInView delay={index * 45 + 80} key={showtime.id}>
+              <AnimatedPressable
+                contentStyle={styles.showtime}
+                onPress={() =>
+                  router.push({
+                    pathname: '/seats/[showtimeId]',
+                    params: { showtimeId: showtime.id },
+                  })
+                }>
+                <View style={styles.showtimeInfo}>
+                  <Text style={styles.showtimeTime}>{formatDateTime(showtime.startTime)}</Text>
+                  <Text style={styles.meta}>{venueLabels[showtime.roomId] ?? 'Loading room...'}</Text>
+                </View>
+                <View style={styles.pricePill}>
+                  <Text style={styles.priceText}>{formatCurrency(showtime.basePrice)}</Text>
+                </View>
+              </AnimatedPressable>
+            </FadeInView>
+          ))
+        )}
+      </ScrollView>
+
+      <BottomNav />
+    </View>
   );
 }
 
@@ -125,11 +183,16 @@ function CenteredLoader() {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+  }).format(new Date(value));
 }
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleString();
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
 
 function formatCurrency(value: number) {
@@ -152,104 +215,152 @@ function getInitials(title: string) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 20,
     paddingTop: 64,
-    paddingBottom: 40,
+    paddingBottom: bottomNavHeight + 24,
+  },
+  showtimeInfo: {
+    flex: 1,
   },
   backLink: {
     alignSelf: 'flex-start',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   backLinkText: {
-    color: '#111827',
+    color: colors.ink,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   poster: {
     height: 220,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+    overflow: 'hidden',
+    ...shadow.card,
   },
   posterText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 48,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   title: {
     marginTop: 24,
-    color: '#111827',
-    fontSize: 30,
-    fontWeight: '700',
+    color: colors.ink,
+    fontSize: 32,
+    fontWeight: '900',
   },
   description: {
     marginTop: 12,
-    color: '#374151',
+    color: '#475467',
     fontSize: 16,
-    lineHeight: 23,
+    lineHeight: 24,
   },
   metaRow: {
-    gap: 6,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 16,
   },
   meta: {
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 14,
+    fontWeight: '600',
+  },
+  genre: {
+    borderRadius: radius.sm,
+    backgroundColor: '#fff3e0',
+    color: '#9a3412',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  trailerButton: {
+    alignSelf: 'flex-start',
+    marginTop: 18,
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  trailerText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: '800',
   },
   heading: {
     marginTop: 32,
     marginBottom: 14,
-    color: '#111827',
+    color: colors.ink,
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   showtime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
     padding: 14,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
+    ...shadow.soft,
   },
   showtimeTime: {
     marginBottom: 8,
-    color: '#111827',
+    color: colors.ink,
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '900',
+  },
+  pricePill: {
+    borderRadius: radius.sm,
+    backgroundColor: '#e7f6f2',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  priceText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '900',
   },
   empty: {
-    color: '#6b7280',
+    color: colors.muted,
     fontSize: 15,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
     padding: 24,
   },
   error: {
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 16,
   },
   backButton: {
     marginTop: 16,
-    borderRadius: 8,
-    backgroundColor: '#111827',
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   backButtonText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontWeight: '600',
   },
 });
