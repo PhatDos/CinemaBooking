@@ -8,6 +8,12 @@ export function createBooking(request: CreateBookingRequest) {
   });
 }
 
+export function cancelBooking(bookingId: string) {
+  return apiFetch<void>(`/api/bookings/${bookingId}/cancel`, {
+    method: 'POST',
+  });
+}
+
 export function getBooking(bookingId: string) {
   return apiFetch<Booking>(`/api/bookings/${bookingId}`);
 }

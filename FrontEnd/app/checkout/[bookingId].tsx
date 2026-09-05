@@ -13,7 +13,7 @@ import { ActivityIndicator,
   View,
 } from 'react-native';
 
-import { getBooking } from '@/src/api/bookings';
+import { cancelBooking, getBooking } from '@/src/api/bookings';
 import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
 import { getMovieById } from '@/src/api/movies';
@@ -22,6 +22,7 @@ import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
+import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
 import { formatDateTime, formatVenueName } from '@/src/display';
 import type { Booking, Payment } from '@/src/types';
@@ -42,6 +43,8 @@ export default function CheckoutScreen() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
+  const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
 
   const loadCheckoutContext = useCallback(async (showtimeId: string) => {
@@ -167,6 +170,58 @@ export default function CheckoutScreen() {
     }
   }
 
+  function handleGoBack() {
+    if (!booking) {
+      router.replace('/movies');
+      return;
+    }
+
+    const currentStatus = normalizeStatus(booking.status);
+    const hasActivePayment =
+      payment?.status === 'Pending' ||
+      payment?.status === 'Succeeded' ||
+      payment?.fulfillmentStatus === 'Conflict';
+
+    if (currentStatus === 'pending' && !hasActivePayment) {
+      setCancelDialogVisible(true);
+      return;
+    }
+
+    if (currentStatus === 'expired' || currentStatus === 'cancelled') {
+      router.replace({
+        pathname: '/seats/[showtimeId]',
+        params: { showtimeId: booking.showtimeId },
+      });
+      return;
+    }
+
+    router.replace('/bookings');
+  }
+
+  async function handleConfirmCancelBooking() {
+    if (!booking || canceling) {
+      return;
+    }
+
+    setCanceling(true);
+    setError('');
+
+    try {
+      await cancelBooking(booking.id);
+      setCancelDialogVisible(false);
+      router.replace({
+        pathname: '/seats/[showtimeId]',
+        params: { showtimeId: booking.showtimeId },
+      });
+    } catch (cancelError) {
+      console.error(cancelError);
+      setCancelDialogVisible(false);
+      setError(getCancelErrorMessage(cancelError));
+    } finally {
+      setCanceling(false);
+    }
+  }
+
   if (isLoading || loading) {
     return <CenteredLoader />;
   }
@@ -196,12 +251,15 @@ export default function CheckoutScreen() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.topActions}>
-        <AnimatedPressable contentStyle={styles.backLink} onPress={goBack}>
+        <AnimatedPressable
+          contentStyle={styles.backLink}
+          disabled={canceling}
+          onPress={handleGoBack}>
           <Text style={styles.backLinkText}>Go back</Text>
         </AnimatedPressable>
 
-        <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.replace('/movies')}>
-          <Text style={styles.backLinkText}>Movies</Text>
+        <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.replace('/bookings')}>
+          <Text style={styles.backLinkText}>My bookings</Text>
         </AnimatedPressable>
       </View>
 
@@ -269,6 +327,21 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       <BottomNav />
+      <ConfirmDialog
+        cancelLabel="Stay"
+        confirmLabel="Cancel booking"
+        destructive
+        loading={canceling}
+        message="Leaving checkout before payment will cancel this booking and release the selected seats."
+        onCancel={() => {
+          if (!canceling) {
+            setCancelDialogVisible(false);
+          }
+        }}
+        onConfirm={handleConfirmCancelBooking}
+        title="Cancel this booking?"
+        visible={cancelDialogVisible}
+      />
     </View>
   );
 }
@@ -288,15 +361,6 @@ function InfoRow({ label, value, highlight = false }: { label: string; value: st
       <Text style={[styles.infoValue, highlight && styles.infoValueHighlight]}>{value}</Text>
     </View>
   );
-}
-
-function goBack() {
-  if (router.canGoBack()) {
-    router.back();
-    return;
-  }
-
-  router.replace('/movies');
 }
 
 function normalizeStatus(status: string) {
@@ -405,4 +469,14 @@ function getPaymentErrorMessage(error: unknown) {
   }
 
   return 'Cannot complete payment';
+}
+
+function getCancelErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.status === 409
+      ? 'Booking can no longer be cancelled.'
+      : error.message;
+  }
+
+  return 'Cannot cancel booking';
 }
