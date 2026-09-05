@@ -7,7 +7,7 @@ public class SeatPricingTests
     [Theory]
     [InlineData("Standard", 90000)]
     [InlineData("VIP", 100000)]
-    [InlineData("Couple", 190000)]
+    [InlineData("Couple", 200000)]
     [InlineData(null, 90000)]
     public void Calculate_ReturnsFixedSeedPricesBySeatType(
         string? seatType,

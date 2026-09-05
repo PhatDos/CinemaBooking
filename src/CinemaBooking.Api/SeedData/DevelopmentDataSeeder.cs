@@ -306,7 +306,7 @@ public static class DevelopmentDataSeeder
     {
         return row switch
         {
-            "B" or "D" when number is >= 2 and <= 7 => SeatType.VIP,
+            "B" or "C" or "D" when number is >= 3 and <= 6 => SeatType.VIP,
             "E" => SeatType.Couple,
             _ => SeatType.Standard
         };

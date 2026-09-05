@@ -30,6 +30,8 @@ import {
 import { colors, radius, shadow } from '@/src/theme';
 import type { SeatAvailability } from '@/src/types';
 
+const seatGap = 4;
+
 type ShowtimeContext = {
   cinemaName: string;
   movieTitle: string;
@@ -112,8 +114,8 @@ export default function SeatsScreen() {
   }, [showtimeId, isAuthenticated]);
 
   const rows = useMemo(() => groupSeatsByRow(seats), [seats]);
-  const maxSeatsPerRow = Math.max(1, ...rows.map(([, rowSeats]) => rowSeats.length));
-  const seatSize = calculateSeatSize(width, maxSeatsPerRow);
+  const maxSeatSlotsPerRow = Math.max(1, ...rows.map(([, rowSeats]) => getRowSlotCount(rowSeats)));
+  const seatSize = calculateSeatSize(width, maxSeatSlotsPerRow);
   const selectedSeats = useMemo(
     () => seats.filter((seat) => selectedSeatIds.has(seat.seatId)),
     [seats, selectedSeatIds],
@@ -291,7 +293,7 @@ export default function SeatsScreen() {
                     accessibilityRole="button"
                     contentStyle={[
                       styles.seat,
-                      { height: seatSize, width: seatSize },
+                      { height: seatSize, width: getSeatWidth(seat, seatSize) },
                       seat.type === 'VIP' && styles.seatVip,
                       seat.type === 'Couple' && styles.seatCouple,
                       held && styles.seatHeld,
@@ -431,6 +433,26 @@ function groupSeatsByRow(seats: SeatAvailability[]) {
   ] as const);
 }
 
+function getRowSlotCount(seats: SeatAvailability[]) {
+  return seats.reduce(
+    (total, seat) => total + getSeatSlotSpan(seat),
+    0,
+  );
+}
+
+function getSeatSlotSpan(seat: Pick<SeatAvailability, 'type'>) {
+  return seat.type === 'Couple' ? 2 : 1;
+}
+
+function getSeatWidth(
+  seat: Pick<SeatAvailability, 'type'>,
+  seatSize: number,
+) {
+  return seat.type === 'Couple'
+    ? seatSize * 2 + seatGap
+    : seatSize;
+}
+
 function getContinueErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     return error.status === 409 ? 'One or more seats were just taken. Please choose again.' : error.message;
@@ -456,7 +478,6 @@ function calculateSeatSize(screenWidth: number, seatsPerRow: number) {
   const mapHorizontalPaddingAndBorder = 18;
   const rowLabelWidth = 18;
   const rowGap = 6;
-  const seatGap = 4;
   const availableWidth =
     screenWidth -
     horizontalContentPadding -
@@ -584,7 +605,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    gap: 4,
+    gap: seatGap,
   },
   seat: {
     alignItems: 'center',
@@ -603,7 +624,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ede9fe',
   },
   seatCouple: {
-    borderColor: '#fb7185',
+    borderColor: '#ffd5dc',
     backgroundColor: '#ffe4e6',
   },
   seatReserved: {

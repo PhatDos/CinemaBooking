@@ -4,7 +4,7 @@ public static class SeatPricing
 {
     private const decimal StandardPrice = 90000m;
     private const decimal VipPrice = 100000m;
-    private const decimal CouplePrice = 190000m;
+    private const decimal CouplePrice = 200000m;
 
     public static decimal Calculate(decimal basePrice, string? seatType)
     {
