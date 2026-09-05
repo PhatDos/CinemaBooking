@@ -215,7 +215,6 @@ export default function SeatsScreen() {
 
       setSelectedSeatIds(new Set());
       setActionError(getContinueErrorMessage(continueError));
-      await loadSeats(false);
     } finally {
       setContinuing(false);
     }

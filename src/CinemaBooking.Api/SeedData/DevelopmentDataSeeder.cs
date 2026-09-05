@@ -65,6 +65,9 @@ public static class DevelopmentDataSeeder
             schedulingDbContext,
             movies,
             room.Id);
+
+        await NormalizeDevelopmentShowtimePricesAsync(
+            schedulingDbContext);
     }
 
     private static async Task<List<Movie>> EnsureMoviesAsync(
@@ -349,6 +352,27 @@ public static class DevelopmentDataSeeder
                 EndTime = startTime.AddMinutes(movie.DurationMinutes),
                 BasePrice = SeedBasePrice
             });
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task NormalizeDevelopmentShowtimePricesAsync(
+        SchedulingDbContext dbContext)
+    {
+        var showtimes =
+            await dbContext.Showtimes
+                .Where(showtime => showtime.BasePrice != SeedBasePrice)
+                .ToListAsync();
+
+        if (showtimes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var showtime in showtimes)
+        {
+            showtime.BasePrice = SeedBasePrice;
         }
 
         await dbContext.SaveChangesAsync();
