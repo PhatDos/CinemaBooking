@@ -1,11 +1,15 @@
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import { Redirect, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import {
+  CameraView,
+  useCameraPermissions,
+  type BarcodeScanningResult } from 'expo-camera';
+import { Redirect,
+  router } from 'expo-router';
+import { useEffect,
+  useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
   Easing,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -15,12 +19,12 @@ import { checkInTicket } from '@/src/api/tickets';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { FadeInView } from '@/src/components/FadeInView';
-import { colors, radius, shadow } from '@/src/theme';
 import type { CheckInTicketResponse } from '@/src/types';
 import { getCinema, getRoom, getSeats } from '@/src/api/cinemas';
 import { getMovieById } from '@/src/api/movies';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { formatCinemaName, formatRoomName, getSeatLabel } from '@/src/display';
+import { styles } from '@/src/styles/screens/scan-ticket.styles';
 
 type CheckInDetails = {
   cinemaName: string;
@@ -285,189 +289,3 @@ function formatDateTime(value: string) {
     timeStyle: 'short',
   }).format(new Date(value));
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  camera: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: colors.background,
-  },
-  topBar: {
-    position: 'absolute',
-    top: 52,
-    left: 20,
-    right: 20,
-    zIndex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    minHeight: 40,
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(16, 24, 40, 0.72)',
-    paddingHorizontal: 14,
-  },
-  backButtonText: {
-    color: colors.surface,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  screenTitle: {
-    color: colors.surface,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  overlay: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  scanFrame: {
-    width: 260,
-    height: 260,
-    borderRadius: radius.md,
-  },
-  corner: {
-    position: 'absolute',
-    width: 54,
-    height: 54,
-    borderColor: colors.surface,
-  },
-  cornerTopLeft: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 4,
-    borderLeftWidth: 4,
-    borderTopLeftRadius: radius.md,
-  },
-  cornerTopRight: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 4,
-    borderRightWidth: 4,
-    borderTopRightRadius: radius.md,
-  },
-  cornerBottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 4,
-    borderLeftWidth: 4,
-    borderBottomLeftRadius: radius.md,
-  },
-  cornerBottomRight: {
-    right: 0,
-    bottom: 0,
-    borderRightWidth: 4,
-    borderBottomWidth: 4,
-    borderBottomRightRadius: radius.md,
-  },
-  scanLine: {
-    position: 'absolute',
-    left: 18,
-    right: 18,
-    height: 2,
-    borderRadius: 2,
-    backgroundColor: '#5eead4',
-  },
-  hint: {
-    marginTop: 20,
-    color: colors.surface,
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  resultPanel: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 36,
-    zIndex: 3,
-    alignItems: 'stretch',
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    padding: 18,
-    ...shadow.card,
-  },
-  resultTitle: {
-    color: colors.ink,
-    fontSize: 20,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  resultDetails: {
-    marginTop: 14,
-    gap: 6,
-  },
-  detailText: {
-    color: '#475467',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  title: {
-    color: colors.ink,
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  bodyText: {
-    marginTop: 10,
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  primaryButton: {
-    marginTop: 18,
-    minHeight: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  primaryButtonText: {
-    color: colors.surface,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  secondaryButton: {
-    marginTop: 12,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  secondaryButtonText: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  successText: {
-    color: colors.success,
-  },
-  errorText: {
-    color: colors.danger,
-  },
-});

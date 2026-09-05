@@ -1,0 +1,156 @@
+import { StyleSheet } from 'react-native';
+import { bottomNavHeight } from '@/src/styles/layout';
+import { colors, radius, shadow } from '@/src/theme';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    padding: 20,
+    paddingTop: 64,
+    paddingBottom: bottomNavHeight + 24,
+  },
+  showtimeInfo: {
+    flex: 1,
+  },
+  backLink: {
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  backLinkText: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  poster: {
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
+  posterText: {
+    color: colors.surface,
+    fontSize: 48,
+    fontWeight: '900',
+  },
+  title: {
+    marginTop: 24,
+    color: colors.ink,
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  description: {
+    marginTop: 12,
+    color: '#475467',
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 16,
+  },
+  meta: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  genre: {
+    borderRadius: radius.sm,
+    backgroundColor: '#fff3e0',
+    color: '#9a3412',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  trailerButton: {
+    alignSelf: 'flex-start',
+    marginTop: 18,
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  trailerText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  heading: {
+    marginTop: 32,
+    marginBottom: 14,
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  showtime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e7eaf0',
+    borderRadius: radius.md,
+    padding: 14,
+    backgroundColor: colors.surface,
+    ...shadow.soft,
+  },
+  showtimeTime: {
+    marginBottom: 8,
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  pricePill: {
+    borderRadius: radius.sm,
+    backgroundColor: '#e7f6f2',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  priceText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  empty: {
+    color: colors.muted,
+    fontSize: 15,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+    padding: 24,
+  },
+  error: {
+    color: colors.danger,
+    fontSize: 16,
+  },
+  backButton: {
+    marginTop: 16,
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  backButtonText: {
+    color: colors.surface,
+    fontWeight: '600',
+  },
+});
