@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -15,7 +15,7 @@ import { createBooking } from '@/src/api/bookings';
 import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
 import { getMovieById } from '@/src/api/movies';
-import { getSeatAvailability, holdSeats } from '@/src/api/seats';
+import { getSeatAvailability, holdSeats, releaseHold } from '@/src/api/seats';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
@@ -26,10 +26,9 @@ import {
   formatCurrency,
   formatDateTime,
   formatRoomName,
-  getSeatLabels,
 } from '@/src/display';
 import { colors, radius, shadow } from '@/src/theme';
-import type { HoldSeatsResponse, SeatAvailability } from '@/src/types';
+import type { SeatAvailability } from '@/src/types';
 
 type ShowtimeContext = {
   cinemaName: string;
@@ -47,14 +46,9 @@ export default function SeatsScreen() {
   const [selectedSeatIds, setSelectedSeatIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [holding, setHolding] = useState(false);
-  const [hold, setHold] = useState<HoldSeatsResponse | null>(null);
-  const [holdError, setHoldError] = useState('');
-  const [booking, setBooking] = useState(false);
-  const [bookingError, setBookingError] = useState('');
-  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [continuing, setContinuing] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [showtimeContext, setShowtimeContext] = useState<ShowtimeContext | null>(null);
-  const handledExpiryRef = useRef(false);
 
   const loadSeats = useCallback(
     async (showLoader = true) => {
@@ -119,44 +113,6 @@ export default function SeatsScreen() {
     void loadShowtimeContext();
   }, [showtimeId, isAuthenticated]);
 
-  useEffect(() => {
-    if (!hold) {
-      handledExpiryRef.current = false;
-      return;
-    }
-
-    const expiresAt = new Date(hold.expiresAt).getTime();
-
-    function syncCountdown() {
-      const seconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-
-      setRemainingSeconds(seconds);
-
-      if (seconds === 0) {
-        if (handledExpiryRef.current) {
-          return;
-        }
-
-        handledExpiryRef.current = true;
-        setHold(null);
-        setSelectedSeatIds(new Set());
-        setHoldError('Seat hold has expired. Please select seats again.');
-        void loadSeats(false);
-
-        if (showtimeId) {
-          router.replace({
-            pathname: '/seats/[showtimeId]',
-            params: { showtimeId },
-          });
-        }
-      }
-    }
-
-    const timer = setInterval(syncCountdown, 1000);
-
-    return () => clearInterval(timer);
-  }, [hold, loadSeats, showtimeId]);
-
   const rows = useMemo(() => groupSeatsByRow(seats), [seats]);
   const maxSeatsPerRow = Math.max(1, ...rows.map(([, rowSeats]) => rowSeats.length));
   const seatSize = calculateSeatSize(width, maxSeatsPerRow);
@@ -164,14 +120,20 @@ export default function SeatsScreen() {
     () =>
       seats
         .filter((seat) => selectedSeatIds.has(seat.seatId))
-        .reduce((total, seat) => total + seat.price, 0),
-    [seats, selectedSeatIds],
+        .reduce(
+          (total, seat) =>
+            total + getSeatPrice(seat, showtimeContext?.basePrice),
+          0,
+        ),
+    [seats, selectedSeatIds, showtimeContext?.basePrice],
   );
-  const priceByType = useMemo(() => getPriceByType(seats), [seats]);
-  const heldSeatLabels = hold ? getSeatLabels(hold.seatIds, seats) : [];
+  const priceByType = useMemo(
+    () => getPriceByType(seats, showtimeContext?.basePrice),
+    [seats, showtimeContext?.basePrice],
+  );
 
   function toggleSeat(seat: SeatAvailability) {
-    if (hold || seat.status !== 'available') {
+    if (continuing || seat.status !== 'available') {
       return;
     }
 
@@ -190,58 +152,47 @@ export default function SeatsScreen() {
     });
   }
 
-  async function handleHoldSeats() {
-    if (!showtimeId || selectedSeatIds.size === 0 || holding) {
+  async function handleContinue() {
+    if (!showtimeId || selectedSeatIds.size === 0 || continuing) {
       return;
     }
 
-    setHolding(true);
-    setHoldError('');
+    setContinuing(true);
+    setActionError('');
+
+    let holdId: string | null = null;
 
     try {
-      const response = await holdSeats(showtimeId, {
+      const hold = await holdSeats(showtimeId, {
         seatIds: Array.from(selectedSeatIds),
       });
 
-      setHold(response);
-      setRemainingSeconds(calculateRemainingSeconds(response.expiresAt));
-      setBookingError('');
-      setSelectedSeatIds(new Set());
-      await loadSeats(false);
-    } catch (holdSeatsError) {
-      console.error(holdSeatsError);
-      setHold(null);
-      setSelectedSeatIds(new Set());
-      setHoldError(getHoldErrorMessage(holdSeatsError));
-      await loadSeats(false);
-    } finally {
-      setHolding(false);
-    }
-  }
+      holdId = hold.holdId;
 
-  async function handleCreateBooking() {
-    if (!hold || booking || remainingSeconds === 0) {
-      return;
-    }
-
-    setBooking(true);
-    setBookingError('');
-
-    try {
-      const response = await createBooking({
-        holdId: hold.holdId,
+      const booking = await createBooking({
+        holdId,
       });
+
+      setSelectedSeatIds(new Set());
 
       router.push({
         pathname: '/checkout/[bookingId]',
-        params: { bookingId: response.bookingId },
+        params: { bookingId: booking.bookingId },
       });
-    } catch (createBookingError) {
-      console.error(createBookingError);
-      setBookingError(getBookingErrorMessage(createBookingError));
+    } catch (continueError) {
+      console.error(continueError);
+
+      if (holdId) {
+        await releaseHold(holdId).catch((releaseError) => {
+          console.error(releaseError);
+        });
+      }
+
+      setSelectedSeatIds(new Set());
+      setActionError(getContinueErrorMessage(continueError));
       await loadSeats(false);
     } finally {
-      setBooking(false);
+      setContinuing(false);
     }
   }
 
@@ -305,8 +256,7 @@ export default function SeatsScreen() {
             <View style={styles.seats}>
               {rowSeats.map((seat) => {
                 const selected = selectedSeatIds.has(seat.seatId);
-                const heldByCurrentUser = hold?.seatIds.includes(seat.seatId) ?? false;
-                const held = heldByCurrentUser || seat.status === 'held';
+                const held = seat.status === 'held';
 
                 return (
                   <AnimatedPressable
@@ -321,7 +271,7 @@ export default function SeatsScreen() {
                       seat.status === 'booked' && styles.seatBooked,
                       selected && styles.seatSelected,
                     ]}
-                    disabled={Boolean(hold) || seat.status !== 'available'}
+                    disabled={continuing || seat.status !== 'available'}
                     haptic={false}
                     key={seat.seatId}
                     onPress={() => toggleSeat(seat)}
@@ -362,47 +312,20 @@ export default function SeatsScreen() {
         <Text style={styles.selectedTotal}>Total: {formatCurrency(selectedTotal)}</Text>
       ) : null}
 
-      {hold ? (
-        <View style={styles.holdPanel}>
-          <Text style={styles.holdTitle}>Seats held</Text>
-          <Text style={styles.holdText}>
-            Seats held for{' '}
-            {formatCountdown(remainingSeconds)}
-          </Text>
-          <Text style={styles.holdDetail}>
-            Holding: {heldSeatLabels.length > 0 ? heldSeatLabels.join(', ') : `${hold.seatIds.length} seats`}
-          </Text>
-          {bookingError ? <Text style={styles.holdError}>{bookingError}</Text> : null}
-          <AnimatedPressable
-            disabled={booking || remainingSeconds === 0}
-            onPress={handleCreateBooking}
-            contentStyle={[
-              styles.secondaryButton,
-              (booking || remainingSeconds === 0) && styles.buttonDisabled,
-            ]}>
-            {booking ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonText}>Create booking</Text>
-            )}
-          </AnimatedPressable>
-        </View>
-      ) : null}
-
-      {holdError ? <Text style={styles.holdError}>{holdError}</Text> : null}
+      {actionError ? <Text style={styles.holdError}>{actionError}</Text> : null}
 
       <AnimatedPressable
-        disabled={selectedSeatIds.size === 0 || holding || Boolean(hold)}
-        onPress={handleHoldSeats}
+        disabled={selectedSeatIds.size === 0 || continuing}
+        onPress={handleContinue}
         contentStyle={[
           styles.button,
-          (selectedSeatIds.size === 0 || holding || Boolean(hold)) && styles.buttonDisabled,
+          (selectedSeatIds.size === 0 || continuing) && styles.buttonDisabled,
         ]}>
-        {holding ? (
+        {continuing ? (
           <ActivityIndicator color="#ffffff" />
         ) : (
           <Text style={styles.buttonText}>
-            Hold {selectedSeatIds.size} seat{selectedSeatIds.size === 1 ? '' : 's'}
+            Continue
             {selectedSeatIds.size > 0 ? ` | ${formatCurrency(selectedTotal)}` : ''}
           </Text>
         )}
@@ -431,12 +354,15 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
-function getPriceByType(seats: SeatAvailability[]) {
+function getPriceByType(
+  seats: SeatAvailability[],
+  basePrice: number | undefined,
+) {
   const prices = new Map<SeatAvailability['type'], number>();
 
   seats.forEach((seat) => {
     if (!prices.has(seat.type)) {
-      prices.set(seat.type, seat.price);
+      prices.set(seat.type, getSeatPrice(seat, basePrice));
     }
   });
 
@@ -467,31 +393,38 @@ function groupSeatsByRow(seats: SeatAvailability[]) {
   ] as const);
 }
 
-function formatCountdown(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-function calculateRemainingSeconds(expiresAt: string) {
-  return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000));
-}
-
-function getHoldErrorMessage(error: unknown) {
+function getContinueErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
-    return error.status === 409 ? 'One or more seats were just taken.' : error.message;
+    return error.status === 409 ? 'One or more seats were just taken. Please choose again.' : error.message;
   }
 
-  return 'Cannot hold seats';
+  return 'Cannot continue checkout';
 }
 
-function getBookingErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    return error.status === 409 ? 'Seat hold is no longer valid.' : error.message;
+function getSeatPrice(
+  seat: Pick<SeatAvailability, 'type'> & { price?: number | null },
+  basePrice: number | undefined,
+) {
+  const apiPrice = Number(seat.price);
+
+  if (Number.isFinite(apiPrice)) {
+    return apiPrice;
   }
 
-  return 'Cannot create booking';
+  const base = Number(basePrice);
+
+  if (!Number.isFinite(base)) {
+    return 0;
+  }
+
+  switch (seat.type) {
+    case 'VIP':
+      return base + 30000;
+    case 'Couple':
+      return base + 90000;
+    default:
+      return base;
+  }
 }
 
 function calculateSeatSize(screenWidth: number, seatsPerRow: number) {

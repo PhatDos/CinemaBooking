@@ -14,5 +14,7 @@ public sealed class PayOSPaymentOptions
 
     public string CancelUrl { get; init; } = string.Empty;
 
+    public int ExpirationMinutes { get; init; } = 15;
+
     public string? PartnerCode { get; init; }
 }

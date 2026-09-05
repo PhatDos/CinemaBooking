@@ -206,9 +206,12 @@ public class BookingService
                 "Only pending bookings can be cancelled.");
         }
 
-        var seats = booking.Seats.ToList();
+        var now = DateTime.UtcNow;
 
-        _repository.RemoveSeats(seats);
+        foreach (var seat in booking.Seats.Where(seat => seat.ReleasedAt is null))
+        {
+            seat.ReleasedAt = now;
+        }
 
         booking.Status = BookingStatus.Cancelled;
 

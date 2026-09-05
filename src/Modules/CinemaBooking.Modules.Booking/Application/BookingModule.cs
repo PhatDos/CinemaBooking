@@ -5,6 +5,7 @@ using CinemaBooking.Modules.Booking.Application.SeatAvailability;
 using CinemaBooking.Modules.Booking.Application.SeatHolds;
 using CinemaBooking.Modules.Booking.Infrastructure.Persistence;
 using CinemaBooking.SharedKernel.Exceptions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CinemaBooking.Modules.Booking.Application;
@@ -74,6 +75,13 @@ public class BookingModule : IBookingModule
             userId);
     }
 
+    public async Task ReleaseHoldAsync(
+        Guid userId,
+        Guid holdId)
+    {
+        await _seatHoldService.ReleaseAsync(userId, holdId);
+    }
+
     public async Task<CreateBookingResult> CreateBookingAsync(
         Guid userId,
         Guid holdId)
@@ -84,6 +92,63 @@ public class BookingModule : IBookingModule
                 holdId);
 
         return ToResult(booking);
+    }
+
+    public async Task ExtendExpirationAsync(
+        Guid bookingId,
+        Guid userId,
+        DateTime expiresAt,
+        CancellationToken cancellationToken = default)
+    {
+        if (bookingId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Booking id is required.");
+        }
+
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        if (expiresAt <= DateTime.UtcNow)
+        {
+            throw new BusinessRuleException(
+                "Booking expiration must be in the future.");
+        }
+
+        var booking =
+            await _dbContext.Bookings
+                .FirstOrDefaultAsync(item =>
+                    item.Id == bookingId &&
+                    item.UserId == userId,
+                    cancellationToken);
+
+        if (booking is null)
+        {
+            throw new NotFoundException("Booking not found.");
+        }
+
+        if (booking.Status != BookingStatus.Pending)
+        {
+            throw new ConflictException(
+                "Booking is no longer pending.");
+        }
+
+        if (booking.ExpiresAt is null ||
+            booking.ExpiresAt < expiresAt)
+        {
+            booking.ExpiresAt = expiresAt;
+        }
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException(
+                "Booking state changed. Please retry.");
+        }
     }
 
     public async Task ConfirmAsync(
@@ -132,7 +197,9 @@ public class BookingModule : IBookingModule
                     item.Status != BookingStatus.Expired)
                 .SelectMany(item => item.Seats)
                 .AnyAsync(
-                    seat => seatIds.Contains(seat.SeatId),
+                    seat =>
+                        seat.ReleasedAt == null &&
+                        seatIds.Contains(seat.SeatId),
                     cancellationToken);
 
         if (hasSeatConflict)
@@ -144,6 +211,11 @@ public class BookingModule : IBookingModule
         booking.Status = BookingStatus.Confirmed;
         booking.ExpiresAt = null;
 
+        foreach (var seat in booking.Seats)
+        {
+            seat.ReleasedAt = null;
+        }
+
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -152,6 +224,11 @@ public class BookingModule : IBookingModule
         {
             throw new ConflictException(
                 "Booking state changed. Please retry.");
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            throw new ConflictException(
+                "Paid booking seats are no longer available.");
         }
     }
 
@@ -191,5 +268,13 @@ public class BookingModule : IBookingModule
             CreatedAt = booking.CreatedAt,
             ExpiresAt = booking.ExpiresAt
         };
+    }
+
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException sqlException &&
+               sqlException.Errors
+                   .Cast<SqlError>()
+                   .Any(error => error.Number is 2601 or 2627);
     }
 }

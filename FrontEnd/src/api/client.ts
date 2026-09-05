@@ -37,11 +37,21 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(toApiUrl(path), {
-    ...requestOptions,
-    headers,
-    body: serializeBody(body, isFormData),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(toApiUrl(path), {
+      ...requestOptions,
+      headers,
+      body: serializeBody(body, isFormData),
+    });
+  } catch (error) {
+    throw new ApiError(
+      'Cannot connect to backend. Check Wi-Fi and API server.',
+      0,
+      error,
+    );
+  }
 
   const data = await parseResponse(response);
 
@@ -55,7 +65,17 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 export const apiFetch = apiRequest;
 
 export async function checkHealth(): Promise<string> {
-  const response = await fetch(toApiUrl('/health'));
+  let response: Response;
+
+  try {
+    response = await fetch(toApiUrl('/health'));
+  } catch (error) {
+    throw new ApiError(
+      'Cannot connect to backend. Check Wi-Fi and API server.',
+      0,
+      error,
+    );
+  }
 
   if (!response.ok) {
     throw new Error(`Backend returned ${response.status}`);

@@ -84,7 +84,10 @@ public class BookingRepository : IBookingRepository
             .AsNoTracking()
             .AnyAsync(seat =>
                 seat.ShowtimeId == showtimeId &&
-                seat.SeatId == seatId);
+                seat.SeatId == seatId &&
+                seat.ReleasedAt == null &&
+                seat.Booking.Status != BookingStatus.Cancelled &&
+                seat.Booking.Status != BookingStatus.Expired);
     }
 
     public async Task<List<SeatBookingStatusInfo>> GetSeatStatusesAsync(
@@ -92,18 +95,17 @@ public class BookingRepository : IBookingRepository
     {
         return await _dbContext.BookingSeats
             .AsNoTracking()
-            .Where(seat => seat.ShowtimeId == showtimeId)
+            .Where(seat =>
+                seat.ShowtimeId == showtimeId &&
+                seat.ReleasedAt == null &&
+                (seat.Booking.Status == BookingStatus.Pending ||
+                 seat.Booking.Status == BookingStatus.Confirmed))
             .Select(seat => new SeatBookingStatusInfo
             {
                 SeatId = seat.SeatId,
                 BookingStatus = seat.Booking.Status
             })
             .ToListAsync();
-    }
-
-    public void RemoveSeats(IEnumerable<BookingSeat> seats)
-    {
-        _dbContext.BookingSeats.RemoveRange(seats);
     }
 
     public async Task SaveChangesAsync()

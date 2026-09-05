@@ -68,6 +68,10 @@ public class PaymentService
 
         if (existing is not null)
         {
+            await SyncPendingPaymentAsync(
+                existing,
+                cancellationToken);
+
             return ToResponse(existing);
         }
 
@@ -82,6 +86,15 @@ public class PaymentService
         {
             throw new ConflictException("Booking has expired.");
         }
+
+        var paymentExpiresAt =
+            DateTime.UtcNow.AddMinutes(GetPaymentExpirationMinutes());
+
+        await _bookingModule.ExtendExpirationAsync(
+            booking.Id,
+            userId,
+            paymentExpiresAt,
+            cancellationToken);
 
         for (var attempt = 0; attempt < MaximumOrderCodeAttempts; attempt++)
         {
@@ -139,6 +152,45 @@ public class PaymentService
 
         throw new ConflictException(
             "Could not create a unique payment order code.");
+    }
+
+    public async Task<PaymentResponse?> GetByBookingIdAsync(
+        Guid userId,
+        Guid bookingId,
+        bool canReadAnyPayment,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        if (bookingId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Booking id is required.");
+        }
+
+        var payment =
+            await _paymentRepository.GetByBookingIdAsync(
+                bookingId,
+                cancellationToken);
+
+        if (payment is null)
+        {
+            return null;
+        }
+
+        if (!canReadAnyPayment &&
+            payment.UserId != userId)
+        {
+            return null;
+        }
+
+        await SyncPendingPaymentAsync(
+            payment,
+            cancellationToken);
+
+        return ToResponse(payment);
     }
 
     public async Task<PaymentResponse?> GetByIdAsync(
@@ -282,6 +334,13 @@ public class PaymentService
     private static string BuildPaymentDescription(long orderCode)
     {
         return $"CB {orderCode}";
+    }
+
+    private int GetPaymentExpirationMinutes()
+    {
+        return _payOSOptions.ExpirationMinutes > 0
+            ? _payOSOptions.ExpirationMinutes
+            : 15;
     }
 
     private static bool IsPaidStatus(string? status)

@@ -136,7 +136,7 @@ export type SeatAvailability = {
   row: string;
   number: number;
   type: SeatType;
-  price: number;
+  price?: number | null;
   status: SeatStatus;
 };
 

@@ -12,5 +12,7 @@ public class BookingSeat
 
     public decimal Price { get; set; }
 
+    public DateTime? ReleasedAt { get; set; }
+
     public Booking Booking { get; set; } = null!;
 }

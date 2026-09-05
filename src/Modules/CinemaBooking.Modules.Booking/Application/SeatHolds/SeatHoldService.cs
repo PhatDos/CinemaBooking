@@ -9,7 +9,7 @@ namespace CinemaBooking.Modules.Booking.Application.SeatHolds;
 
 public class SeatHoldService
 {
-    public const int HoldDurationSeconds = 300;
+    public const int HoldDurationSeconds = 60;
 
     private readonly ISeatHoldService _seatHoldService;
     private readonly ISchedulingModule _schedulingModule;
@@ -130,6 +130,36 @@ public class SeatHoldService
             SeatIds = distinctSeatIds,
             ExpiresAt = expiresAt
         };
+    }
+
+    public async Task ReleaseAsync(
+        Guid holderId,
+        Guid holdId)
+    {
+        if (holderId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Holder id is required.");
+        }
+
+        if (holdId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Hold id is required.");
+        }
+
+        var hold =
+            await _seatHoldService.GetHoldAsync(holdId);
+
+        if (hold is null)
+        {
+            return;
+        }
+
+        if (hold.UserId != holderId)
+        {
+            throw new NotFoundException("Seat hold not found.");
+        }
+
+        await _seatHoldService.ReleaseAsync(hold);
     }
 
     private async Task EnsureSeatsAreAvailableInSqlAsync(

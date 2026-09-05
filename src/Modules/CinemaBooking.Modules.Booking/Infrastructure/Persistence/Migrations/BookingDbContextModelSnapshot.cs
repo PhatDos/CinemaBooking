@@ -84,6 +84,9 @@ namespace CinemaBooking.Modules.Booking.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("SeatId")
                         .HasColumnType("uniqueidentifier");
 
@@ -95,7 +98,8 @@ namespace CinemaBooking.Modules.Booking.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookingId");
 
                     b.HasIndex("ShowtimeId", "SeatId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ReleasedAt] IS NULL");
 
                     b.ToTable("BookingSeats", "booking");
                 });

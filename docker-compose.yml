@@ -24,6 +24,7 @@ services:
       PayOS__ChecksumKey: "${PAYOS_CHECKSUM_KEY}"
       PayOS__ReturnUrl: "${PAYOS_RETURN_URL}"
       PayOS__CancelUrl: "${PAYOS_CANCEL_URL}"
+      PayOS__ExpirationMinutes: "${PAYOS_EXPIRATION_MINUTES:-15}"
       Email__Provider: "${EMAIL_PROVIDER:-Logging}"
       Email__Smtp__Host: "${EMAIL_SMTP_HOST:-}"
       Email__Smtp__Port: "${EMAIL_SMTP_PORT:-587}"

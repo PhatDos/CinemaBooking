@@ -14,9 +14,19 @@ public interface IBookingModule
         Guid showtimeId,
         IReadOnlyCollection<Guid> seatIds);
 
+    Task ReleaseHoldAsync(
+        Guid userId,
+        Guid holdId);
+
     Task<CreateBookingResult> CreateBookingAsync(
         Guid userId,
         Guid holdId);
+
+    Task ExtendExpirationAsync(
+        Guid bookingId,
+        Guid userId,
+        DateTime expiresAt,
+        CancellationToken cancellationToken = default);
 
     Task ConfirmAsync(
         Guid bookingId,

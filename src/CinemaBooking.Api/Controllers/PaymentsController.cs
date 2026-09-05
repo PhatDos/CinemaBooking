@@ -18,6 +18,26 @@ public class PaymentsController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("/api/bookings/{bookingId:guid}/payment")]
+    public async Task<IActionResult> GetByBookingId(
+        Guid bookingId,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+
+        var result =
+            await _service.GetByBookingIdAsync(
+                userId,
+                bookingId,
+                User.IsInRole(AppRoles.Admin),
+                cancellationToken);
+
+        return result is null
+            ? NotFound()
+            : Ok(result);
+    }
+
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(
         Guid id,

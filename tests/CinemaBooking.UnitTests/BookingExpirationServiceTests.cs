@@ -10,7 +10,7 @@ namespace CinemaBooking.UnitTests;
 public class BookingExpirationServiceTests
 {
     [Fact]
-    public async Task ExpireBookingsAsync_ExpiresPendingBookingsAndKeepsSeats()
+    public async Task ExpireBookingsAsync_ExpiresPendingBookingsAndReleasesSeats()
     {
         var seat = new BookingSeat
         {
@@ -36,8 +36,8 @@ public class BookingExpirationServiceTests
         await service.ExpireBookingsAsync();
 
         Assert.Equal(BookingStatus.Expired, booking.Status);
-        Assert.Empty(repository.RemovedSeats);
         Assert.Contains(seat, booking.Seats);
+        Assert.NotNull(seat.ReleasedAt);
         Assert.True(repository.SaveChangesCalled);
     }
 
@@ -62,8 +62,6 @@ public class BookingExpirationServiceTests
         {
             _expiredBookings = expiredBookings;
         }
-
-        public List<BookingSeat> RemovedSeats { get; } = [];
 
         public bool SaveChangesCalled { get; private set; }
 
@@ -114,11 +112,6 @@ public class BookingExpirationServiceTests
             Guid showtimeId)
         {
             throw new NotImplementedException();
-        }
-
-        public void RemoveSeats(IEnumerable<BookingSeat> seats)
-        {
-            RemovedSeats.AddRange(seats);
         }
 
         public Task SaveChangesAsync()

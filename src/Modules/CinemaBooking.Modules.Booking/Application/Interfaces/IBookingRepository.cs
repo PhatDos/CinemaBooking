@@ -28,7 +28,5 @@ public interface IBookingRepository
     Task<List<SeatBookingStatusInfo>> GetSeatStatusesAsync(
         Guid showtimeId);
 
-    void RemoveSeats(IEnumerable<BookingSeat> seats);
-
     Task SaveChangesAsync();
 }

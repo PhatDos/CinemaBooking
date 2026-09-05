@@ -24,9 +24,16 @@ public class BookingExpirationService
             await _repository.GetExpiredPendingBookingsAsync(
                 DateTime.UtcNow);
 
+        var now = DateTime.UtcNow;
+
         foreach (var booking in bookings)
         {
             booking.Status = BookingStatus.Expired;
+
+            foreach (var seat in booking.Seats.Where(seat => seat.ReleasedAt is null))
+            {
+                seat.ReleasedAt = now;
+            }
         }
 
         if (bookings.Count > 0)

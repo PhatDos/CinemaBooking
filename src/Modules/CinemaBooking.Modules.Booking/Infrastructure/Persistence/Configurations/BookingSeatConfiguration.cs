@@ -22,11 +22,14 @@ public class BookingSeatConfiguration : IEntityTypeConfiguration<BookingSeat>
             .HasPrecision(18, 2)
             .IsRequired();
 
+        builder.Property(seat => seat.ReleasedAt);
+
         builder.HasIndex(seat => new
             {
                 seat.ShowtimeId,
                 seat.SeatId
             })
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[ReleasedAt] IS NULL");
     }
 }

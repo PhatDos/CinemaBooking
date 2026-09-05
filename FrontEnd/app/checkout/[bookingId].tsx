@@ -6,7 +6,7 @@ import { getBooking } from '@/src/api/bookings';
 import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
 import { getMovieById } from '@/src/api/movies';
-import { getPayment, payBooking } from '@/src/api/payments';
+import { getPayment, getPaymentByBooking, payBooking } from '@/src/api/payments';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
@@ -62,11 +62,23 @@ export default function CheckoutScreen() {
 
       setLoading(true);
       setError('');
+      setPayment(null);
 
       try {
         const result = await getBooking(bookingId);
         setBooking(result);
         void loadCheckoutContext(result.showtimeId);
+
+        try {
+          const existingPayment = await getPaymentByBooking(bookingId);
+          setPayment(existingPayment);
+        } catch (paymentLoadError) {
+          if (paymentLoadError instanceof ApiError && paymentLoadError.status === 404) {
+            setPayment(null);
+          } else {
+            console.error(paymentLoadError);
+          }
+        }
       } catch (loadError) {
         console.error(loadError);
         setError('Cannot load booking');
