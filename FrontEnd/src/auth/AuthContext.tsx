@@ -5,13 +5,15 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 
 import { getCurrentUser, login, logout, refreshAuth } from '@/src/api/auth';
-import { setAccessToken } from '@/src/api/client';
+import { setAccessToken, setUnauthorizedHandler } from '@/src/api/client';
 import type { AuthResponse, CurrentUser } from '@/src/types';
 
 const ACCESS_TOKEN_KEY = 'cinema.accessToken';
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [accessTokenState, setAccessTokenState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const handlingUnauthorizedRef = useRef(false);
 
   const clearSession = useCallback(async () => {
     setAccessToken(null);
@@ -45,6 +48,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
       deleteStoredValue(USER_KEY),
     ]);
   }, []);
+
+  useEffect(() => {
+    if (isLoading) {
+      setUnauthorizedHandler(null);
+      return () => setUnauthorizedHandler(null);
+    }
+
+    setUnauthorizedHandler(async () => {
+      if (handlingUnauthorizedRef.current) {
+        return;
+      }
+
+      handlingUnauthorizedRef.current = true;
+
+      try {
+        await clearSession();
+        router.replace('/login');
+      } finally {
+        handlingUnauthorizedRef.current = false;
+      }
+    });
+
+    return () => setUnauthorizedHandler(null);
+  }, [clearSession, isLoading]);
 
   const saveSession = useCallback(async (auth: AuthResponse) => {
     setAccessToken(auth.accessToken);

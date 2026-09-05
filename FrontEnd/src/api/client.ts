@@ -1,6 +1,7 @@
 import { API_URL } from '@/src/config';
 
 let accessToken: string | null = null;
+let unauthorizedHandler: (() => void | Promise<void>) | null = null;
 
 export class ApiError extends Error {
   constructor(
@@ -20,6 +21,10 @@ type ApiRequestOptions = Omit<RequestInit, 'body'> & {
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
+}
+
+export function setUnauthorizedHandler(handler: (() => void | Promise<void>) | null) {
+  unauthorizedHandler = handler;
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
@@ -56,6 +61,10 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const data = await parseResponse(response);
 
   if (!response.ok) {
+    if (auth && response.status === 401) {
+      await unauthorizedHandler?.();
+    }
+
     throw new ApiError(getErrorMessage(data, response.status), response.status, data);
   }
 
