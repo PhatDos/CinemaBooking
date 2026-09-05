@@ -13,13 +13,6 @@ export function getPaymentByHold(holdId: string) {
   return apiFetch<Payment>(`/api/payments/by-hold/${holdId}`);
 }
 
-export function payBooking(bookingId: string) {
-  return apiFetch<Payment>('/api/payments', {
-    method: 'POST',
-    body: { bookingId },
-  });
-}
-
 export function payHold(holdId: string) {
   return apiFetch<Payment>('/api/payments', {
     method: 'POST',

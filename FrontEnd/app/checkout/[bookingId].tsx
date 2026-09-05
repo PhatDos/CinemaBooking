@@ -17,7 +17,7 @@ import { cancelBooking, getBooking } from '@/src/api/bookings';
 import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
 import { getMovieById } from '@/src/api/movies';
-import { getPayment, getPaymentByBooking, payBooking } from '@/src/api/payments';
+import { getPayment, getPaymentByBooking } from '@/src/api/payments';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
@@ -41,7 +41,6 @@ export default function CheckoutScreen() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
   const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
   const [canceling, setCanceling] = useState(false);
@@ -142,34 +141,6 @@ export default function CheckoutScreen() {
     };
   }, [payment?.id, payment?.status, isAuthenticated]);
 
-  async function handlePay() {
-    if (
-      !bookingId ||
-      !booking ||
-      paying ||
-      normalizeStatus(booking.status) !== 'pending' ||
-      payment?.status === 'Succeeded'
-    ) {
-      return;
-    }
-
-    setPaying(true);
-    setError('');
-
-    try {
-      const result = await payBooking(bookingId);
-      const refreshed = await getBooking(bookingId);
-
-      setPayment(result);
-      setBooking(refreshed);
-    } catch (payError) {
-      console.error(payError);
-      setError(getPaymentErrorMessage(payError));
-    } finally {
-      setPaying(false);
-    }
-  }
-
   function handleGoBack() {
     if (!booking) {
       router.replace('/movies');
@@ -245,7 +216,7 @@ export default function CheckoutScreen() {
   const fulfillmentConflict = payment?.fulfillmentStatus === 'Conflict';
   const paid = !fulfillmentConflict && (payment?.status === 'Succeeded' || status === 'confirmed');
   const hasPaymentLink = payment?.status === 'Pending' && !!payment.checkoutUrl;
-  const canPay = status === 'pending' && !paid && !hasPaymentLink && !fulfillmentConflict;
+  const canCancel = status === 'pending' && !hasPaymentLink && !paid && !fulfillmentConflict;
 
   return (
     <View style={styles.container}>
@@ -315,14 +286,12 @@ export default function CheckoutScreen() {
       ) : null}
 
       <AnimatedPressable
-        disabled={paying || !canPay}
-        onPress={handlePay}
-        contentStyle={[styles.button, (paying || !canPay) && styles.buttonDisabled]}>
-        {paying ? (
-          <ActivityIndicator color="#ffffff" />
-        ) : (
-          <Text style={styles.buttonText}>{getButtonText(status, paid, fulfillmentConflict)}</Text>
-        )}
+        disabled={!canCancel}
+        onPress={() => setCancelDialogVisible(true)}
+        contentStyle={[styles.button, !canCancel && styles.buttonDisabled]}>
+        <Text style={styles.buttonText}>
+          {getButtonText(status, paid, fulfillmentConflict, hasPaymentLink)}
+        </Text>
       </AnimatedPressable>
       </ScrollView>
 
@@ -332,7 +301,7 @@ export default function CheckoutScreen() {
         confirmLabel="Cancel booking"
         destructive
         loading={canceling}
-        message="Leaving checkout before payment will cancel this booking and release the selected seats."
+        message="This will cancel this booking and return you to seat selection."
         onCancel={() => {
           if (!canceling) {
             setCancelDialogVisible(false);
@@ -391,7 +360,12 @@ function getCheckoutStateText(status: string, paid: boolean, fulfillmentConflict
   return 'Pending payment';
 }
 
-function getButtonText(status: string, paid: boolean, fulfillmentConflict: boolean) {
+function getButtonText(
+  status: string,
+  paid: boolean,
+  fulfillmentConflict: boolean,
+  hasPaymentLink: boolean,
+) {
   if (fulfillmentConflict) {
     return 'Contact support';
   }
@@ -408,7 +382,11 @@ function getButtonText(status: string, paid: boolean, fulfillmentConflict: boole
     return 'Booking cancelled';
   }
 
-  return 'Pay now';
+  if (hasPaymentLink) {
+    return 'Waiting for payment';
+  }
+
+  return 'Cancel booking';
 }
 
 function getStatusPillStyle(status: string, paid: boolean, fulfillmentConflict: boolean) {
@@ -461,14 +439,6 @@ function sleep(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
-}
-
-function getPaymentErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    return error.status === 409 ? 'Booking is no longer payable.' : error.message;
-  }
-
-  return 'Cannot complete payment';
 }
 
 function getCancelErrorMessage(error: unknown) {

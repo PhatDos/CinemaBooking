@@ -11,9 +11,3 @@ export function holdSeats(showtimeId: string, request: HoldSeatsRequest) {
     body: request,
   });
 }
-
-export function releaseHold(holdId: string) {
-  return apiFetch<void>(`/api/holds/${holdId}`, {
-    method: 'DELETE',
-  });
-}

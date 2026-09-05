@@ -14,9 +14,9 @@ import {
 
 import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
+import { cancelHold } from '@/src/api/holds';
 import { getMovieById } from '@/src/api/movies';
 import { getPayment, getPaymentByHold, payHold } from '@/src/api/payments';
-import { releaseHold } from '@/src/api/seats';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
@@ -48,8 +48,8 @@ export default function HoldCheckoutScreen() {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
-  const [releaseDialogVisible, setReleaseDialogVisible] = useState(false);
-  const [releasing, setReleasing] = useState(false);
+  const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
+  const [cancelingHold, setCancelingHold] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
 
@@ -211,34 +211,36 @@ export default function HoldCheckoutScreen() {
 
   function handleGoBack() {
     if (hasActivePayment) {
-      router.replace('/bookings');
+      showNotification('Payment is pending. Complete PayOS checkout or wait for confirmation.', {
+        tone: 'info',
+      });
       return;
     }
 
-    setReleaseDialogVisible(true);
+    setCancelDialogVisible(true);
   }
 
-  async function handleReleaseHold() {
-    if (!params.holdId || releasing) {
+  async function handleCancelHold() {
+    if (!params.holdId || cancelingHold) {
       return;
     }
 
-    setReleasing(true);
+    setCancelingHold(true);
     setError('');
 
     try {
-      await releaseHold(params.holdId);
-      setReleaseDialogVisible(false);
-      showNotification('Seats released.', { tone: 'success' });
+      await cancelHold(params.holdId);
+      setCancelDialogVisible(false);
+      showNotification('Checkout cancelled.', { tone: 'success' });
       goToSeatMap(params.showtimeId);
-    } catch (releaseError) {
-      console.error(releaseError);
-      setReleaseDialogVisible(false);
-      const message = getReleaseErrorMessage(releaseError);
+    } catch (cancelError) {
+      console.error(cancelError);
+      setCancelDialogVisible(false);
+      const message = getCancelHoldErrorMessage(cancelError);
       setError(message);
       showNotification(message, { tone: 'error' });
     } finally {
-      setReleasing(false);
+      setCancelingHold(false);
     }
   }
 
@@ -256,14 +258,18 @@ export default function HoldCheckoutScreen() {
         <View style={styles.topActions}>
           <AnimatedPressable
             contentStyle={styles.backLink}
-            disabled={releasing}
+            disabled={cancelingHold}
             onPress={handleGoBack}>
             <Text style={styles.backLinkText}>Go back</Text>
           </AnimatedPressable>
 
-          <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.replace('/bookings')}>
-            <Text style={styles.backLinkText}>My bookings</Text>
-          </AnimatedPressable>
+          {payment?.checkoutUrl ? (
+            <AnimatedPressable
+              contentStyle={styles.backLink}
+              onPress={() => void Linking.openURL(payment.checkoutUrl!)}>
+              <Text style={styles.backLinkText}>Open PayOS</Text>
+            </AnimatedPressable>
+          ) : null}
         </View>
 
         <FadeInView>
@@ -334,18 +340,18 @@ export default function HoldCheckoutScreen() {
       <BottomNav />
       <ConfirmDialog
         cancelLabel="Stay"
-        confirmLabel="Release seats"
+        confirmLabel="Cancel checkout"
         destructive
-        loading={releasing}
-        message="Leaving checkout before payment will release these seats for other customers."
+        loading={cancelingHold}
+        message="This will cancel the current checkout and return you to seat selection."
         onCancel={() => {
-          if (!releasing) {
-            setReleaseDialogVisible(false);
+          if (!cancelingHold) {
+            setCancelDialogVisible(false);
           }
         }}
-        onConfirm={handleReleaseHold}
-        title="Release selected seats?"
-        visible={releaseDialogVisible}
+        onConfirm={handleCancelHold}
+        title="Cancel this checkout?"
+        visible={cancelDialogVisible}
       />
     </View>
   );
@@ -409,10 +415,10 @@ function getPaymentErrorMessage(error: unknown) {
   return 'Cannot start payment';
 }
 
-function getReleaseErrorMessage(error: unknown) {
+function getCancelHoldErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     return error.message;
   }
 
-  return 'Cannot release seats';
+  return 'Cannot cancel checkout';
 }
