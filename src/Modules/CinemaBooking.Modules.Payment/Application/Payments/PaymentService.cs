@@ -117,9 +117,10 @@ public class PaymentService
                 BookingId = booking.Id,
                 UserId = userId,
                 OrderCode = paymentLink.OrderCode,
-                Amount = booking.TotalAmount,
-                Status = PaymentStatus.Pending,
-                Provider = "PayOS",
+            Amount = booking.TotalAmount,
+            Status = PaymentStatus.Pending,
+            FulfillmentStatus = PaymentFulfillmentStatus.Pending,
+            Provider = "PayOS",
                 PaymentLinkId = paymentLink.PaymentLinkId,
                 CheckoutUrl = paymentLink.CheckoutUrl,
                 QrCode = paymentLink.QrCode,
@@ -316,12 +317,16 @@ public class PaymentService
             OrderCode = payment.OrderCode,
             Amount = payment.Amount,
             Status = payment.Status.ToString(),
+            FulfillmentStatus = payment.FulfillmentStatus.ToString(),
+            FulfillmentLastError = payment.FulfillmentLastError,
             Provider = payment.Provider,
             PaymentLinkId = payment.PaymentLinkId,
             CheckoutUrl = payment.CheckoutUrl,
             QrCode = payment.QrCode,
             CreatedAt = payment.CreatedAt,
-            PaidAt = payment.PaidAt
+            PaidAt = payment.PaidAt,
+            FulfilledAt = payment.FulfilledAt,
+            FulfillmentFailedAt = payment.FulfillmentFailedAt
         };
     }
 

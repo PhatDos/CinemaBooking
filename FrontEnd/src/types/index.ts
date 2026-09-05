@@ -113,6 +113,8 @@ export type SeatType = 'Standard' | 'VIP' | 'Couple';
 
 export type PaymentStatus = 'Pending' | 'Succeeded' | 'Failed';
 
+export type PaymentFulfillmentStatus = 'Pending' | 'Fulfilled' | 'Conflict';
+
 export type BookingSeat = {
   seatId: string;
   price: number;
@@ -199,12 +201,16 @@ export type Payment = {
   orderCode: number | null;
   amount: number;
   status: PaymentStatus;
+  fulfillmentStatus: PaymentFulfillmentStatus;
+  fulfillmentLastError: string | null;
   provider: string;
   paymentLinkId: string | null;
   checkoutUrl: string | null;
   qrCode: string | null;
   createdAt: string;
   paidAt: string | null;
+  fulfilledAt: string | null;
+  fulfillmentFailedAt: string | null;
 };
 
 export type TicketStatus = 'Valid' | 'Used' | 'Cancelled';

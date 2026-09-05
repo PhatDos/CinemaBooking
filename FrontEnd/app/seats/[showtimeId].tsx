@@ -116,20 +116,33 @@ export default function SeatsScreen() {
   const rows = useMemo(() => groupSeatsByRow(seats), [seats]);
   const maxSeatsPerRow = Math.max(1, ...rows.map(([, rowSeats]) => rowSeats.length));
   const seatSize = calculateSeatSize(width, maxSeatsPerRow);
-  const selectedTotal = useMemo(
+  const selectedSeats = useMemo(
+    () => seats.filter((seat) => selectedSeatIds.has(seat.seatId)),
+    [seats, selectedSeatIds],
+  );
+  const hasInvalidSelectedPrice = useMemo(
     () =>
-      seats
-        .filter((seat) => selectedSeatIds.has(seat.seatId))
-        .reduce(
-          (total, seat) =>
-            total + getSeatPrice(seat, showtimeContext?.basePrice),
-          0,
-        ),
-    [seats, selectedSeatIds, showtimeContext?.basePrice],
+      selectedSeats.some(
+        (seat) => getSeatPrice(seat) === null,
+      ),
+    [selectedSeats],
+  );
+  const selectedTotal = useMemo(
+    () => {
+      if (hasInvalidSelectedPrice) {
+        return null;
+      }
+
+      return selectedSeats.reduce(
+        (total, seat) => total + (getSeatPrice(seat) ?? 0),
+        0,
+      );
+    },
+    [hasInvalidSelectedPrice, selectedSeats],
   );
   const priceByType = useMemo(
-    () => getPriceByType(seats, showtimeContext?.basePrice),
-    [seats, showtimeContext?.basePrice],
+    () => getPriceByType(seats),
+    [seats],
   );
 
   function toggleSeat(seat: SeatAvailability) {
@@ -153,7 +166,12 @@ export default function SeatsScreen() {
   }
 
   async function handleContinue() {
-    if (!showtimeId || selectedSeatIds.size === 0 || continuing) {
+    if (
+      !showtimeId ||
+      selectedSeatIds.size === 0 ||
+      hasInvalidSelectedPrice ||
+      continuing
+    ) {
       return;
     }
 
@@ -309,24 +327,41 @@ export default function SeatsScreen() {
 
       <Text style={styles.note}>Selected: {selectedSeatIds.size}</Text>
       {selectedSeatIds.size > 0 ? (
-        <Text style={styles.selectedTotal}>Total: {formatCurrency(selectedTotal)}</Text>
+        <Text style={styles.selectedTotal}>
+          {selectedTotal === null
+            ? 'Price unavailable'
+            : `Total: ${formatCurrency(selectedTotal)}`}
+        </Text>
+      ) : null}
+      {hasInvalidSelectedPrice ? (
+        <View style={styles.priceWarningRow}>
+          <Text style={styles.priceWarning}>Seat prices are missing.</Text>
+          <AnimatedPressable
+            contentStyle={styles.reloadPriceButton}
+            onPress={() => loadSeats(false)}
+            pressedScale={0.96}>
+            <Text style={styles.reloadPriceText}>Reload seats</Text>
+          </AnimatedPressable>
+        </View>
       ) : null}
 
       {actionError ? <Text style={styles.holdError}>{actionError}</Text> : null}
 
       <AnimatedPressable
-        disabled={selectedSeatIds.size === 0 || continuing}
+        disabled={selectedSeatIds.size === 0 || hasInvalidSelectedPrice || continuing}
         onPress={handleContinue}
         contentStyle={[
           styles.button,
-          (selectedSeatIds.size === 0 || continuing) && styles.buttonDisabled,
+          (selectedSeatIds.size === 0 || hasInvalidSelectedPrice || continuing) && styles.buttonDisabled,
         ]}>
         {continuing ? (
           <ActivityIndicator color="#ffffff" />
         ) : (
           <Text style={styles.buttonText}>
             Continue
-            {selectedSeatIds.size > 0 ? ` | ${formatCurrency(selectedTotal)}` : ''}
+            {selectedTotal !== null && selectedSeatIds.size > 0
+              ? ` | ${formatCurrency(selectedTotal)}`
+              : ''}
           </Text>
         )}
       </AnimatedPressable>
@@ -354,15 +389,16 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
-function getPriceByType(
-  seats: SeatAvailability[],
-  basePrice: number | undefined,
-) {
+function getPriceByType(seats: SeatAvailability[]) {
   const prices = new Map<SeatAvailability['type'], number>();
 
   seats.forEach((seat) => {
+    const price = getSeatPrice(seat);
+
     if (!prices.has(seat.type)) {
-      prices.set(seat.type, getSeatPrice(seat, basePrice));
+      if (price !== null) {
+        prices.set(seat.type, price);
+      }
     }
   });
 
@@ -402,8 +438,7 @@ function getContinueErrorMessage(error: unknown) {
 }
 
 function getSeatPrice(
-  seat: Pick<SeatAvailability, 'type'> & { price?: number | null },
-  basePrice: number | undefined,
+  seat: { price?: number | null },
 ) {
   const apiPrice = Number(seat.price);
 
@@ -411,20 +446,7 @@ function getSeatPrice(
     return apiPrice;
   }
 
-  const base = Number(basePrice);
-
-  if (!Number.isFinite(base)) {
-    return 0;
-  }
-
-  switch (seat.type) {
-    case 'VIP':
-      return base + 30000;
-    case 'Couple':
-      return base + 90000;
-    default:
-      return base;
-  }
+  return null;
 }
 
 function calculateSeatSize(screenWidth: number, seatsPerRow: number) {
@@ -652,6 +674,31 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 18,
     fontWeight: '900',
+  },
+  priceWarning: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  priceWarningRow: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  reloadPriceButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  reloadPriceText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '800',
   },
   button: {
     marginTop: 24,

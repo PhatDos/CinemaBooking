@@ -176,9 +176,10 @@ export default function CheckoutScreen() {
   }
 
   const status = normalizeStatus(booking.status);
-  const paid = payment?.status === 'Succeeded' || status === 'confirmed';
+  const fulfillmentConflict = payment?.fulfillmentStatus === 'Conflict';
+  const paid = !fulfillmentConflict && (payment?.status === 'Succeeded' || status === 'confirmed');
   const hasPaymentLink = payment?.status === 'Pending' && !!payment.checkoutUrl;
-  const canPay = status === 'pending' && !paid && !hasPaymentLink;
+  const canPay = status === 'pending' && !paid && !hasPaymentLink && !fulfillmentConflict;
 
   return (
     <View style={styles.container}>
@@ -208,11 +209,11 @@ export default function CheckoutScreen() {
           <View style={styles.statusHeader}>
             <View>
               <Text style={styles.statusLabel}>Current status</Text>
-              <Text style={styles.stateText}>{getCheckoutStateText(status, paid)}</Text>
+              <Text style={styles.stateText}>{getCheckoutStateText(status, paid, fulfillmentConflict)}</Text>
             </View>
-            <View style={[styles.statusPill, getStatusPillStyle(status, paid)]}>
-              <Text style={[styles.statusPillText, getStatusPillTextStyle(status, paid)]}>
-                {paid ? 'Paid' : getStatusLabel(status)}
+            <View style={[styles.statusPill, getStatusPillStyle(status, paid, fulfillmentConflict)]}>
+              <Text style={[styles.statusPillText, getStatusPillTextStyle(status, paid, fulfillmentConflict)]}>
+                {fulfillmentConflict ? 'Support' : paid ? 'Paid' : getStatusLabel(status)}
               </Text>
             </View>
           </View>
@@ -238,6 +239,11 @@ export default function CheckoutScreen() {
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {fulfillmentConflict ? (
+        <Text style={styles.error}>
+          Payment received, but these seats could not be confirmed. Please contact staff for support.
+        </Text>
+      ) : null}
 
       <AnimatedPressable
         disabled={paying || !canPay}
@@ -246,7 +252,7 @@ export default function CheckoutScreen() {
         {paying ? (
           <ActivityIndicator color="#ffffff" />
         ) : (
-          <Text style={styles.buttonText}>{getButtonText(status, paid)}</Text>
+          <Text style={styles.buttonText}>{getButtonText(status, paid, fulfillmentConflict)}</Text>
         )}
       </AnimatedPressable>
       </ScrollView>
@@ -290,7 +296,11 @@ function getStatusLabel(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function getCheckoutStateText(status: string, paid: boolean) {
+function getCheckoutStateText(status: string, paid: boolean, fulfillmentConflict: boolean) {
+  if (fulfillmentConflict) {
+    return 'Payment needs support';
+  }
+
   if (paid || status === 'confirmed') {
     return 'Payment completed';
   }
@@ -306,7 +316,11 @@ function getCheckoutStateText(status: string, paid: boolean) {
   return 'Pending payment';
 }
 
-function getButtonText(status: string, paid: boolean) {
+function getButtonText(status: string, paid: boolean, fulfillmentConflict: boolean) {
+  if (fulfillmentConflict) {
+    return 'Contact support';
+  }
+
   if (paid || status === 'confirmed') {
     return 'Payment completed';
   }
@@ -322,7 +336,11 @@ function getButtonText(status: string, paid: boolean) {
   return 'Pay now';
 }
 
-function getStatusPillStyle(status: string, paid: boolean) {
+function getStatusPillStyle(status: string, paid: boolean, fulfillmentConflict: boolean) {
+  if (fulfillmentConflict) {
+    return styles.statusPillDanger;
+  }
+
   if (paid || status === 'confirmed') {
     return styles.statusPillSuccess;
   }
@@ -334,7 +352,11 @@ function getStatusPillStyle(status: string, paid: boolean) {
   return styles.statusPillPending;
 }
 
-function getStatusPillTextStyle(status: string, paid: boolean) {
+function getStatusPillTextStyle(status: string, paid: boolean, fulfillmentConflict: boolean) {
+  if (fulfillmentConflict) {
+    return styles.statusPillTextDanger;
+  }
+
   if (paid || status === 'confirmed') {
     return styles.statusPillTextSuccess;
   }

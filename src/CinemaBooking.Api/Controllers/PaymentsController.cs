@@ -18,7 +18,7 @@ public class PaymentsController : ControllerBase
     }
 
     [Authorize]
-    [HttpGet("/api/bookings/{bookingId:guid}/payment")]
+    [HttpGet("by-booking/{bookingId:guid}")]
     public async Task<IActionResult> GetByBookingId(
         Guid bookingId,
         CancellationToken cancellationToken)

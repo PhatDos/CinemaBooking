@@ -30,6 +30,14 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(payment => payment.FulfillmentStatus)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(payment => payment.FulfillmentLastError)
+            .HasMaxLength(2000);
+
         builder.Property(payment => payment.Provider)
             .HasMaxLength(50)
             .IsRequired();
@@ -50,6 +58,10 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
             .IsRequired();
 
         builder.Property(payment => payment.PaidAt);
+
+        builder.Property(payment => payment.FulfilledAt);
+
+        builder.Property(payment => payment.FulfillmentFailedAt);
 
         builder.HasIndex(payment => payment.BookingId)
             .IsUnique();

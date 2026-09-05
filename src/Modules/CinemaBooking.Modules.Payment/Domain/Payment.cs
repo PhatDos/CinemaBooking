@@ -15,6 +15,9 @@ public class Payment
     public PaymentStatus Status { get; set; } =
         PaymentStatus.Pending;
 
+    public PaymentFulfillmentStatus FulfillmentStatus { get; set; } =
+        PaymentFulfillmentStatus.Pending;
+
     public string Provider { get; set; } = "PayOS";
 
     public string? PaymentLinkId { get; set; }
@@ -29,4 +32,10 @@ public class Payment
         DateTime.UtcNow;
 
     public DateTime? PaidAt { get; set; }
+
+    public DateTime? FulfilledAt { get; set; }
+
+    public DateTime? FulfillmentFailedAt { get; set; }
+
+    public string? FulfillmentLastError { get; set; }
 }

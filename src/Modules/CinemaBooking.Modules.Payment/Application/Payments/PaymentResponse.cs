@@ -12,6 +12,10 @@ public class PaymentResponse
 
     public string Status { get; set; } = string.Empty;
 
+    public string FulfillmentStatus { get; set; } = string.Empty;
+
+    public string? FulfillmentLastError { get; set; }
+
     public string Provider { get; set; } = string.Empty;
 
     public string? PaymentLinkId { get; set; }
@@ -23,4 +27,8 @@ public class PaymentResponse
     public DateTime CreatedAt { get; set; }
 
     public DateTime? PaidAt { get; set; }
+
+    public DateTime? FulfilledAt { get; set; }
+
+    public DateTime? FulfillmentFailedAt { get; set; }
 }

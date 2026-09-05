@@ -83,6 +83,21 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("FulfilledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FulfillmentFailedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FulfillmentLastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("FulfillmentStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<long?>("OrderCode")
                         .HasColumnType("bigint");
 

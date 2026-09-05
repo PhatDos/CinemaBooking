@@ -4,6 +4,7 @@ using CinemaBooking.Modules.Payment.Application.Outbox;
 using CinemaBooking.Modules.Payment.Domain;
 using CinemaBooking.Modules.Payment.Infrastructure.Persistence;
 using CinemaBooking.Modules.Ticketing.Contracts;
+using CinemaBooking.SharedKernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -142,33 +143,68 @@ public sealed class PaymentOutboxWorker : BackgroundService
         var ticketingModule =
             serviceProvider.GetRequiredService<ITicketingModule>();
 
-        await bookingModule.ConfirmAsync(
-            data.BookingId,
-            data.UserId,
-            cancellationToken);
+        var dbContext =
+            serviceProvider.GetRequiredService<PaymentDbContext>();
 
-        var booking =
-            await bookingModule.GetForPaymentAsync(
-                data.BookingId,
-                cancellationToken)
+        var payment =
+            await dbContext.Payments
+                .FirstOrDefaultAsync(
+                    item => item.Id == data.PaymentId,
+                    cancellationToken)
             ?? throw new InvalidOperationException(
-                "Booking not found for paid payment.");
+                "Payment not found for succeeded outbox message.");
 
-        if (booking.UserId != data.UserId)
+        if (payment.FulfillmentStatus == PaymentFulfillmentStatus.Fulfilled)
         {
-            throw new InvalidOperationException(
-                "Booking owner does not match paid payment.");
+            return;
         }
 
-        await ticketingModule.IssueTicketsAsync(
-            new IssueTicketsRequest(
-                booking.Id,
-                booking.UserId,
-                booking.ShowtimeId,
-                booking.Seats
-                    .Select(seat => new IssueTicketSeat(seat.SeatId))
-                    .ToArray()),
-            cancellationToken);
+        if (payment.FulfillmentStatus == PaymentFulfillmentStatus.Conflict)
+        {
+            return;
+        }
+
+        try
+        {
+            await bookingModule.ConfirmAsync(
+                data.BookingId,
+                data.UserId,
+                cancellationToken);
+
+            var booking =
+                await bookingModule.GetForPaymentAsync(
+                    data.BookingId,
+                    cancellationToken)
+                ?? throw new InvalidOperationException(
+                    "Booking not found for paid payment.");
+
+            if (booking.UserId != data.UserId)
+            {
+                throw new InvalidOperationException(
+                    "Booking owner does not match paid payment.");
+            }
+
+            await ticketingModule.IssueTicketsAsync(
+                new IssueTicketsRequest(
+                    booking.Id,
+                    booking.UserId,
+                    booking.ShowtimeId,
+                    booking.Seats
+                        .Select(seat => new IssueTicketSeat(seat.SeatId))
+                        .ToArray()),
+                cancellationToken);
+
+            payment.FulfillmentStatus = PaymentFulfillmentStatus.Fulfilled;
+            payment.FulfilledAt = DateTime.UtcNow;
+            payment.FulfillmentFailedAt = null;
+            payment.FulfillmentLastError = null;
+        }
+        catch (ConflictException ex)
+        {
+            payment.FulfillmentStatus = PaymentFulfillmentStatus.Conflict;
+            payment.FulfillmentFailedAt = DateTime.UtcNow;
+            payment.FulfillmentLastError = Truncate(ex.Message);
+        }
     }
 
     private static string Truncate(string value)

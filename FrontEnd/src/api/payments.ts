@@ -6,7 +6,7 @@ export function getPayment(paymentId: string) {
 }
 
 export function getPaymentByBooking(bookingId: string) {
-  return apiFetch<Payment>(`/api/bookings/${bookingId}/payment`);
+  return apiFetch<Payment>(`/api/payments/by-booking/${bookingId}`);
 }
 
 export function payBooking(bookingId: string) {
