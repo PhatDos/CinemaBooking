@@ -12,6 +12,7 @@ type AnimatedPressableProps = PropsWithChildren<
   Omit<PressableProps, 'style' | 'children'> & {
     contentStyle?: StyleProp<ViewStyle>;
     haptic?: boolean;
+    pressableStyle?: StyleProp<ViewStyle>;
     pressedScale?: number;
   }
 >;
@@ -24,6 +25,7 @@ export function AnimatedPressable({
   onPress,
   onPressIn,
   onPressOut,
+  pressableStyle,
   pressedScale = 0.98,
   ...props
 }: AnimatedPressableProps) {
@@ -43,6 +45,7 @@ export function AnimatedPressable({
     <Pressable
       {...props}
       disabled={disabled}
+      style={pressableStyle}
       onPress={(event) => {
         if (haptic && !disabled) {
           void Haptics.selectionAsync();

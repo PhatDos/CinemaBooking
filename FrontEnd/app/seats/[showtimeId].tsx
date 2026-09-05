@@ -167,6 +167,7 @@ export default function SeatsScreen() {
         .reduce((total, seat) => total + seat.price, 0),
     [seats, selectedSeatIds],
   );
+  const priceByType = useMemo(() => getPriceByType(seats), [seats]);
   const heldSeatLabels = hold ? getSeatLabels(hold.seatIds, seats) : [];
 
   function toggleSeat(seat: SeatAvailability) {
@@ -348,8 +349,9 @@ export default function SeatsScreen() {
 
       <View style={styles.legend}>
         <LegendItem color="#ffffff" label="Available" />
-        <LegendItem color="#ede9fe" label="VIP" />
-        <LegendItem color="#ffe4e6" label="Couple" />
+        <LegendItem color="#ffffff" label={formatSeatTypeLegend('Standard', priceByType)} />
+        <LegendItem color="#ede9fe" label={formatSeatTypeLegend('VIP', priceByType)} />
+        <LegendItem color="#ffe4e6" label={formatSeatTypeLegend('Couple', priceByType)} />
         <LegendItem color={colors.primary} label="Selected" />
         <LegendItem color="#fde68a" label="Holding" />
         <LegendItem color="#344054" label="Unavailable" />
@@ -429,6 +431,27 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
+function getPriceByType(seats: SeatAvailability[]) {
+  const prices = new Map<SeatAvailability['type'], number>();
+
+  seats.forEach((seat) => {
+    if (!prices.has(seat.type)) {
+      prices.set(seat.type, seat.price);
+    }
+  });
+
+  return prices;
+}
+
+function formatSeatTypeLegend(
+  type: SeatAvailability['type'],
+  prices: Map<SeatAvailability['type'], number>,
+) {
+  const price = prices.get(type);
+
+  return price === undefined ? type : `${type} ${formatCurrency(price)}`;
+}
+
 function groupSeatsByRow(seats: SeatAvailability[]) {
   const rows = new Map<string, SeatAvailability[]>();
 
@@ -473,10 +496,10 @@ function getBookingErrorMessage(error: unknown) {
 
 function calculateSeatSize(screenWidth: number, seatsPerRow: number) {
   const horizontalContentPadding = 40;
-  const mapHorizontalPaddingAndBorder = 26;
+  const mapHorizontalPaddingAndBorder = 18;
   const rowLabelWidth = 18;
-  const rowGap = 8;
-  const seatGap = 5;
+  const rowGap = 6;
+  const seatGap = 4;
   const availableWidth =
     screenWidth -
     horizontalContentPadding -
@@ -584,14 +607,14 @@ const styles = StyleSheet.create({
     borderColor: '#e7eaf0',
     borderRadius: radius.md,
     backgroundColor: colors.surface,
-    gap: 10,
-    padding: 12,
+    gap: 9,
+    padding: 8,
     ...shadow.card,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   rowLabel: {
     width: 18,
@@ -604,7 +627,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    gap: 5,
+    gap: 4,
   },
   seat: {
     alignItems: 'center',
