@@ -160,6 +160,13 @@ export default function SeatsScreen() {
   const rows = useMemo(() => groupSeatsByRow(seats), [seats]);
   const maxSeatsPerRow = Math.max(1, ...rows.map(([, rowSeats]) => rowSeats.length));
   const seatSize = calculateSeatSize(width, maxSeatsPerRow);
+  const selectedTotal = useMemo(
+    () =>
+      seats
+        .filter((seat) => selectedSeatIds.has(seat.seatId))
+        .reduce((total, seat) => total + seat.price, 0),
+    [seats, selectedSeatIds],
+  );
   const heldSeatLabels = hold ? getSeatLabels(hold.seatIds, seats) : [];
 
   function toggleSeat(seat: SeatAvailability) {
@@ -349,6 +356,9 @@ export default function SeatsScreen() {
       </View>
 
       <Text style={styles.note}>Selected: {selectedSeatIds.size}</Text>
+      {selectedSeatIds.size > 0 ? (
+        <Text style={styles.selectedTotal}>Total: {formatCurrency(selectedTotal)}</Text>
+      ) : null}
 
       {hold ? (
         <View style={styles.holdPanel}>
@@ -391,6 +401,7 @@ export default function SeatsScreen() {
         ) : (
           <Text style={styles.buttonText}>
             Hold {selectedSeatIds.size} seat{selectedSeatIds.size === 1 ? '' : 's'}
+            {selectedSeatIds.size > 0 ? ` | ${formatCurrency(selectedTotal)}` : ''}
           </Text>
         )}
       </AnimatedPressable>
@@ -679,6 +690,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: colors.muted,
     fontSize: 14,
+  },
+  selectedTotal: {
+    marginTop: 8,
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900',
   },
   button: {
     marginTop: 24,

@@ -10,5 +10,7 @@ public class SeatAvailabilityResponse
 
     public string Type { get; set; } = "Standard";
 
+    public decimal Price { get; set; }
+
     public SeatStatus Status { get; set; }
 }

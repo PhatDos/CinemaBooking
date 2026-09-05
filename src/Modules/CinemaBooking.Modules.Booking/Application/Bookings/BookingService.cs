@@ -1,4 +1,5 @@
 using CinemaBooking.Modules.Booking.Application.Interfaces;
+using CinemaBooking.Modules.Booking.Application.Pricing;
 using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Scheduling.Contracts;
 using CinemaBooking.Modules.Theater.Contracts;
@@ -109,14 +110,15 @@ public class BookingService
             .Distinct()
             .ToList();
 
+        var roomSeats =
+            await _theaterModule.GetSeatsByRoomAsync(showtime.RoomId);
+
+        var roomSeatsById =
+            roomSeats.ToDictionary(seat => seat.Id);
+
         foreach (var seatId in seatIds)
         {
-            var validSeat =
-                await _theaterModule.SeatBelongsToRoomAsync(
-                    seatId,
-                    showtime.RoomId);
-
-            if (!validSeat)
+            if (!roomSeatsById.ContainsKey(seatId))
             {
                 throw new BusinessRuleException(
                     $"Seat {seatId} does not belong to the showtime room.");
@@ -137,11 +139,15 @@ public class BookingService
 
         foreach (var seatId in seatIds)
         {
+            var seat = roomSeatsById[seatId];
+
             booking.Seats.Add(new BookingSeat
             {
                 ShowtimeId = hold.ShowtimeId,
                 SeatId = seatId,
-                Price = showtime.BasePrice
+                Price = SeatPricing.Calculate(
+                    showtime.BasePrice,
+                    seat.Type)
             });
         }
 

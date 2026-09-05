@@ -61,7 +61,7 @@ export function BottomNav() {
             <AnimatedPressable
               contentStyle={[styles.item, active && styles.itemActive]}
               key={item.match}
-              onPress={() => router.replace(item.href)}
+              onPress={() => router.navigate(item.href)}
               pressedScale={0.96}>
               <Ionicons
                 color={active ? colors.surface : colors.muted}
@@ -87,18 +87,22 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    paddingHorizontal: 14,
-    paddingBottom: 18,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
   },
   nav: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    width: '100%',
     borderWidth: 1,
     borderColor: '#e7eaf0',
-    borderRadius: radius.md,
+    borderBottomWidth: 0,
+    borderRadius: 0,
     backgroundColor: colors.surface,
-    padding: 8,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 22,
     ...shadow.card,
   },
   item: {

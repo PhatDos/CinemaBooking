@@ -10,5 +10,7 @@ public class SeatAvailabilityInfo
 
     public string Type { get; set; } = "Standard";
 
+    public decimal Price { get; set; }
+
     public string Status { get; set; } = string.Empty;
 }

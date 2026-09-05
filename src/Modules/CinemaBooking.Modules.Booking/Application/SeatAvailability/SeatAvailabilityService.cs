@@ -1,4 +1,5 @@
 using CinemaBooking.Modules.Booking.Application.Interfaces;
+using CinemaBooking.Modules.Booking.Application.Pricing;
 using CinemaBooking.Modules.Booking.Domain;
 using CinemaBooking.Modules.Scheduling.Contracts;
 using CinemaBooking.Modules.Theater.Contracts;
@@ -66,6 +67,9 @@ public class SeatAvailabilityService
                 Row = seat.Row,
                 Number = seat.Number,
                 Type = seat.Type,
+                Price = SeatPricing.Calculate(
+                    showtime.BasePrice,
+                    seat.Type),
                 Status = GetSeatStatus(
                     seat.Id,
                     statusBySeat,

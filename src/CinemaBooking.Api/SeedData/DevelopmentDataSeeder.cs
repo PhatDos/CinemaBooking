@@ -215,8 +215,8 @@ public static class DevelopmentDataSeeder
     {
         return row switch
         {
-            "D" => SeatType.Couple,
-            "C" or "E" => SeatType.VIP,
+            "E" => SeatType.Couple,
+            "C" or "D" => SeatType.VIP,
             _ => SeatType.Standard
         };
     }
