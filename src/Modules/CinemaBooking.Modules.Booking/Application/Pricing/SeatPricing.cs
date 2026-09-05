@@ -2,21 +2,22 @@ namespace CinemaBooking.Modules.Booking.Application.Pricing;
 
 public static class SeatPricing
 {
-    private const decimal VipSurcharge = 30000m;
-    private const decimal CoupleSurcharge = 90000m;
+    private const decimal StandardPrice = 90000m;
+    private const decimal VipPrice = 100000m;
+    private const decimal CouplePrice = 190000m;
 
     public static decimal Calculate(decimal basePrice, string? seatType)
     {
-        return basePrice + GetSurcharge(seatType);
+        return GetPrice(seatType);
     }
 
-    public static decimal GetSurcharge(string? seatType)
+    public static decimal GetPrice(string? seatType)
     {
         return seatType?.Trim().ToUpperInvariant() switch
         {
-            "VIP" => VipSurcharge,
-            "COUPLE" => CoupleSurcharge,
-            _ => 0m
+            "VIP" => VipPrice,
+            "COUPLE" => CouplePrice,
+            _ => StandardPrice
         };
     }
 }

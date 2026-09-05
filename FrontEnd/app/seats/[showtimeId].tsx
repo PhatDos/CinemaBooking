@@ -35,7 +35,6 @@ type ShowtimeContext = {
   movieTitle: string;
   roomName: string;
   startTime: string;
-  basePrice: number;
 };
 
 export default function SeatsScreen() {
@@ -98,7 +97,6 @@ export default function SeatsScreen() {
         const cinema = await getCinema(room.cinemaId);
 
         setShowtimeContext({
-          basePrice: showtime.basePrice,
           cinemaName: cinema.name,
           movieTitle: movie.title,
           roomName: room.name,
@@ -144,6 +142,15 @@ export default function SeatsScreen() {
     () => getPriceByType(seats),
     [seats],
   );
+  const minimumSeatPrice = useMemo(() => {
+    const prices = seats
+      .map((seat) => getSeatPrice(seat))
+      .filter((price): price is number => price !== null);
+
+    return prices.length === 0
+      ? null
+      : Math.min(...prices);
+  }, [seats]);
 
   function toggleSeat(seat: SeatAvailability) {
     if (continuing || seat.status !== 'available') {
@@ -258,7 +265,11 @@ export default function SeatsScreen() {
         <FadeInView delay={45} style={styles.contextPanel}>
           <Text style={styles.contextTitle}>{formatCinemaName(showtimeContext.cinemaName)}</Text>
           <Text style={styles.contextText}>{formatRoomName(showtimeContext.roomName)}</Text>
-          <Text style={styles.contextPrice}>{formatCurrency(showtimeContext.basePrice)} / seat</Text>
+          <Text style={styles.contextPrice}>
+            {minimumSeatPrice === null
+              ? 'Seat prices unavailable'
+              : `From ${formatCurrency(minimumSeatPrice)}`}
+          </Text>
         </FadeInView>
       ) : null}
 
@@ -334,15 +345,7 @@ export default function SeatsScreen() {
         </Text>
       ) : null}
       {hasInvalidSelectedPrice ? (
-        <View style={styles.priceWarningRow}>
-          <Text style={styles.priceWarning}>Seat prices are missing.</Text>
-          <AnimatedPressable
-            contentStyle={styles.reloadPriceButton}
-            onPress={() => loadSeats(false)}
-            pressedScale={0.96}>
-            <Text style={styles.reloadPriceText}>Reload seats</Text>
-          </AnimatedPressable>
-        </View>
+        <Text style={styles.priceWarning}>Seat prices are missing. Please try again later.</Text>
       ) : null}
 
       {actionError ? <Text style={styles.holdError}>{actionError}</Text> : null}
@@ -676,29 +679,10 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   priceWarning: {
+    marginTop: 8,
     color: colors.danger,
     fontSize: 13,
     fontWeight: '700',
-  },
-  priceWarningRow: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  reloadPriceButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  reloadPriceText: {
-    color: colors.ink,
-    fontSize: 12,
-    fontWeight: '800',
   },
   button: {
     marginTop: 24,

@@ -12,6 +12,7 @@ public static class DevelopmentDataSeeder
 {
     private const string CinemaName = "Seed Cinema";
     private const string RoomName = "Seed Room 1";
+    private const decimal SeedBasePrice = 90000m;
 
     private static readonly SeedMovie[] Movies =
     [
@@ -173,50 +174,137 @@ public static class DevelopmentDataSeeder
             await dbContext.SaveChangesAsync();
         }
 
-        foreach (var row in new[] { "A", "B", "C", "D", "E" })
+        await EnsureAllCinemaRoomsHaveSeedLayoutAsync(dbContext);
+
+        return room;
+    }
+
+    private static async Task EnsureAllCinemaRoomsHaveSeedLayoutAsync(
+        TheaterDbContext dbContext)
+    {
+        var cinemas =
+            await dbContext.Cinemas
+                .Include(cinema => cinema.Rooms)
+                .ToListAsync();
+
+        foreach (var cinema in cinemas)
         {
-            for (var number = 1; number <= 8; number++)
+            if (cinema.Rooms.Count == 0)
             {
-                var exists =
-                    await dbContext.Seats.AnyAsync(seat =>
-                        seat.RoomId == room.Id &&
-                        seat.Row == row &&
-                        seat.Number == number);
-
-                if (exists)
+                var room = new Room
                 {
-                    var seat =
-                        await dbContext.Seats.FirstAsync(item =>
-                            item.RoomId == room.Id &&
-                            item.Row == row &&
-                            item.Number == number);
+                    CinemaId = cinema.Id,
+                    Name = RoomName,
+                    IsActive = true
+                };
 
-                    seat.Type = GetSeedSeatType(row);
-
-                    continue;
-                }
-
-                dbContext.Seats.Add(new Seat
-                {
-                    RoomId = room.Id,
-                    Row = row,
-                    Number = number,
-                    Type = GetSeedSeatType(row)
-                });
+                dbContext.Rooms.Add(room);
+                cinema.Rooms.Add(room);
             }
         }
 
         await dbContext.SaveChangesAsync();
 
-        return room;
+        var roomIds =
+            await dbContext.Rooms
+                .Select(room => room.Id)
+                .ToListAsync();
+
+        foreach (var roomId in roomIds)
+        {
+            await EnsureSeedSeatLayoutAsync(dbContext, roomId);
+        }
     }
 
-    private static SeatType GetSeedSeatType(string row)
+    private static async Task EnsureSeedSeatLayoutAsync(
+        TheaterDbContext dbContext,
+        Guid roomId)
+    {
+        var desiredSeats =
+            GetSeedSeatLayout()
+                .ToArray();
+
+        var desiredKeys =
+            desiredSeats
+                .Select(seat => $"{seat.Row}:{seat.Number}")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var existingSeats =
+            await dbContext.Seats
+                .Where(seat => seat.RoomId == roomId)
+                .ToListAsync();
+
+        foreach (var existingSeat in existingSeats)
+        {
+            var key = $"{existingSeat.Row}:{existingSeat.Number}";
+
+            if (!desiredKeys.Contains(key))
+            {
+                dbContext.Seats.Remove(existingSeat);
+
+                continue;
+            }
+
+            existingSeat.Type =
+                GetSeedSeatType(
+                    existingSeat.Row,
+                    existingSeat.Number);
+        }
+
+        var existingKeys =
+            existingSeats
+                .Select(seat => $"{seat.Row}:{seat.Number}")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var desiredSeat in desiredSeats)
+        {
+            if (existingKeys.Contains($"{desiredSeat.Row}:{desiredSeat.Number}"))
+            {
+                continue;
+            }
+
+            dbContext.Seats.Add(new Seat
+            {
+                RoomId = roomId,
+                Row = desiredSeat.Row,
+                Number = desiredSeat.Number,
+                Type = desiredSeat.Type
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static IEnumerable<SeedSeat> GetSeedSeatLayout()
+    {
+        foreach (var row in new[] { "A", "B", "C", "D" })
+        {
+            for (var number = 1; number <= 8; number++)
+            {
+                yield return new SeedSeat(
+                    row,
+                    number,
+                    GetSeedSeatType(row, number));
+            }
+        }
+
+        for (var number = 1; number <= 4; number++)
+        {
+            yield return new SeedSeat(
+                "E",
+                number,
+                SeatType.Couple);
+        }
+    }
+
+    private static SeatType GetSeedSeatType(
+        string row,
+        int number)
     {
         return row switch
         {
+            "B" or "D" when number is >= 2 and <= 7 => SeatType.VIP,
             "E" => SeatType.Couple,
-            "C" or "D" => SeatType.VIP,
             _ => SeatType.Standard
         };
     }
@@ -259,7 +347,7 @@ public static class DevelopmentDataSeeder
                 RoomId = roomId,
                 StartTime = startTime,
                 EndTime = startTime.AddMinutes(movie.DurationMinutes),
-                BasePrice = 120000 + index * 25000
+                BasePrice = SeedBasePrice
             });
         }
 
@@ -274,4 +362,9 @@ public static class DevelopmentDataSeeder
         string PosterUrl,
         string TrailerUrl,
         string Genre);
+
+    private sealed record SeedSeat(
+        string Row,
+        int Number,
+        SeatType Type);
 }
