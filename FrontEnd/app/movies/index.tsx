@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 
-import { getMovies } from '@/src/api/movies';
+import { getNowShowingMovies } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
@@ -21,6 +21,7 @@ import type { Movie } from '@/src/types';
 import { styles } from '@/src/styles/screens/movies.styles';
 
 const scanTicketRoute = '/staff/scan-ticket' as Href;
+const manageMoviesRoute = '/movies/manage' as Href;
 
 export default function MoviesScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -37,7 +38,7 @@ export default function MoviesScreen() {
     setError('');
 
     try {
-      const result = await getMovies();
+      const result = await getNowShowingMovies();
       setMovies(result);
     } catch (loadError) {
       console.error(loadError);
@@ -71,6 +72,7 @@ export default function MoviesScreen() {
   }
 
   const canCheckIn = user?.roles.some((role) => role === 'Staff' || role === 'Admin') ?? false;
+  const canManageMovies = user?.roles.includes('Admin') ?? false;
 
   return (
     <View style={styles.container}>
@@ -82,6 +84,14 @@ export default function MoviesScreen() {
         </View>
 
         <View style={styles.actions}>
+          {canManageMovies && (
+            <AnimatedPressable
+              contentStyle={styles.primaryActionButton}
+              onPress={() => router.push(manageMoviesRoute)}>
+              <Text style={styles.primaryActionText}>Manage Movies</Text>
+            </AnimatedPressable>
+          )}
+
           {canCheckIn && (
             <AnimatedPressable
               contentStyle={styles.primaryActionButton}
@@ -121,51 +131,53 @@ export default function MoviesScreen() {
               refreshing={refreshing}
             />
           }
-          renderItem={({ item, index }) => (
-            <FadeInView delay={index * 45}>
-              <AnimatedPressable
-                contentStyle={styles.card}
-                onPress={() =>
-                  router.push({
-                    pathname: '/movies/[id]',
-                    params: { id: item.id },
-                  })
-                }>
-                <View style={styles.poster}>
-                  {item.posterUrl ? (
-                    <Image
-                      contentFit="cover"
-                      source={{ uri: item.posterUrl }}
-                      style={StyleSheet.absoluteFill}
-                      transition={250}
-                    />
-                  ) : (
-                    <Text style={styles.posterText}>{getInitials(item.title)}</Text>
-                  )}
-                  {item.genre ? (
-                    <View style={styles.posterBadge}>
-                      <Text style={styles.posterBadgeText}>{item.genre}</Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.info}>
-                  <Text numberOfLines={2} style={styles.title}>
-                    {item.title}
-                  </Text>
-                  <View style={styles.metaRow}>
-                    <Text style={styles.meta}>{item.durationMinutes} min</Text>
-                    <Text style={styles.dot}>|</Text>
-                    <Text style={styles.meta}>{formatDate(item.releaseDate)}</Text>
+          renderItem={({ item, index }) => {
+            return (
+              <FadeInView delay={index * 45}>
+                <AnimatedPressable
+                  contentStyle={styles.card}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/movies/[id]',
+                      params: { id: item.id },
+                    })
+                  }>
+                  <View style={styles.poster}>
+                    {item.posterUrl ? (
+                      <Image
+                        contentFit="cover"
+                        source={{ uri: item.posterUrl }}
+                        style={StyleSheet.absoluteFill}
+                        transition={250}
+                      />
+                    ) : (
+                      <Text style={styles.posterText}>{getInitials(item.title)}</Text>
+                    )}
+                    {item.genre ? (
+                      <View style={styles.posterBadge}>
+                        <Text style={styles.posterBadgeText}>{item.genre}</Text>
+                      </View>
+                    ) : null}
                   </View>
-                  <Text numberOfLines={2} style={styles.description}>
-                    {item.description || 'No description yet.'}
-                  </Text>
-                  <Text style={styles.detail}>View showtimes</Text>
-                </View>
-              </AnimatedPressable>
-            </FadeInView>
-          )}
+
+                  <View style={styles.info}>
+                    <Text numberOfLines={2} style={styles.title}>
+                      {item.title}
+                    </Text>
+                    <View style={styles.metaRow}>
+                      <Text style={styles.meta}>{item.durationMinutes} min</Text>
+                      <Text style={styles.dot}>|</Text>
+                      <Text style={styles.meta}>{formatDate(item.releaseDate)}</Text>
+                    </View>
+                    <Text numberOfLines={2} style={styles.description}>
+                      {item.description || 'No description yet.'}
+                    </Text>
+                    <Text style={styles.detail}>View showtimes</Text>
+                  </View>
+                </AnimatedPressable>
+              </FadeInView>
+            );
+          }}
         />
       )}
 

@@ -18,4 +18,19 @@ public sealed record UpdateCinemaRequest(
     [MaxLength(1000)]
     string? Description,
 
-    bool IsActive);
+    bool IsActive,
+
+    [MaxLength(20)]
+    string? ProvinceCode = null,
+
+    [MaxLength(100)]
+    string? ProvinceName = null,
+
+    [MaxLength(20)]
+    string? WardCode = null,
+
+    [MaxLength(100)]
+    string? WardName = null,
+
+    [MaxLength(500)]
+    string? AddressLine = null);

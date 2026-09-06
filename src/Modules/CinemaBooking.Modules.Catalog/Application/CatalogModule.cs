@@ -35,8 +35,39 @@ public class CatalogModule : ICatalogModule
                 movie.ReleaseDate,
                 movie.PosterUrl,
                 movie.TrailerUrl,
-                movie.Genre,
+                movie.GenreId,
+                movie.GenreRef != null
+                    ? movie.GenreRef.Name
+                    : movie.Genre,
                 movie.IsActive))
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MovieInfo>> GetMoviesByIdsAsync(
+        IReadOnlyCollection<Guid> movieIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (movieIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await _dbContext.Movies
+            .AsNoTracking()
+            .Where(movie => movieIds.Contains(movie.Id))
+            .Select(movie => new MovieInfo(
+                movie.Id,
+                movie.Title,
+                movie.Description,
+                movie.DurationMinutes,
+                movie.ReleaseDate,
+                movie.PosterUrl,
+                movie.TrailerUrl,
+                movie.GenreId,
+                movie.GenreRef != null
+                    ? movie.GenreRef.Name
+                    : movie.Genre,
+                movie.IsActive))
+            .ToListAsync(cancellationToken);
     }
 }

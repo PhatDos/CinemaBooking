@@ -13,6 +13,55 @@ public static class DevelopmentDataSeeder
     private const string CinemaName = "Seed Cinema";
     private const string RoomName = "Seed Room 1";
     private const decimal SeedBasePrice = 90000m;
+    private const string SeedProvinceCode = "79";
+    private const string SeedProvinceName = "Thành phố Hồ Chí Minh";
+    private const string SeedWardCode = "26740";
+    private const string SeedWardName = "Phường Sài Gòn";
+    private const string SeedAddressLine = "123 Seed Street";
+
+    private static readonly SeedGenre[] Genres =
+    [
+        new(
+            "Action",
+            "action",
+            "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Adventure",
+            "adventure",
+            "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Animation",
+            "animation",
+            "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Comedy",
+            "comedy",
+            "https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Documentary",
+            "documentary",
+            "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Drama",
+            "drama",
+            "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Horror",
+            "horror",
+            "https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Romance",
+            "romance",
+            "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Sci-Fi",
+            "sci-fi",
+            "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Thriller",
+            "thriller",
+            "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=900&q=80")
+    ];
 
     private static readonly SeedMovie[] Movies =
     [
@@ -55,8 +104,13 @@ public static class DevelopmentDataSeeder
         var schedulingDbContext =
             scope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
 
+        var genres =
+            await EnsureGenresAsync(catalogDbContext);
+
         var movies =
-            await EnsureMoviesAsync(catalogDbContext);
+            await EnsureMoviesAsync(
+                catalogDbContext,
+                genres);
 
         var room =
             await EnsureTheaterAsync(theaterDbContext);
@@ -70,11 +124,53 @@ public static class DevelopmentDataSeeder
             schedulingDbContext);
     }
 
-    private static async Task<List<Movie>> EnsureMoviesAsync(
+    private static async Task<IReadOnlyDictionary<string, Genre>> EnsureGenresAsync(
         CatalogDbContext dbContext)
+    {
+        foreach (var seedGenre in Genres)
+        {
+            var genre =
+                await dbContext.Genres.FirstOrDefaultAsync(item =>
+                    item.Slug == seedGenre.Slug);
+
+            if (genre is not null)
+            {
+                genre.Name = seedGenre.Name;
+                genre.ImageUrl = seedGenre.ImageUrl;
+
+                continue;
+            }
+
+            dbContext.Genres.Add(new Genre
+            {
+                Name = seedGenre.Name,
+                Slug = seedGenre.Slug,
+                ImageUrl = seedGenre.ImageUrl,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        return await dbContext.Genres
+            .Where(genre =>
+                Genres.Select(seedGenre => seedGenre.Slug)
+                    .Contains(genre.Slug))
+            .ToDictionaryAsync(
+                genre => genre.Name,
+                StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static async Task<List<Movie>> EnsureMoviesAsync(
+        CatalogDbContext dbContext,
+        IReadOnlyDictionary<string, Genre> genresByName)
     {
         foreach (var seedMovie in Movies)
         {
+            genresByName.TryGetValue(
+                seedMovie.Genre,
+                out var genre);
+
             var movie =
                 await dbContext.Movies.FirstOrDefaultAsync(movie =>
                     movie.Title == seedMovie.Title);
@@ -86,6 +182,7 @@ public static class DevelopmentDataSeeder
                 movie.ReleaseDate = seedMovie.ReleaseDate;
                 movie.PosterUrl ??= seedMovie.PosterUrl;
                 movie.TrailerUrl ??= seedMovie.TrailerUrl;
+                movie.GenreId = genre?.Id;
                 movie.Genre = seedMovie.Genre;
                 movie.IsActive = true;
 
@@ -100,6 +197,7 @@ public static class DevelopmentDataSeeder
                 ReleaseDate = seedMovie.ReleaseDate,
                 PosterUrl = seedMovie.PosterUrl,
                 TrailerUrl = seedMovie.TrailerUrl,
+                GenreId = genre?.Id,
                 Genre = seedMovie.Genre,
                 IsActive = true
             });
@@ -129,10 +227,15 @@ public static class DevelopmentDataSeeder
             cinema = new Cinema
             {
                 Name = CinemaName,
-                Address = "123 Seed Street, District 1",
-                City = "Ho Chi Minh City",
+                Address = SeedAddressLine,
+                City = SeedProvinceName,
                 Description = "Development seed cinema",
-                IsActive = true
+                IsActive = true,
+                ProvinceCode = SeedProvinceCode,
+                ProvinceName = SeedProvinceName,
+                WardCode = SeedWardCode,
+                WardName = SeedWardName,
+                AddressLine = SeedAddressLine
             };
 
             dbContext.Cinemas.Add(cinema);
@@ -141,12 +244,15 @@ public static class DevelopmentDataSeeder
         }
         else
         {
-            cinema.Address = "123 Seed Street, District 1";
-            cinema.City = string.IsNullOrWhiteSpace(cinema.City)
-                ? "Ho Chi Minh City"
-                : cinema.City;
+            cinema.Address = SeedAddressLine;
+            cinema.City = SeedProvinceName;
             cinema.Description ??= "Development seed cinema";
             cinema.IsActive = true;
+            cinema.ProvinceCode = SeedProvinceCode;
+            cinema.ProvinceName = SeedProvinceName;
+            cinema.WardCode = SeedWardCode;
+            cinema.WardName = SeedWardName;
+            cinema.AddressLine = SeedAddressLine;
 
             await dbContext.SaveChangesAsync();
         }
@@ -386,6 +492,11 @@ public static class DevelopmentDataSeeder
         string PosterUrl,
         string TrailerUrl,
         string Genre);
+
+    private sealed record SeedGenre(
+        string Name,
+        string Slug,
+        string ImageUrl);
 
     private sealed record SeedSeat(
         string Row,

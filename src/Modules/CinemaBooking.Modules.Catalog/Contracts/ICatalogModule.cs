@@ -7,4 +7,8 @@ public interface ICatalogModule
     Task<MovieInfo?> GetMovieAsync(
         Guid movieId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<MovieInfo>> GetMoviesByIdsAsync(
+        IReadOnlyCollection<Guid> movieIds,
+        CancellationToken cancellationToken = default);
 }

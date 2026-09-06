@@ -24,6 +24,21 @@ public class CinemaConfiguration : IEntityTypeConfiguration<Cinema>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(cinema => cinema.ProvinceCode)
+            .HasMaxLength(20);
+
+        builder.Property(cinema => cinema.ProvinceName)
+            .HasMaxLength(100);
+
+        builder.Property(cinema => cinema.WardCode)
+            .HasMaxLength(20);
+
+        builder.Property(cinema => cinema.WardName)
+            .HasMaxLength(100);
+
+        builder.Property(cinema => cinema.AddressLine)
+            .HasMaxLength(500);
+
         builder.Property(cinema => cinema.Description)
             .HasMaxLength(1000);
 
@@ -31,6 +46,14 @@ public class CinemaConfiguration : IEntityTypeConfiguration<Cinema>
             .IsRequired();
 
         builder.HasIndex(cinema => cinema.City);
+
+        builder.HasIndex(cinema => cinema.ProvinceCode);
+
+        builder.HasIndex(cinema => new
+        {
+            cinema.ProvinceCode,
+            cinema.WardCode
+        });
 
         builder.HasMany(cinema => cinema.Rooms)
             .WithOne(room => room.Cinema)

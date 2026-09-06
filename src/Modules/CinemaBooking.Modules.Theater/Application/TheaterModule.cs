@@ -39,15 +39,37 @@ public class TheaterModule : ITheaterModule
                 cinema.Address,
                 cinema.City,
                 cinema.Description,
-                cinema.IsActive))
+                cinema.IsActive,
+                cinema.ProvinceCode,
+                cinema.ProvinceName,
+                cinema.WardCode,
+                cinema.WardName,
+                cinema.AddressLine))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<CinemaInfo>> GetCinemasAsync(
+        string? provinceCode = null,
+        string? wardCode = null,
         CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Cinemas
+        var query = _dbContext.Cinemas
             .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(provinceCode))
+        {
+            query = query.Where(cinema =>
+                cinema.ProvinceCode == provinceCode.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(wardCode))
+        {
+            query = query.Where(cinema =>
+                cinema.WardCode == wardCode.Trim());
+        }
+
+        return await query
             .OrderBy(cinema => cinema.City)
             .ThenBy(cinema => cinema.Name)
             .Select(cinema => new CinemaInfo(
@@ -56,7 +78,12 @@ public class TheaterModule : ITheaterModule
                 cinema.Address,
                 cinema.City,
                 cinema.Description,
-                cinema.IsActive))
+                cinema.IsActive,
+                cinema.ProvinceCode,
+                cinema.ProvinceName,
+                cinema.WardCode,
+                cinema.WardName,
+                cinema.AddressLine))
             .ToListAsync(cancellationToken);
     }
 
@@ -80,7 +107,12 @@ public class TheaterModule : ITheaterModule
                 cinema.Address,
                 cinema.City,
                 cinema.Description,
-                cinema.IsActive))
+                cinema.IsActive,
+                cinema.ProvinceCode,
+                cinema.ProvinceName,
+                cinema.WardCode,
+                cinema.WardName,
+                cinema.AddressLine))
             .ToListAsync(cancellationToken);
     }
 
@@ -89,13 +121,28 @@ public class TheaterModule : ITheaterModule
         string address,
         string city,
         string? description,
+        string? provinceCode = null,
+        string? provinceName = null,
+        string? wardCode = null,
+        string? wardName = null,
+        string? addressLine = null,
         CancellationToken cancellationToken = default)
     {
+        var normalizedAddressLine =
+            NormalizeOptional(addressLine) ?? address.Trim();
+        var normalizedProvinceName =
+            NormalizeOptional(provinceName) ?? city.Trim();
+
         var cinema = new Cinema
         {
             Name = name.Trim(),
-            Address = address.Trim(),
-            City = city.Trim(),
+            Address = normalizedAddressLine,
+            City = normalizedProvinceName,
+            ProvinceCode = NormalizeOptional(provinceCode),
+            ProvinceName = normalizedProvinceName,
+            WardCode = NormalizeOptional(wardCode),
+            WardName = NormalizeOptional(wardName),
+            AddressLine = normalizedAddressLine,
             Description = description?.Trim(),
             IsActive = true
         };
@@ -114,6 +161,11 @@ public class TheaterModule : ITheaterModule
         string city,
         string? description,
         bool isActive,
+        string? provinceCode = null,
+        string? provinceName = null,
+        string? wardCode = null,
+        string? wardName = null,
+        string? addressLine = null,
         CancellationToken cancellationToken = default)
     {
         var cinema =
@@ -127,9 +179,19 @@ public class TheaterModule : ITheaterModule
             throw new NotFoundException("Cinema was not found.");
         }
 
+        var normalizedAddressLine =
+            NormalizeOptional(addressLine) ?? address.Trim();
+        var normalizedProvinceName =
+            NormalizeOptional(provinceName) ?? city.Trim();
+
         cinema.Name = name.Trim();
-        cinema.Address = address.Trim();
-        cinema.City = city.Trim();
+        cinema.Address = normalizedAddressLine;
+        cinema.City = normalizedProvinceName;
+        cinema.ProvinceCode = NormalizeOptional(provinceCode);
+        cinema.ProvinceName = normalizedProvinceName;
+        cinema.WardCode = NormalizeOptional(wardCode);
+        cinema.WardName = NormalizeOptional(wardName);
+        cinema.AddressLine = normalizedAddressLine;
         cinema.Description = description?.Trim();
         cinema.IsActive = isActive;
 
@@ -149,6 +211,22 @@ public class TheaterModule : ITheaterModule
                 room.Name,
                 room.IsActive))
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<RoomInfo>> GetRoomsByCinemaAsync(
+        Guid cinemaId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Rooms
+            .AsNoTracking()
+            .Where(room => room.CinemaId == cinemaId)
+            .OrderBy(room => room.Name)
+            .Select(room => new RoomInfo(
+                room.Id,
+                room.CinemaId,
+                room.Name,
+                room.IsActive))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> RoomExistsAsync(
@@ -203,6 +281,18 @@ public class TheaterModule : ITheaterModule
             cinema.Address,
             cinema.City,
             cinema.Description,
-            cinema.IsActive);
+            cinema.IsActive,
+            cinema.ProvinceCode,
+            cinema.ProvinceName,
+            cinema.WardCode,
+            cinema.WardName,
+            cinema.AddressLine);
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 }

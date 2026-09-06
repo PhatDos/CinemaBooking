@@ -6,4 +6,9 @@ public sealed record CinemaInfo(
     string Address,
     string City,
     string? Description,
-    bool IsActive);
+    bool IsActive,
+    string? ProvinceCode = null,
+    string? ProvinceName = null,
+    string? WardCode = null,
+    string? WardName = null,
+    string? AddressLine = null);

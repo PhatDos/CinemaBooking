@@ -18,6 +18,7 @@ public class MovieRepository : IMovieRepository
     {
         return await _dbContext.Movies
             .AsNoTracking()
+            .Include(movie => movie.GenreRef)
             .ToListAsync();
     }
 
@@ -25,12 +26,14 @@ public class MovieRepository : IMovieRepository
     {
         return await _dbContext.Movies
             .AsNoTracking()
+            .Include(movie => movie.GenreRef)
             .FirstOrDefaultAsync(movie => movie.Id == id);
     }
 
     public async Task<Movie?> GetByIdForUpdateAsync(Guid id)
     {
         return await _dbContext.Movies
+            .Include(movie => movie.GenreRef)
             .FirstOrDefaultAsync(movie => movie.Id == id);
     }
 

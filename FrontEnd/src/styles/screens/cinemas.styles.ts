@@ -53,6 +53,55 @@ export const styles = StyleSheet.create({
     padding: 14,
     ...shadow.card,
   },
+  filters: {
+    paddingBottom: 6,
+  },
+  filterLabel: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  filterRail: {
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    gap: 8,
+  },
+  filterChip: {
+    maxWidth: 220,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  filterChipSelected: {
+    borderColor: colors.ink,
+    backgroundColor: colors.ink,
+  },
+  filterChipText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  filterChipTextSelected: {
+    color: colors.surface,
+  },
+  inlineLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+  },
+  inlineLoaderText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   avatar: {
     width: 58,
     height: 58,
@@ -114,11 +163,23 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  ward: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   description: {
     marginTop: 8,
     color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
+  },
+  detail: {
+    marginTop: 10,
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '900',
   },
   center: {
     flex: 1,

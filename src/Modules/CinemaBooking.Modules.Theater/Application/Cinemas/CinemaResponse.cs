@@ -7,7 +7,12 @@ public sealed record CinemaResponse(
     string City,
     string? Description,
     bool IsActive,
-    List<RoomResponse> Rooms);
+    List<RoomResponse> Rooms,
+    string? ProvinceCode = null,
+    string? ProvinceName = null,
+    string? WardCode = null,
+    string? WardName = null,
+    string? AddressLine = null);
 
 public class RoomResponse
 {

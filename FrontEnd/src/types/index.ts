@@ -43,11 +43,28 @@ export type Movie = {
   releaseDate: string;
   posterUrl: string | null;
   trailerUrl: string | null;
+  genreId: string | null;
   genre: string | null;
   isActive: boolean;
 };
 
 export type MovieDetail = Movie;
+
+export type Genre = {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl: string;
+  createdAt: string;
+};
+
+export type CreateGenreRequest = {
+  name: string;
+  slug?: string | null;
+  imageUrl: string;
+};
+
+export type UpdateGenreRequest = CreateGenreRequest;
 
 export type CreateMovieRequest = {
   title: string;
@@ -56,8 +73,12 @@ export type CreateMovieRequest = {
   releaseDate: string;
   posterUrl?: string | null;
   trailerUrl?: string | null;
-  genre?: string | null;
+  genreId?: string | null;
   isActive?: boolean;
+};
+
+export type UpdateMovieRequest = CreateMovieRequest & {
+  isActive: boolean;
 };
 
 export type BulkCreateMoviesRequest = {
@@ -73,6 +94,20 @@ export type Showtime = {
   id: string;
   movieId: string;
   roomId: string;
+  startTime: string;
+  endTime: string;
+  basePrice: number;
+};
+
+export type CinemaShowtime = {
+  showtimeId: string;
+  movieId: string;
+  movieTitle: string;
+  posterUrl: string | null;
+  genreId: string | null;
+  genre: string | null;
+  roomId: string;
+  roomName: string;
   startTime: string;
   endTime: string;
   basePrice: number;
@@ -177,6 +212,16 @@ export type Cinema = {
   description?: string | null;
   isActive: boolean;
   rooms?: Room[];
+  provinceCode?: string | null;
+  provinceName?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  addressLine?: string | null;
+};
+
+export type LocationItem = {
+  code: string;
+  name: string;
 };
 
 export type Payment = {

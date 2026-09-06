@@ -248,9 +248,12 @@ public class ShowtimeService
 
     public async Task<List<ShowtimeResponse>> GetAllAsync()
     {
+        var now = DateTime.UtcNow;
         var showtimes = await _repository.GetAllAsync();
 
         return showtimes
+            .Where(showtime => showtime.StartTime >= now)
+            .OrderBy(showtime => showtime.StartTime)
             .Select(ToResponse)
             .ToList();
     }

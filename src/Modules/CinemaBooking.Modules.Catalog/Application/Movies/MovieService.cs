@@ -10,13 +10,16 @@ public class MovieService
     private const int MaximumDescriptionLength = 4000;
     private const int MaximumDurationMinutes = 500;
     private const int MaximumUrlLength = 1000;
-    private const int MaximumGenreLength = 100;
 
     private readonly IMovieRepository _movieRepository;
+    private readonly IGenreRepository _genreRepository;
 
-    public MovieService(IMovieRepository movieRepository)
+    public MovieService(
+        IMovieRepository movieRepository,
+        IGenreRepository genreRepository)
     {
         _movieRepository = movieRepository;
+        _genreRepository = genreRepository;
     }
 
     public async Task<List<MovieResponse>> GetAllAsync(
@@ -50,8 +53,10 @@ public class MovieService
             request.DurationMinutes,
             request.ReleaseDate,
             request.PosterUrl,
-            request.TrailerUrl,
-            request.Genre);
+            request.TrailerUrl);
+
+        var genre =
+            await GetGenreForMovieAsync(request.GenreId);
 
         var movie = new Movie
         {
@@ -62,7 +67,8 @@ public class MovieService
             ReleaseDate = request.ReleaseDate,
             PosterUrl = NormalizeOptional(request.PosterUrl),
             TrailerUrl = NormalizeOptional(request.TrailerUrl),
-            Genre = NormalizeOptional(request.Genre),
+            GenreId = genre?.Id,
+            Genre = genre?.Name,
             IsActive = request.IsActive
         };
 
@@ -95,8 +101,28 @@ public class MovieService
                 request.DurationMinutes,
                 request.ReleaseDate,
                 request.PosterUrl,
-                request.TrailerUrl,
-                request.Genre);
+                request.TrailerUrl);
+        }
+
+        var genreIds = requests
+            .Where(request => request.GenreId is not null)
+            .Select(request => request.GenreId!.Value)
+            .Distinct()
+            .ToArray();
+
+        var genresById = new Dictionary<Guid, Genre>();
+
+        foreach (var genreId in genreIds)
+        {
+            var genre =
+                await GetGenreForMovieAsync(
+                    genreId,
+                    cancellationToken);
+
+            if (genre is not null)
+            {
+                genresById[genre.Id] = genre;
+            }
         }
 
         var movies = requests
@@ -109,7 +135,13 @@ public class MovieService
                 ReleaseDate = request.ReleaseDate,
                 PosterUrl = NormalizeOptional(request.PosterUrl),
                 TrailerUrl = NormalizeOptional(request.TrailerUrl),
-                Genre = NormalizeOptional(request.Genre),
+                GenreId = request.GenreId,
+                Genre = request.GenreId is not null &&
+                        genresById.TryGetValue(
+                            request.GenreId.Value,
+                            out var genre)
+                    ? genre.Name
+                    : null,
                 IsActive = request.IsActive
             })
             .ToList();
@@ -133,8 +165,10 @@ public class MovieService
             request.DurationMinutes,
             request.ReleaseDate,
             request.PosterUrl,
-            request.TrailerUrl,
-            request.Genre);
+            request.TrailerUrl);
+
+        var genre =
+            await GetGenreForMovieAsync(request.GenreId);
 
         var movie =
             await _movieRepository.GetByIdForUpdateAsync(id);
@@ -150,7 +184,8 @@ public class MovieService
         movie.ReleaseDate = request.ReleaseDate;
         movie.PosterUrl = NormalizeOptional(request.PosterUrl);
         movie.TrailerUrl = NormalizeOptional(request.TrailerUrl);
-        movie.Genre = NormalizeOptional(request.Genre);
+        movie.GenreId = genre?.Id;
+        movie.Genre = genre?.Name;
         movie.IsActive = request.IsActive;
 
         await _movieRepository.SaveChangesAsync();
@@ -167,9 +202,37 @@ public class MovieService
             ReleaseDate = movie.ReleaseDate,
             PosterUrl = movie.PosterUrl,
             TrailerUrl = movie.TrailerUrl,
-            Genre = movie.Genre,
+            GenreId = movie.GenreId,
+            Genre = movie.GenreRef?.Name ?? movie.Genre,
             IsActive = movie.IsActive
         };
+    }
+
+    private async Task<Genre?> GetGenreForMovieAsync(
+        Guid? genreId,
+        CancellationToken cancellationToken = default)
+    {
+        if (genreId is null)
+        {
+            return null;
+        }
+
+        if (genreId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Genre id is required.");
+        }
+
+        var genre =
+            await _genreRepository.GetByIdAsync(
+                genreId.Value,
+                cancellationToken);
+
+        if (genre is null)
+        {
+            throw new NotFoundException("Genre was not found.");
+        }
+
+        return genre;
     }
 
     private static void ValidateMovie(
@@ -178,8 +241,7 @@ public class MovieService
         int durationMinutes,
         DateTime releaseDate,
         string? posterUrl,
-        string? trailerUrl,
-        string? genre)
+        string? trailerUrl)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -249,12 +311,6 @@ public class MovieService
                 "Trailer URL must be a valid HTTP or HTTPS URL.");
         }
 
-        if (!string.IsNullOrWhiteSpace(genre) &&
-            genre.Trim().Length > MaximumGenreLength)
-        {
-            throw new BusinessRuleException(
-                $"Genre must be {MaximumGenreLength} characters or fewer.");
-        }
     }
 
     private static bool IsValidUrl(string? url)

@@ -106,8 +106,17 @@ public class TheaterService
         var cinema = new Cinema
         {
             Name = request.Name.Trim(),
-            Address = request.Address.Trim(),
-            City = request.City.Trim(),
+            Address = NormalizeOptional(request.AddressLine) ??
+                request.Address.Trim(),
+            City = NormalizeOptional(request.ProvinceName) ??
+                request.City.Trim(),
+            ProvinceCode = NormalizeOptional(request.ProvinceCode),
+            ProvinceName = NormalizeOptional(request.ProvinceName) ??
+                request.City.Trim(),
+            WardCode = NormalizeOptional(request.WardCode),
+            WardName = NormalizeOptional(request.WardName),
+            AddressLine = NormalizeOptional(request.AddressLine) ??
+                request.Address.Trim(),
             Description = request.Description?.Trim(),
             IsActive = true
         };
@@ -292,7 +301,12 @@ public class TheaterService
             cinema.City,
             cinema.Description,
             cinema.IsActive,
-            cinema.Rooms.Select(ToResponse).ToList());
+            cinema.Rooms.Select(ToResponse).ToList(),
+            cinema.ProvinceCode,
+            cinema.ProvinceName,
+            cinema.WardCode,
+            cinema.WardName,
+            cinema.AddressLine);
     }
 
     private static RoomResponse ToResponse(Room room)
@@ -382,6 +396,13 @@ public class TheaterService
     private static string NormalizeRow(string row)
     {
         return row.Trim().ToUpperInvariant();
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 
     private sealed record NormalizedSeatRequest(

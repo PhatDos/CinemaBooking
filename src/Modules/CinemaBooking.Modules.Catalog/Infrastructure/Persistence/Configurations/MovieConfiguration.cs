@@ -32,6 +32,8 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
         builder.Property(movie => movie.TrailerUrl)
             .HasMaxLength(1000);
 
+        builder.Property(movie => movie.GenreId);
+
         builder.Property(movie => movie.Genre)
             .HasMaxLength(100);
 
@@ -39,5 +41,10 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
             .IsRequired();
 
         builder.HasIndex(movie => movie.IsActive);
+
+        builder.HasOne(movie => movie.GenreRef)
+            .WithMany(genre => genre.Movies)
+            .HasForeignKey(movie => movie.GenreId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

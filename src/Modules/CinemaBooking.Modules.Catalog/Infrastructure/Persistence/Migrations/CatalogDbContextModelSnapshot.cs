@@ -22,6 +22,38 @@ namespace CinemaBooking.Modules.Catalog.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Genre", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Genres", "catalog");
+                });
+
             modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Movie", b =>
                 {
                     b.Property<Guid>("Id")
@@ -39,6 +71,9 @@ namespace CinemaBooking.Modules.Catalog.Infrastructure.Persistence.Migrations
                     b.Property<string>("Genre")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("GenreId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -61,9 +96,26 @@ namespace CinemaBooking.Modules.Catalog.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("GenreId");
+
                     b.HasIndex("IsActive");
 
                     b.ToTable("Movies", "catalog");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Movie", b =>
+                {
+                    b.HasOne("CinemaBooking.Modules.Catalog.Domain.Genre", "GenreRef")
+                        .WithMany("Movies")
+                        .HasForeignKey("GenreId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("GenreRef");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Genre", b =>
+                {
+                    b.Navigation("Movies");
                 });
 #pragma warning restore 612, 618
         }

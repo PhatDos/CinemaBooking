@@ -23,8 +23,7 @@ public class UpdateMovieRequest
     [MaxLength(1000)]
     public string? TrailerUrl { get; set; }
 
-    [MaxLength(100)]
-    public string? Genre { get; set; }
+    public Guid? GenreId { get; set; }
 
     public bool IsActive { get; set; }
 }

@@ -28,6 +28,12 @@ const baseItems: NavItem[] = [
     match: '/cinemas',
   },
   {
+    label: 'Genres',
+    href: '/genres' as Href,
+    icon: 'grid-outline',
+    match: '/genres',
+  },
+  {
     label: 'Bookings',
     href: '/bookings',
     icon: 'ticket-outline',

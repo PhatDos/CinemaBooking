@@ -2,6 +2,7 @@ using System.Text;
 using CinemaBooking.Api.Authorization;
 using CinemaBooking.Api.Database;
 using CinemaBooking.Api.ExceptionHandling;
+using CinemaBooking.Api.Locations;
 using CinemaBooking.Api.SeedData;
 using CinemaBooking.Modules.Booking;
 using CinemaBooking.Modules.Catalog;
@@ -52,6 +53,14 @@ builder.Services.AddPaymentModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddScoped<CinemaManagementAuthorizer>();
 builder.Services.AddScoped<TicketCheckInAuthorizer>();
+builder.Services.AddHttpClient<IVietnamLocationService, VietnamLocationService>(
+    client =>
+    {
+        client.BaseAddress = new Uri(
+            builder.Configuration["VietnamLocations:BaseUrl"] ??
+            "https://provinces.open-api.vn/api/v2/");
+        client.Timeout = TimeSpan.FromSeconds(10);
+    });
 
 var jwtOptions =
     builder.Configuration

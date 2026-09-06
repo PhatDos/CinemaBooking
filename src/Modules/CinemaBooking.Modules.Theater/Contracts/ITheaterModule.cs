@@ -11,6 +11,8 @@ public interface ITheaterModule
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CinemaInfo>> GetCinemasAsync(
+        string? provinceCode = null,
+        string? wardCode = null,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CinemaInfo>> GetCinemasByIdsAsync(
@@ -22,6 +24,11 @@ public interface ITheaterModule
         string address,
         string city,
         string? description,
+        string? provinceCode = null,
+        string? provinceName = null,
+        string? wardCode = null,
+        string? wardName = null,
+        string? addressLine = null,
         CancellationToken cancellationToken = default);
 
     Task UpdateCinemaAsync(
@@ -31,10 +38,19 @@ public interface ITheaterModule
         string city,
         string? description,
         bool isActive,
+        string? provinceCode = null,
+        string? provinceName = null,
+        string? wardCode = null,
+        string? wardName = null,
+        string? addressLine = null,
         CancellationToken cancellationToken = default);
 
     Task<RoomInfo?> GetRoomAsync(
         Guid roomId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RoomInfo>> GetRoomsByCinemaAsync(
+        Guid cinemaId,
         CancellationToken cancellationToken = default);
 
     Task<bool> RoomExistsAsync(

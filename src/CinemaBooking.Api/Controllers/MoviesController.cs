@@ -34,6 +34,25 @@ public class MoviesController : ControllerBase
         return Ok(movies);
     }
 
+    [HttpGet("now-showing")]
+    public async Task<IActionResult> GetNowShowing(
+        CancellationToken cancellationToken)
+    {
+        var upcomingMovieIds =
+            await _schedulingModule.GetUpcomingMovieIdsAsync(
+                cancellationToken);
+
+        var movieIds =
+            upcomingMovieIds.ToHashSet();
+
+        var movies =
+            await _movieService.GetAllAsync();
+
+        return Ok(movies
+            .Where(movie => movieIds.Contains(movie.Id))
+            .ToList());
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -48,7 +67,9 @@ public class MoviesController : ControllerBase
     }
 
     [HttpGet("{movieId:guid}/showtimes")]
-    public async Task<IActionResult> GetShowtimes(Guid movieId)
+    public async Task<IActionResult> GetShowtimes(
+        Guid movieId,
+        CancellationToken cancellationToken)
     {
         var movieExists =
             await _catalogModule.MovieExistsAsync(movieId);
@@ -59,7 +80,9 @@ public class MoviesController : ControllerBase
         }
 
         var showtimes =
-            await _schedulingModule.GetShowtimesByMovieAsync(movieId);
+            await _schedulingModule.GetShowtimesByMovieAsync(
+                movieId,
+                cancellationToken);
 
         return Ok(showtimes);
     }

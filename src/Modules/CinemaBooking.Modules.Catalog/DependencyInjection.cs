@@ -1,4 +1,5 @@
 using CinemaBooking.Modules.Catalog.Application;
+using CinemaBooking.Modules.Catalog.Application.Genres;
 using CinemaBooking.Modules.Catalog.Application.Interfaces;
 using CinemaBooking.Modules.Catalog.Application.Movies;
 using CinemaBooking.Modules.Catalog.Contracts;
@@ -22,7 +23,10 @@ public static class DependencyInjection
         services.AddDbContext<CatalogDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        services.AddMemoryCache();
+        services.AddScoped<IGenreRepository, GenreRepository>();
         services.AddScoped<IMovieRepository, MovieRepository>();
+        services.AddScoped<GenreService>();
         services.AddScoped<MovieService>();
         services.AddScoped<ICatalogModule, CatalogModule>();
 

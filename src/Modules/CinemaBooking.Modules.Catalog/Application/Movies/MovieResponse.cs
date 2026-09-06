@@ -16,6 +16,8 @@ public class MovieResponse
 
     public string? TrailerUrl { get; set; }
 
+    public Guid? GenreId { get; set; }
+
     public string? Genre { get; set; }
 
     public bool IsActive { get; set; }

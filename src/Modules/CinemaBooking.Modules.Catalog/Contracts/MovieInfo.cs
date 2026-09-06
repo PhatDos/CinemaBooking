@@ -8,5 +8,6 @@ public sealed record MovieInfo(
     DateTime ReleaseDate,
     string? PosterUrl,
     string? TrailerUrl,
+    Guid? GenreId,
     string? Genre,
     bool IsActive);
