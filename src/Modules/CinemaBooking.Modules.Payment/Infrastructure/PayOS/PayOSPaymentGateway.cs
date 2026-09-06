@@ -120,6 +120,43 @@ public sealed class PayOSPaymentGateway : IPaymentGateway
         }
     }
 
+    public async Task<PaymentLinkStatusResult> CancelPaymentLinkAsync(
+        long orderCode,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        var client = new PayOSClient(
+            _options.ClientId,
+            _options.ApiKey,
+            _options.ChecksumKey,
+            _options.PartnerCode ?? string.Empty);
+
+        try
+        {
+            var paymentLink =
+                await client.PaymentRequests.CancelAsync(
+                    orderCode,
+                    reason,
+                    new RequestOptions<CancelPaymentLinkRequest>
+                    {
+                        CancellationToken = cancellationToken
+                    });
+
+            return new PaymentLinkStatusResult(
+                paymentLink.OrderCode,
+                paymentLink.Amount,
+                paymentLink.Status.ToString(),
+                null);
+        }
+        catch (PayOSException ex)
+        {
+            throw new BusinessRuleException(
+                $"PayOS payment link could not be cancelled: {ex.Message}");
+        }
+    }
+
     public async Task<PayOSWebhookResult> VerifyWebhookAsync(
         Webhook webhook,
         CancellationToken cancellationToken = default)

@@ -76,6 +76,9 @@ namespace CinemaBooking.Modules.Payment.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("BookingId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("CheckoutUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");

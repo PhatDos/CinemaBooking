@@ -136,6 +136,26 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
   },
+  seatPills: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 6,
+  },
+  seatPill: {
+    minWidth: 34,
+    alignItems: 'center',
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  seatPillText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
   button: {
     marginTop: 24,
     minHeight: 44,

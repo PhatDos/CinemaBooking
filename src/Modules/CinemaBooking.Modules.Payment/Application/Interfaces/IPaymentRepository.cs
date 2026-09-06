@@ -17,6 +17,10 @@ public interface IPaymentRepository
         Guid holdId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<PaymentEntity>> GetOpenHoldPaymentsByUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
     Task<PaymentEntity?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default);

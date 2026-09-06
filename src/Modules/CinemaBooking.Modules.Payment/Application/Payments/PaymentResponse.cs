@@ -34,6 +34,8 @@ public class PaymentResponse
 
     public DateTime? PaidAt { get; set; }
 
+    public DateTime? CancelledAt { get; set; }
+
     public DateTime? FulfilledAt { get; set; }
 
     public DateTime? FulfillmentFailedAt { get; set; }

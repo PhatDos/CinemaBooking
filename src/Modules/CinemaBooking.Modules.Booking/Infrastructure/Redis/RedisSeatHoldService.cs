@@ -130,6 +130,10 @@ public class RedisSeatHoldService : ISeatHoldService
                 GetHoldIndexKey(hold.HoldId),
                 hold.ShowtimeId.ToString(),
                 ttl);
+
+            await TrackUserHoldAsync(
+                hold,
+                ttl);
         }
 
         return acquired;
@@ -158,6 +162,51 @@ public class RedisSeatHoldService : ISeatHoldService
 
         return JsonSerializer.Deserialize<SeatHoldMetadata>(
             metadata.ToString());
+    }
+
+    public async Task<IReadOnlyList<SeatHoldMetadata>> GetHoldsByUserAsync(
+        Guid userId)
+    {
+        var key = GetUserHoldsKey(userId);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await _database.SortedSetRemoveRangeByScoreAsync(
+            key,
+            double.NegativeInfinity,
+            now);
+
+        var holdIdValues =
+            await _database.SortedSetRangeByScoreAsync(
+                key,
+                now,
+                double.PositiveInfinity,
+                Exclude.None,
+                Order.Ascending);
+
+        var holds = new List<SeatHoldMetadata>();
+
+        foreach (var holdIdValue in holdIdValues)
+        {
+            if (!Guid.TryParse(holdIdValue.ToString(), out var holdId))
+            {
+                await _database.SortedSetRemoveAsync(key, holdIdValue);
+                continue;
+            }
+
+            var hold = await GetHoldAsync(holdId);
+
+            if (hold is null ||
+                hold.UserId != userId ||
+                hold.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                await _database.SortedSetRemoveAsync(key, holdIdValue);
+                continue;
+            }
+
+            holds.Add(hold);
+        }
+
+        return holds;
     }
 
     public async Task<bool> VerifyAndExtendAsync(
@@ -232,6 +281,10 @@ public class RedisSeatHoldService : ISeatHoldService
 
         await _database.KeyExpireAsync(
             GetHoldIndexKey(hold.HoldId),
+            ttl);
+
+        await TrackUserHoldAsync(
+            updatedHold,
             ttl);
 
         return true;
@@ -357,6 +410,10 @@ public class RedisSeatHoldService : ISeatHoldService
         {
             await _database.KeyDeleteAsync(
                 GetHoldIndexKey(hold.HoldId));
+
+            await _database.SortedSetRemoveAsync(
+                GetUserHoldsKey(hold.UserId),
+                hold.HoldId.ToString());
         }
 
         return released;
@@ -390,6 +447,25 @@ public class RedisSeatHoldService : ISeatHoldService
     private static string GetHoldIndexKey(Guid holdId)
     {
         return $"hold-index:{holdId}";
+    }
+
+    private static string GetUserHoldsKey(Guid userId)
+    {
+        return $"user-holds:{userId}";
+    }
+
+    private async Task TrackUserHoldAsync(
+        SeatHoldMetadata hold,
+        TimeSpan ttl)
+    {
+        await _database.SortedSetAddAsync(
+            GetUserHoldsKey(hold.UserId),
+            hold.HoldId.ToString(),
+            hold.ExpiresAt.ToUnixTimeMilliseconds());
+
+        await _database.KeyExpireAsync(
+            GetUserHoldsKey(hold.UserId),
+            ttl.Add(TimeSpan.FromMinutes(5)));
     }
 
     private static bool IsLegacyHoldBy(

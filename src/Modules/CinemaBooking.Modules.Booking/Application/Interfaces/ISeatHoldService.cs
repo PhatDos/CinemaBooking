@@ -14,6 +14,8 @@ public interface ISeatHoldService
 
     Task<SeatHoldMetadata?> GetHoldAsync(Guid holdId);
 
+    Task<IReadOnlyList<SeatHoldMetadata>> GetHoldsByUserAsync(Guid userId);
+
     Task<bool> VerifyAndExtendAsync(
         SeatHoldMetadata hold,
         TimeSpan duration);

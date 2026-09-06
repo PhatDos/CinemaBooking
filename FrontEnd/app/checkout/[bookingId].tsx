@@ -18,13 +18,14 @@ import { getCinema, getRoom } from '@/src/api/cinemas';
 import { ApiError } from '@/src/api/client';
 import { getMovieById } from '@/src/api/movies';
 import { getPayment, getPaymentByBooking } from '@/src/api/payments';
+import { getSeatAvailability } from '@/src/api/seats';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
-import { formatDateTime, formatVenueName } from '@/src/display';
+import { formatDateTime, formatVenueName, getSeatLabel } from '@/src/display';
 import type { Booking, Payment } from '@/src/types';
 import { styles } from '@/src/styles/screens/checkout.styles';
 
@@ -34,6 +35,7 @@ type CheckoutContext = {
   cinemaName: string;
   movieTitle: string;
   roomName: string;
+  seatLabels: string[];
   startTime: string;
 };
 
@@ -49,19 +51,26 @@ export default function CheckoutScreen() {
   const [canceling, setCanceling] = useState(false);
   const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
 
-  const loadCheckoutContext = useCallback(async (showtimeId: string) => {
+  const loadCheckoutContext = useCallback(async (showtimeId: string, seatIds: string[]) => {
     try {
       const showtime = await getShowtimeById(showtimeId);
-      const [movie, room] = await Promise.all([
+      const [movie, room, seats] = await Promise.all([
         getMovieById(showtime.movieId),
         getRoom(showtime.roomId),
+        getSeatAvailability(showtimeId),
       ]);
       const cinema = await getCinema(room.cinemaId);
+      const seatLabelsById = new Map(
+        seats.map((seat) => [seat.seatId, getSeatLabel(seat)]),
+      );
 
       setCheckoutContext({
         cinemaName: cinema.name,
         movieTitle: movie.title,
         roomName: room.name,
+        seatLabels: seatIds
+          .map((seatId) => seatLabelsById.get(seatId))
+          .filter((label): label is string => Boolean(label)),
         startTime: showtime.startTime,
       });
     } catch (contextError) {
@@ -84,7 +93,7 @@ export default function CheckoutScreen() {
       try {
         const result = await getBooking(validBookingId);
         setBooking(result);
-        void loadCheckoutContext(result.showtimeId);
+        void loadCheckoutContext(result.showtimeId, result.seatIds);
 
         try {
           const existingPayment = await getPaymentByBooking(validBookingId);
@@ -130,6 +139,7 @@ export default function CheckoutScreen() {
           if (refreshedPayment.status === 'Succeeded' && refreshedPayment.bookingId) {
             const refreshedBooking = await getBooking(refreshedPayment.bookingId);
             setBooking(refreshedBooking);
+            void loadCheckoutContext(refreshedBooking.showtimeId, refreshedBooking.seatIds);
             return;
           }
         } catch (pollError) {
@@ -143,7 +153,7 @@ export default function CheckoutScreen() {
     return () => {
       cancelled = true;
     };
-  }, [payment?.id, payment?.status, isAuthenticated]);
+  }, [payment?.id, payment?.status, isAuthenticated, loadCheckoutContext]);
 
   function handleGoBack() {
     if (!booking) {
@@ -268,7 +278,7 @@ export default function CheckoutScreen() {
 
           <View style={styles.divider} />
 
-          <InfoRow label="Seats" value={booking.seatIds.length.toString()} />
+          <SeatRow labels={checkoutContext?.seatLabels ?? []} fallbackCount={booking.seatIds.length} />
           <InfoRow label="Total" value={formatCurrency(booking.totalAmount)} highlight />
           {checkoutContext ? (
             <InfoRow label="Cinema" value={formatVenueName(checkoutContext.cinemaName, checkoutContext.roomName)} />
@@ -336,6 +346,25 @@ function InfoRow({ label, value, highlight = false }: { label: string; value: st
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={[styles.infoValue, highlight && styles.infoValueHighlight]}>{value}</Text>
+    </View>
+  );
+}
+
+function SeatRow({ labels, fallbackCount }: { labels: string[]; fallbackCount: number }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>Seats</Text>
+      {labels.length > 0 ? (
+        <View style={styles.seatPills}>
+          {labels.map((label) => (
+            <View key={label} style={styles.seatPill}>
+              <Text style={styles.seatPillText}>{label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.infoValue}>{formatSeatFallback(fallbackCount)}</Text>
+      )}
     </View>
   );
 }
@@ -457,6 +486,14 @@ function getCancelErrorMessage(error: unknown) {
   }
 
   return 'Cannot cancel booking';
+}
+
+function formatSeatFallback(count: number) {
+  if (count <= 0) {
+    return 'No seats';
+  }
+
+  return `${count} seat${count > 1 ? 's' : ''}`;
 }
 
 function isNonEmptyGuid(value?: string) {

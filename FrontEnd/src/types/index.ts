@@ -111,7 +111,7 @@ export type SeatStatus = 'available' | 'held' | 'reserved' | 'booked';
 
 export type SeatType = 'Standard' | 'VIP' | 'Couple';
 
-export type PaymentStatus = 'Pending' | 'Succeeded' | 'Failed';
+export type PaymentStatus = 'Pending' | 'Succeeded' | 'Failed' | 'Cancelled';
 
 export type PaymentFulfillmentStatus = 'Pending' | 'Fulfilled' | 'Conflict';
 
@@ -196,8 +196,29 @@ export type Payment = {
   createdAt: string;
   expiresAt: string | null;
   paidAt: string | null;
+  cancelledAt: string | null;
   fulfilledAt: string | null;
   fulfillmentFailedAt: string | null;
+};
+
+export type CheckoutStatus =
+  | 'Held'
+  | 'PaymentPending'
+  | 'PaymentProcessing'
+  | 'PaymentConflict'
+  | 'PaymentFailed'
+  | 'Cancelled';
+
+export type Checkout = {
+  holdId: string;
+  userId: string;
+  showtimeId: string;
+  seatIds: string[];
+  amount: number;
+  expiresAt: string;
+  status: CheckoutStatus;
+  payment: Payment | null;
+  checkoutUrl: string | null;
 };
 
 export type TicketStatus = 'Valid' | 'Used' | 'Cancelled';

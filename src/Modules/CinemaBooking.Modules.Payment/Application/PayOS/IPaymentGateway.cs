@@ -10,6 +10,11 @@ public interface IPaymentGateway
         long orderCode,
         CancellationToken cancellationToken = default);
 
+    Task<PaymentLinkStatusResult> CancelPaymentLinkAsync(
+        long orderCode,
+        string reason,
+        CancellationToken cancellationToken = default);
+
     Task<PayOSWebhookResult> VerifyWebhookAsync(
         global::PayOS.Models.Webhooks.Webhook webhook,
         CancellationToken cancellationToken = default);

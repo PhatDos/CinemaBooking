@@ -67,6 +67,189 @@ public class PaymentService
             "Hold id is required.");
     }
 
+    public async Task<IReadOnlyList<CheckoutResponse>> GetOpenCheckoutsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        var payments =
+            await _paymentRepository.GetOpenHoldPaymentsByUserAsync(
+                userId,
+                cancellationToken);
+
+        foreach (var payment in payments)
+        {
+            await SyncPendingPaymentAsync(
+                payment,
+                cancellationToken);
+        }
+
+        var visiblePayments = payments
+            .Where(payment =>
+                payment.BookingId is null &&
+                payment.HoldId is not null &&
+                payment.Status != PaymentStatus.Cancelled &&
+                payment.FulfillmentStatus != PaymentFulfillmentStatus.Fulfilled)
+            .ToList();
+
+        var paymentHoldIds = visiblePayments
+            .Select(payment => payment.HoldId!.Value)
+            .ToHashSet();
+
+        var holds =
+            await _bookingModule.GetActiveHoldsForPaymentAsync(
+                userId,
+                cancellationToken);
+
+        var holdCheckouts = holds
+            .Where(hold => !paymentHoldIds.Contains(hold.HoldId))
+            .Select(ToCheckoutResponse);
+
+        var paymentCheckouts = visiblePayments
+            .Select(ToCheckoutResponse)
+            .Where(checkout => checkout is not null)
+            .Select(checkout => checkout!);
+
+        return paymentCheckouts
+            .Concat(holdCheckouts)
+            .OrderByDescending(checkout => checkout.ExpiresAt)
+            .ToList();
+    }
+
+    public async Task<CheckoutResponse> CancelCheckoutAsync(
+        Guid userId,
+        Guid holdId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new BusinessRuleException("User id is required.");
+        }
+
+        if (holdId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Hold id is required.");
+        }
+
+        var payment =
+            await _paymentRepository.GetByHoldIdAsync(
+                holdId,
+                cancellationToken);
+
+        if (payment is null)
+        {
+            var hold =
+                await _bookingModule.GetHoldForPaymentAsync(
+                    userId,
+                    holdId,
+                    cancellationToken);
+
+            await _bookingModule.ReleaseHoldAsync(
+                userId,
+                holdId);
+
+            return ToCancelledCheckoutResponse(hold);
+        }
+
+        if (payment.UserId != userId)
+        {
+            throw new NotFoundException("Checkout not found.");
+        }
+
+        await SyncPendingPaymentAsync(
+            payment,
+            cancellationToken);
+
+        if (payment.Status == PaymentStatus.Succeeded)
+        {
+            throw new ConflictException(
+                "Payment has already succeeded.");
+        }
+
+        if (payment.Status == PaymentStatus.Cancelled)
+        {
+            return ToCheckoutResponse(payment) ??
+                   throw new NotFoundException("Checkout not found.");
+        }
+
+        if (payment.Status != PaymentStatus.Pending)
+        {
+            throw new ConflictException(
+                "Payment can no longer be cancelled.");
+        }
+
+        if (payment.OrderCode is null)
+        {
+            throw new ConflictException(
+                "Payment link is not ready to cancel.");
+        }
+
+        PaymentLinkStatusResult cancelledLink;
+
+        try
+        {
+            cancelledLink =
+                await _paymentGateway.CancelPaymentLinkAsync(
+                    payment.OrderCode.Value,
+                    "Customer cancelled checkout",
+                    cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Could not cancel PayOS payment link for Payment {PaymentId}.",
+                payment.Id);
+
+            throw new ConflictException(
+                "Payment could not be cancelled. Please try again.");
+        }
+
+        if (payment.Amount != cancelledLink.Amount)
+        {
+            _logger.LogWarning(
+                "PayOS cancel amount mismatch for Payment {PaymentId}. Expected {ExpectedAmount}, got {ActualAmount}.",
+                payment.Id,
+                payment.Amount,
+                cancelledLink.Amount);
+
+            throw new ConflictException(
+                "Payment cancellation could not be verified.");
+        }
+
+        if (IsPaidStatus(cancelledLink.Status))
+        {
+            await MarkPaymentSucceededAsync(
+                payment,
+                cancellationToken);
+
+            throw new ConflictException(
+                "Payment has already succeeded.");
+        }
+
+        if (!IsCancelledStatus(cancelledLink.Status))
+        {
+            throw new ConflictException(
+                "Payment is still pending and seats cannot be released yet.");
+        }
+
+        payment.Status = PaymentStatus.Cancelled;
+        payment.CancelledAt = DateTime.UtcNow;
+
+        await _paymentRepository.SaveChangesAsync(cancellationToken);
+
+        await _bookingModule.ReleaseHoldAsync(
+            userId,
+            holdId);
+
+        return ToCheckoutResponse(payment) ??
+               throw new NotFoundException("Checkout not found.");
+    }
+
     private async Task<PaymentResponse> PayHoldAsync(
         Guid userId,
         Guid holdId,
@@ -457,6 +640,20 @@ public class PaymentService
             return;
         }
 
+        await MarkPaymentSucceededAsync(
+            payment,
+            cancellationToken);
+    }
+
+    private async Task MarkPaymentSucceededAsync(
+        PaymentEntity payment,
+        CancellationToken cancellationToken)
+    {
+        if (payment.Status == PaymentStatus.Succeeded)
+        {
+            return;
+        }
+
         payment.Status = PaymentStatus.Succeeded;
         payment.PaidAt = DateTime.UtcNow;
 
@@ -508,8 +705,78 @@ public class PaymentService
             CreatedAt = payment.CreatedAt,
             ExpiresAt = payment.ExpiresAt,
             PaidAt = payment.PaidAt,
+            CancelledAt = payment.CancelledAt,
             FulfilledAt = payment.FulfilledAt,
             FulfillmentFailedAt = payment.FulfillmentFailedAt
+        };
+    }
+
+    private static CheckoutResponse ToCheckoutResponse(HoldPaymentInfo hold)
+    {
+        return new CheckoutResponse
+        {
+            HoldId = hold.HoldId,
+            UserId = hold.UserId,
+            ShowtimeId = hold.ShowtimeId,
+            SeatIds = hold.Seats
+                .Select(seat => seat.SeatId)
+                .ToArray(),
+            Amount = hold.TotalAmount,
+            ExpiresAt = hold.ExpiresAt,
+            Status = "Held",
+            Payment = null,
+            CheckoutUrl = null
+        };
+    }
+
+    private static CheckoutResponse ToCancelledCheckoutResponse(
+        HoldPaymentInfo hold)
+    {
+        var response = ToCheckoutResponse(hold);
+        response.Status = "Cancelled";
+
+        return response;
+    }
+
+    private static CheckoutResponse? ToCheckoutResponse(PaymentEntity payment)
+    {
+        if (payment.HoldId is null ||
+            payment.ShowtimeId is null)
+        {
+            return null;
+        }
+
+        return new CheckoutResponse
+        {
+            HoldId = payment.HoldId.Value,
+            UserId = payment.UserId,
+            ShowtimeId = payment.ShowtimeId.Value,
+            SeatIds = payment.Seats
+                .Select(seat => seat.SeatId)
+                .ToArray(),
+            Amount = payment.Amount,
+            ExpiresAt = ToDateTimeOffset(
+                payment.ExpiresAt ?? payment.CreatedAt),
+            Status = GetCheckoutStatus(payment),
+            Payment = ToResponse(payment),
+            CheckoutUrl = payment.CheckoutUrl
+        };
+    }
+
+    private static string GetCheckoutStatus(PaymentEntity payment)
+    {
+        if (payment.FulfillmentStatus == PaymentFulfillmentStatus.Conflict)
+        {
+            return "PaymentConflict";
+        }
+
+        return payment.Status switch
+        {
+            PaymentStatus.Pending => "PaymentPending",
+            PaymentStatus.Succeeded => "PaymentProcessing",
+            PaymentStatus.Cancelled => "Cancelled",
+            PaymentStatus.Failed => "PaymentFailed",
+            _ => "Held"
         };
     }
 
@@ -536,6 +803,22 @@ public class PaymentService
         return string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(status, "Paid", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(status, "Succeeded", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsCancelledStatus(string? status)
+    {
+        return string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(status, "CANCELED", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(status, "Canceled", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(status, "Expired", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DateTimeOffset ToDateTimeOffset(DateTime value)
+    {
+        return new DateTimeOffset(
+            DateTime.SpecifyKind(value, DateTimeKind.Utc));
     }
 
     private static bool IsUniqueViolation(DbUpdateException exception)

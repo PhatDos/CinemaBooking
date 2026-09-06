@@ -246,6 +246,40 @@ public class SeatHoldService
         };
     }
 
+    public async Task<IReadOnlyList<HoldPaymentInfo>> GetActiveForPaymentAsync(
+        Guid holderId)
+    {
+        if (holderId == Guid.Empty)
+        {
+            throw new BusinessRuleException("Holder id is required.");
+        }
+
+        var holds =
+            await _seatHoldService.GetHoldsByUserAsync(holderId);
+
+        var results = new List<HoldPaymentInfo>();
+
+        foreach (var hold in holds)
+        {
+            try
+            {
+                results.Add(
+                    await GetForPaymentAsync(
+                        holderId,
+                        hold.HoldId));
+            }
+            catch (Exception ex) when (
+                ex is ConflictException or
+                    NotFoundException or
+                    BusinessRuleException)
+            {
+                // Ignore stale or no-longer-valid holds in the user checkout list.
+            }
+        }
+
+        return results;
+    }
+
     public async Task ExtendAsync(
         Guid holderId,
         Guid holdId,

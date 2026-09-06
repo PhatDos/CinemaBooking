@@ -92,6 +92,13 @@ public class BookingModule : IBookingModule
             holdId);
     }
 
+    public async Task<IReadOnlyList<HoldPaymentInfo>> GetActiveHoldsForPaymentAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _seatHoldService.GetActiveForPaymentAsync(userId);
+    }
+
     public async Task ExtendHoldAsync(
         Guid userId,
         Guid holdId,

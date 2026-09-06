@@ -48,6 +48,22 @@ public class PaymentRepository : IPaymentRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PaymentEntity>> GetOpenHoldPaymentsByUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Payments
+            .Include(payment => payment.Seats)
+            .Where(payment =>
+                payment.UserId == userId &&
+                payment.HoldId != null &&
+                payment.BookingId == null &&
+                payment.Status != PaymentStatus.Cancelled &&
+                payment.FulfillmentStatus != PaymentFulfillmentStatus.Fulfilled)
+            .OrderByDescending(payment => payment.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PaymentEntity?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default)

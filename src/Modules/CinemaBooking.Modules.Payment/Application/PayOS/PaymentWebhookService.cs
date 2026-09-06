@@ -71,6 +71,7 @@ public sealed class PaymentWebhookService : IPaymentWebhookService
         payment.Status = PaymentStatus.Succeeded;
         payment.ProviderTransactionId = data.Reference;
         payment.PaidAt = DateTime.UtcNow;
+        payment.CancelledAt = null;
 
         await _paymentRepository.AddOutboxMessageAsync(
             new OutboxMessage

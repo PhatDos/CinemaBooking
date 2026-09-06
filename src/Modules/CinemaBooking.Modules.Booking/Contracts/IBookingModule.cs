@@ -23,6 +23,10 @@ public interface IBookingModule
         Guid holdId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<HoldPaymentInfo>> GetActiveHoldsForPaymentAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
     Task ExtendHoldAsync(
         Guid userId,
         Guid holdId,

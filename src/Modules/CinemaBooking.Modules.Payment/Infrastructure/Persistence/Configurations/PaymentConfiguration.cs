@@ -64,6 +64,8 @@ public class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntity>
 
         builder.Property(payment => payment.PaidAt);
 
+        builder.Property(payment => payment.CancelledAt);
+
         builder.Property(payment => payment.FulfilledAt);
 
         builder.Property(payment => payment.FulfillmentFailedAt);

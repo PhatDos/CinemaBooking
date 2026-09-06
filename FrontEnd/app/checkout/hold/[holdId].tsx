@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 
 import { getCinema, getRoom } from '@/src/api/cinemas';
+import { cancelCheckout } from '@/src/api/checkouts';
 import { ApiError } from '@/src/api/client';
-import { cancelHold } from '@/src/api/holds';
 import { getMovieById } from '@/src/api/movies';
 import { getPayment, getPaymentByHold, payHold } from '@/src/api/payments';
 import { getShowtimeById } from '@/src/api/showtimes';
@@ -210,13 +210,6 @@ export default function HoldCheckoutScreen() {
   }
 
   function handleGoBack() {
-    if (hasActivePayment) {
-      showNotification('Payment is pending. Complete PayOS checkout or wait for confirmation.', {
-        tone: 'info',
-      });
-      return;
-    }
-
     setCancelDialogVisible(true);
   }
 
@@ -229,7 +222,7 @@ export default function HoldCheckoutScreen() {
     setError('');
 
     try {
-      await cancelHold(params.holdId);
+      await cancelCheckout(params.holdId);
       setCancelDialogVisible(false);
       showNotification('Checkout cancelled.', { tone: 'success' });
       goToSeatMap(params.showtimeId);
@@ -239,6 +232,10 @@ export default function HoldCheckoutScreen() {
       const message = getCancelHoldErrorMessage(cancelError);
       setError(message);
       showNotification(message, { tone: 'error' });
+
+      if (cancelError instanceof ApiError && cancelError.status === 409) {
+        router.replace('/bookings');
+      }
     } finally {
       setCancelingHold(false);
     }
@@ -343,7 +340,9 @@ export default function HoldCheckoutScreen() {
         confirmLabel="Cancel checkout"
         destructive
         loading={cancelingHold}
-        message="This will cancel the current checkout and return you to seat selection."
+        message={hasActivePayment
+          ? 'This will cancel the PayOS payment link first. Seats are released only if payment cancellation succeeds.'
+          : 'This will cancel the current checkout and return you to seat selection.'}
         onCancel={() => {
           if (!cancelingHold) {
             setCancelDialogVisible(false);
