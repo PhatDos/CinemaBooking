@@ -28,6 +28,8 @@ import { formatDateTime, formatVenueName } from '@/src/display';
 import type { Booking, Payment } from '@/src/types';
 import { styles } from '@/src/styles/screens/checkout.styles';
 
+const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
+
 type CheckoutContext = {
   cinemaName: string;
   movieTitle: string;
@@ -38,6 +40,7 @@ type CheckoutContext = {
 export default function CheckoutScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
   const { isAuthenticated, isLoading } = useAuth();
+  const validBookingId = isNonEmptyGuid(bookingId) ? bookingId : null;
   const [booking, setBooking] = useState<Booking | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,8 @@ export default function CheckoutScreen() {
 
   useEffect(() => {
     async function loadBooking() {
-      if (!bookingId || !isAuthenticated) {
+      if (!validBookingId || !isAuthenticated) {
+        setLoading(false);
         return;
       }
 
@@ -78,12 +82,12 @@ export default function CheckoutScreen() {
       setPayment(null);
 
       try {
-        const result = await getBooking(bookingId);
+        const result = await getBooking(validBookingId);
         setBooking(result);
         void loadCheckoutContext(result.showtimeId);
 
         try {
-          const existingPayment = await getPaymentByBooking(bookingId);
+          const existingPayment = await getPaymentByBooking(validBookingId);
           setPayment(existingPayment);
         } catch (paymentLoadError) {
           if (paymentLoadError instanceof ApiError && paymentLoadError.status === 404) {
@@ -101,7 +105,7 @@ export default function CheckoutScreen() {
     }
 
     void loadBooking();
-  }, [bookingId, isAuthenticated, loadCheckoutContext]);
+  }, [validBookingId, isAuthenticated, loadCheckoutContext]);
 
   useEffect(() => {
     if (!payment?.id || payment.status !== 'Pending' || !isAuthenticated) {
@@ -199,6 +203,10 @@ export default function CheckoutScreen() {
 
   if (!isAuthenticated) {
     return <Redirect href="/login" />;
+  }
+
+  if (!validBookingId) {
+    return <Redirect href="/bookings" />;
   }
 
   if (!booking) {
@@ -449,4 +457,13 @@ function getCancelErrorMessage(error: unknown) {
   }
 
   return 'Cannot cancel booking';
+}
+
+function isNonEmptyGuid(value?: string) {
+  if (!value || value === EMPTY_GUID) {
+    return false;
+  }
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    .test(value);
 }

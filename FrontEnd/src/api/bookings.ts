@@ -1,12 +1,5 @@
 import { apiFetch } from '@/src/api/client';
-import type { Booking, CreateBookingRequest, CreateBookingResult, Ticket } from '@/src/types';
-
-export function createBooking(request: CreateBookingRequest) {
-  return apiFetch<CreateBookingResult>('/api/bookings', {
-    method: 'POST',
-    body: request,
-  });
-}
+import type { Booking, Ticket } from '@/src/types';
 
 export function cancelBooking(bookingId: string) {
   return apiFetch<void>(`/api/bookings/${bookingId}/cancel`, {

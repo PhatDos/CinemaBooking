@@ -153,22 +153,6 @@ export type HoldSeatsResponse = {
   expiresAt: string;
 };
 
-export type CreateBookingRequest = {
-  holdId: string;
-};
-
-export type CreateBookingResult = {
-  bookingId: string;
-  holdId: string;
-  userId: string;
-  showtimeId: string;
-  status: BookingStatus;
-  totalAmount: number;
-  seatIds: string[];
-  createdAt: string;
-  expiresAt: string | null;
-};
-
 export type Seat = {
   id: string;
   roomId: string;
