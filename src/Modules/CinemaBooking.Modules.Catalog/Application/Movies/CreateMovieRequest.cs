@@ -20,6 +20,9 @@ public class CreateMovieRequest
     [MaxLength(1000)]
     public string? PosterUrl { get; set; }
 
+    [MaxLength(255)]
+    public string? PosterPublicId { get; set; }
+
     [MaxLength(1000)]
     public string? TrailerUrl { get; set; }
 

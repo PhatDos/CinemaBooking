@@ -24,6 +24,7 @@ import type { Movie, UpdateMovieRequest } from '@/src/types';
 
 const movieFormRoute = '/movies/form' as Href;
 const genreManageRoute = '/genres/manage' as Href;
+const movieImportsRoute = '/movies/imports' as Href;
 
 export default function MovieManageScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -147,6 +148,11 @@ export default function MovieManageScreen() {
           contentStyle={styles.outlineButton}
           onPress={() => router.push(genreManageRoute)}>
           <Text style={styles.outlineButtonText}>Genres</Text>
+        </AnimatedPressable>
+        <AnimatedPressable
+          contentStyle={styles.outlineButton}
+          onPress={() => router.push(movieImportsRoute)}>
+          <Text style={styles.outlineButtonText}>Import</Text>
         </AnimatedPressable>
       </View>
 
@@ -300,6 +306,7 @@ function toUpdateRequest(movie: Movie, isActive: boolean): UpdateMovieRequest {
     durationMinutes: movie.durationMinutes,
     genreId: movie.genreId,
     isActive,
+    posterPublicId: movie.posterPublicId,
     posterUrl: movie.posterUrl,
     releaseDate: movie.releaseDate,
     title: movie.title,

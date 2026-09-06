@@ -14,6 +14,8 @@ public class Movie
 
     public string? PosterUrl { get; set; }
 
+    public string? PosterPublicId { get; set; }
+
     public string? TrailerUrl { get; set; }
 
     public Guid? GenreId { get; set; }

@@ -42,6 +42,7 @@ export type Movie = {
   durationMinutes: number;
   releaseDate: string;
   posterUrl: string | null;
+  posterPublicId: string | null;
   trailerUrl: string | null;
   genreId: string | null;
   genre: string | null;
@@ -72,6 +73,7 @@ export type CreateMovieRequest = {
   durationMinutes: number;
   releaseDate: string;
   posterUrl?: string | null;
+  posterPublicId?: string | null;
   trailerUrl?: string | null;
   genreId?: string | null;
   isActive?: boolean;
@@ -88,6 +90,50 @@ export type BulkCreateMoviesRequest = {
 export type BulkCreateMoviesResult = {
   createdCount: number;
   movieIds: string[];
+};
+
+export type MovieImportBatchStatus = 'Running' | 'Completed' | 'Failed';
+
+export type MovieImportCandidateStatus =
+  | 'NewSuggested'
+  | 'UpdateSuggested'
+  | 'NeedsReview'
+  | 'Approved'
+  | 'Rejected';
+
+export type MovieImportBatch = {
+  id: string;
+  source: string;
+  status: MovieImportBatchStatus;
+  startedAt: string;
+  finishedAt: string | null;
+  error: string | null;
+  candidateCount: number;
+};
+
+export type MovieImportCandidate = {
+  id: string;
+  batchId: string;
+  source: string;
+  sourceUrl: string;
+  title: string;
+  normalizedTitle: string;
+  description: string;
+  durationMinutes: number | null;
+  releaseDate: string | null;
+  posterUrl: string | null;
+  trailerUrl: string | null;
+  genreName: string | null;
+  matchMovieId: string | null;
+  matchMovie: Movie | null;
+  status: MovieImportCandidateStatus;
+  warnings: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MovieImportRunRequest = {
+  source?: string;
 };
 
 export type Showtime = {

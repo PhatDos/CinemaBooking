@@ -16,6 +16,7 @@ export default function RootLayout() {
           <Stack.Screen name="movies/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="movies/manage" options={{ headerShown: false }} />
           <Stack.Screen name="movies/form" options={{ headerShown: false }} />
+          <Stack.Screen name="movies/imports/index" options={{ headerShown: false }} />
           <Stack.Screen name="genres/index" options={{ headerShown: false }} />
           <Stack.Screen name="genres/manage" options={{ headerShown: false }} />
           <Stack.Screen name="cinemas" options={{ headerShown: false }} />

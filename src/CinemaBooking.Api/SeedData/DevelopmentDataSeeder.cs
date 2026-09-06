@@ -71,7 +71,7 @@ public static class DevelopmentDataSeeder
             105,
             new DateTime(2026, 8, 29),
             "https://picsum.photos/seed/cinema-booking-modular/600/900",
-            "https://www.youtube.com/results?search_query=modular+monolith+movie+trailer",
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
             "Drama"),
         new(
             "Seed Movie: Redis Hold",
@@ -79,7 +79,7 @@ public static class DevelopmentDataSeeder
             95,
             new DateTime(2026, 8, 29),
             "https://picsum.photos/seed/cinema-booking-redis/600/900",
-            "https://www.youtube.com/results?search_query=cinema+thriller+trailer",
+            "https://youtu.be/dQw4w9WgXcQ",
             "Thriller"),
         new(
             "Seed Movie: SQL Final Boss",
@@ -87,7 +87,7 @@ public static class DevelopmentDataSeeder
             120,
             new DateTime(2026, 8, 29),
             "https://picsum.photos/seed/cinema-booking-sql/600/900",
-            "https://www.youtube.com/results?search_query=database+adventure+movie+trailer",
+            "https://www.youtube.com/shorts/dQw4w9WgXcQ",
             "Adventure")
     ];
 
@@ -181,7 +181,7 @@ public static class DevelopmentDataSeeder
                 movie.DurationMinutes = seedMovie.DurationMinutes;
                 movie.ReleaseDate = seedMovie.ReleaseDate;
                 movie.PosterUrl ??= seedMovie.PosterUrl;
-                movie.TrailerUrl ??= seedMovie.TrailerUrl;
+                movie.TrailerUrl = seedMovie.TrailerUrl;
                 movie.GenreId = genre?.Id;
                 movie.Genre = seedMovie.Genre;
                 movie.IsActive = true;

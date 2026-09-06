@@ -3,9 +3,12 @@ using CinemaBooking.Api.Authorization;
 using CinemaBooking.Api.Database;
 using CinemaBooking.Api.ExceptionHandling;
 using CinemaBooking.Api.Locations;
+using CinemaBooking.Api.Media;
+using CinemaBooking.Api.MovieImports;
 using CinemaBooking.Api.SeedData;
 using CinemaBooking.Modules.Booking;
 using CinemaBooking.Modules.Catalog;
+using CinemaBooking.Modules.Catalog.Application.MovieImports;
 using CinemaBooking.Modules.Identity;
 using CinemaBooking.Modules.Identity.Infrastructure.Authentication;
 using CinemaBooking.Modules.Identity.Infrastructure.Persistence;
@@ -45,6 +48,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddCatalogModule(builder.Configuration);
+builder.Services.AddScoped<IMoviePosterImporter, CloudinaryMoviePosterImporter>();
+builder.Services.AddHostedService<MovieImportScheduler>();
 builder.Services.AddTheaterModule(builder.Configuration);
 builder.Services.AddSchedulingModule(builder.Configuration);
 builder.Services.AddBookingModule(builder.Configuration);
@@ -53,6 +58,11 @@ builder.Services.AddPaymentModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddScoped<CinemaManagementAuthorizer>();
 builder.Services.AddScoped<TicketCheckInAuthorizer>();
+builder.Services.Configure<CloudinaryOptions>(
+    builder.Configuration.GetSection(CloudinaryOptions.SectionName));
+builder.Services.AddScoped<
+    IImageUploadSignatureService,
+    CloudinaryImageUploadSignatureService>();
 builder.Services.AddHttpClient<IVietnamLocationService, VietnamLocationService>(
     client =>
     {

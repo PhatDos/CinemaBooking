@@ -1,9 +1,9 @@
 import { router, Redirect, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useState } from 'react';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -101,6 +101,8 @@ export default function MovieDetailScreen() {
     );
   }
 
+  const trailerVideoId = getYouTubeVideoId(movie.trailerUrl);
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -133,12 +135,17 @@ export default function MovieDetailScreen() {
           {movie.genre ? <Text style={styles.genre}>{movie.genre}</Text> : null}
         </View>
 
-        {movie.trailerUrl ? (
-          <AnimatedPressable
-            contentStyle={styles.trailerButton}
-            onPress={() => void Linking.openURL(movie.trailerUrl!)}>
-            <Text style={styles.trailerText}>Open trailer</Text>
-          </AnimatedPressable>
+        {trailerVideoId ? (
+          <View style={styles.trailerPanel}>
+            <Text style={styles.trailerTitle}>Trailer</Text>
+            <View style={styles.trailerPlayer}>
+              <YoutubePlayer
+                height={210}
+                play={false}
+                videoId={trailerVideoId}
+              />
+            </View>
+          </View>
         ) : null}
 
         <Text style={styles.heading}>Showtimes</Text>
@@ -201,6 +208,44 @@ function formatCurrency(value: number) {
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function getYouTubeVideoId(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+
+    if (host === 'youtu.be') {
+      return cleanVideoId(url.pathname.slice(1));
+    }
+
+    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
+      return null;
+    }
+
+    if (url.pathname === '/watch') {
+      return cleanVideoId(url.searchParams.get('v'));
+    }
+
+    if (url.pathname.startsWith('/shorts/') ||
+        url.pathname.startsWith('/embed/')) {
+      return cleanVideoId(url.pathname.split('/')[2]);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function cleanVideoId(value?: string | null) {
+  const trimmed = value?.trim();
+
+  return trimmed || null;
 }
 
 function getInitials(title: string) {

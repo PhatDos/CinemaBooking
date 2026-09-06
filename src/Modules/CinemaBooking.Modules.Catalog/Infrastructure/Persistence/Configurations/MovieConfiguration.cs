@@ -29,6 +29,9 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
         builder.Property(movie => movie.PosterUrl)
             .HasMaxLength(1000);
 
+        builder.Property(movie => movie.PosterPublicId)
+            .HasMaxLength(255);
+
         builder.Property(movie => movie.TrailerUrl)
             .HasMaxLength(1000);
 

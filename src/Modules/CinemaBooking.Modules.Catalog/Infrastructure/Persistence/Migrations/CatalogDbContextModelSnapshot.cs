@@ -54,6 +54,162 @@ namespace CinemaBooking.Modules.Catalog.Infrastructure.Persistence.Migrations
                     b.ToTable("Genres", "catalog");
                 });
 
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Imports.MovieExternalSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("LastSyncedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("MovieId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SourceUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MovieId");
+
+                    b.HasIndex("Source", "SourceUrl")
+                        .IsUnique();
+
+                    b.ToTable("MovieExternalSources", "catalog");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Imports.MovieImportBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAt");
+
+                    b.ToTable("MovieImportBatches", "catalog");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Imports.MovieImportCandidate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GenreName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("MatchMovieId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("NormalizedTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PosterUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReleaseDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SourceUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TrailerUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Warnings")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("MatchMovieId");
+
+                    b.HasIndex("Source", "SourceUrl", "Status");
+
+                    b.ToTable("MovieImportCandidates", "catalog");
+                });
+
             modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Movie", b =>
                 {
                     b.Property<Guid>("Id")
@@ -77,6 +233,10 @@ namespace CinemaBooking.Modules.Catalog.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<string>("PosterPublicId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("PosterUrl")
                         .HasMaxLength(1000)
@@ -103,6 +263,35 @@ namespace CinemaBooking.Modules.Catalog.Infrastructure.Persistence.Migrations
                     b.ToTable("Movies", "catalog");
                 });
 
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Imports.MovieExternalSource", b =>
+                {
+                    b.HasOne("CinemaBooking.Modules.Catalog.Domain.Movie", "Movie")
+                        .WithMany()
+                        .HasForeignKey("MovieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Movie");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Imports.MovieImportCandidate", b =>
+                {
+                    b.HasOne("CinemaBooking.Modules.Catalog.Domain.Imports.MovieImportBatch", "Batch")
+                        .WithMany("Candidates")
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CinemaBooking.Modules.Catalog.Domain.Movie", "MatchMovie")
+                        .WithMany()
+                        .HasForeignKey("MatchMovieId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("MatchMovie");
+                });
+
             modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Movie", b =>
                 {
                     b.HasOne("CinemaBooking.Modules.Catalog.Domain.Genre", "GenreRef")
@@ -116,6 +305,11 @@ namespace CinemaBooking.Modules.Catalog.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Genre", b =>
                 {
                     b.Navigation("Movies");
+                });
+
+            modelBuilder.Entity("CinemaBooking.Modules.Catalog.Domain.Imports.MovieImportBatch", b =>
+                {
+                    b.Navigation("Candidates");
                 });
 #pragma warning restore 612, 618
         }

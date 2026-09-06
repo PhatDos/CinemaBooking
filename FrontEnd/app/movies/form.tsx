@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { Redirect, router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import type { ComponentProps } from 'react';
@@ -14,6 +15,8 @@ import {
 } from 'react-native';
 
 import { getGenres } from '@/src/api/genres';
+import { ApiError } from '@/src/api/client';
+import { signMoviePosterUpload, uploadMoviePoster } from '@/src/api/media';
 import { createMovie, getMovieById, updateMovie } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
@@ -27,6 +30,7 @@ type MovieFormState = {
   durationMinutes: string;
   genreId: string;
   isActive: boolean;
+  posterPublicId: string;
   posterUrl: string;
   releaseDate: string;
   title: string;
@@ -38,6 +42,7 @@ const defaultForm: MovieFormState = {
   durationMinutes: '',
   genreId: '',
   isActive: true,
+  posterPublicId: '',
   posterUrl: '',
   releaseDate: toDateInputValue(new Date().toISOString()),
   title: '',
@@ -54,6 +59,7 @@ export default function MovieFormScreen() {
   const [form, setForm] = useState<MovieFormState>(defaultForm);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
+  const [posterLocalUri, setPosterLocalUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -85,6 +91,7 @@ export default function MovieFormScreen() {
 
         if (movieResult) {
           setForm(toFormState(movieResult));
+          setPosterLocalUri(null);
         }
       } catch (loadError) {
         console.error(loadError);
@@ -122,6 +129,18 @@ export default function MovieFormScreen() {
     try {
       const request = toRequest(form);
 
+      if (posterLocalUri) {
+        showNotification('Uploading poster...', { tone: 'info' });
+        const signature = await signMoviePosterUpload();
+        const uploaded = await uploadMoviePoster(
+          posterLocalUri,
+          signature,
+        );
+
+        request.posterUrl = uploaded.posterUrl;
+        request.posterPublicId = uploaded.posterPublicId;
+      }
+
       if (editing && movieId) {
         await updateMovie(movieId, request);
         showNotification('Movie updated.', { tone: 'success' });
@@ -133,12 +152,50 @@ export default function MovieFormScreen() {
       router.replace(movieManageRoute);
     } catch (saveError) {
       console.error(saveError);
-      const message = editing ? 'Cannot update movie right now.' : 'Cannot create movie right now.';
+      const message = saveError instanceof ApiError
+        ? saveError.message
+        : editing ? 'Cannot update movie right now.' : 'Cannot create movie right now.';
       setError(message);
       showNotification(message, { tone: 'error' });
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handlePickPoster() {
+    if (saving) {
+      return;
+    }
+
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      const message = 'Photo library permission is required.';
+      setError(message);
+      showNotification(message, { tone: 'error' });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      mediaTypes: ['images'],
+      quality: 0.85,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    const asset = result.assets[0];
+
+    if (!asset?.uri) {
+      return;
+    }
+
+    setPosterLocalUri(asset.uri);
+    updateField('posterUrl', asset.uri);
+    updateField('posterPublicId', '');
   }
 
   function updateField<K extends keyof MovieFormState>(
@@ -282,14 +339,44 @@ export default function MovieFormScreen() {
             </View>
           )}
 
-          <Field
-            autoCapitalize="none"
-            inputMode="url"
-            label="Poster URL"
-            onChangeText={(value) => updateField('posterUrl', value)}
-            placeholder="https://..."
-            value={form.posterUrl}
-          />
+          <Text style={styles.label}>Poster</Text>
+          <View style={styles.posterPicker}>
+            <View style={styles.posterPreview}>
+              {form.posterUrl ? (
+                <Image
+                  contentFit="cover"
+                  source={{ uri: form.posterUrl }}
+                  style={styles.posterImage}
+                  transition={180}
+                />
+              ) : (
+                <Text style={styles.posterPlaceholder}>Poster</Text>
+              )}
+            </View>
+            <View style={styles.posterActions}>
+              <AnimatedPressable
+                contentStyle={styles.posterButton}
+                disabled={saving}
+                onPress={handlePickPoster}>
+                <Text style={styles.posterButtonText}>Choose poster</Text>
+              </AnimatedPressable>
+              {form.posterUrl ? (
+                <AnimatedPressable
+                  contentStyle={styles.posterClearButton}
+                  disabled={saving}
+                  onPress={() => {
+                    setPosterLocalUri(null);
+                    updateField('posterUrl', '');
+                    updateField('posterPublicId', '');
+                  }}>
+                  <Text style={styles.posterClearText}>Remove</Text>
+                </AnimatedPressable>
+              ) : null}
+              <Text style={styles.posterHint}>
+                Uploads to Cloudinary when you save.
+              </Text>
+            </View>
+          </View>
 
           <Field
             autoCapitalize="none"
@@ -355,6 +442,7 @@ function toFormState(movie: Movie): MovieFormState {
     durationMinutes: movie.durationMinutes.toString(),
     genreId: movie.genreId ?? '',
     isActive: movie.isActive,
+    posterPublicId: movie.posterPublicId ?? '',
     posterUrl: movie.posterUrl ?? '',
     releaseDate: toDateInputValue(movie.releaseDate),
     title: movie.title,
@@ -368,6 +456,7 @@ function toRequest(form: MovieFormState): UpdateMovieRequest {
     durationMinutes: Number(form.durationMinutes),
     genreId: form.genreId || null,
     isActive: form.isActive,
+    posterPublicId: toOptionalString(form.posterPublicId),
     posterUrl: toOptionalString(form.posterUrl),
     releaseDate: `${form.releaseDate.trim()}T00:00:00.000Z`,
     title: form.title.trim(),
@@ -398,12 +487,15 @@ function validateForm(form: MovieFormState) {
     return 'Genre is required.';
   }
 
-  if (!isValidOptionalUrl(form.posterUrl)) {
+  if (!form.posterUrl.startsWith('file:') &&
+      !form.posterUrl.startsWith('ph:') &&
+      !form.posterUrl.startsWith('assets-library:') &&
+      !isValidOptionalUrl(form.posterUrl)) {
     return 'Poster URL must start with http:// or https://.';
   }
 
-  if (!isValidOptionalUrl(form.trailerUrl)) {
-    return 'Trailer URL must start with http:// or https://.';
+  if (!isValidOptionalYouTubeUrl(form.trailerUrl)) {
+    return 'Trailer URL must be a YouTube URL.';
   }
 
   return '';
@@ -436,6 +528,54 @@ function isValidOptionalUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+function isValidOptionalYouTubeUrl(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return true;
+  }
+
+  return getYouTubeVideoId(trimmed) !== null;
+}
+
+function getYouTubeVideoId(value: string) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return null;
+    }
+
+    if (host === 'youtu.be') {
+      return cleanVideoId(url.pathname.slice(1));
+    }
+
+    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
+      return null;
+    }
+
+    if (url.pathname === '/watch') {
+      return cleanVideoId(url.searchParams.get('v'));
+    }
+
+    if (url.pathname.startsWith('/shorts/') ||
+        url.pathname.startsWith('/embed/')) {
+      return cleanVideoId(url.pathname.split('/')[2]);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function cleanVideoId(value?: string | null) {
+  const trimmed = value?.trim();
+
+  return trimmed || null;
 }
 
 function toDateInputValue(value: string) {

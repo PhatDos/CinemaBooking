@@ -77,18 +77,20 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
-  trailerButton: {
-    alignSelf: 'flex-start',
+  trailerPanel: {
     marginTop: 18,
+  },
+  trailerTitle: {
+    marginBottom: 10,
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  trailerPlayer: {
     borderRadius: radius.md,
     backgroundColor: colors.ink,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-  },
-  trailerText: {
-    color: colors.surface,
-    fontSize: 14,
-    fontWeight: '800',
+    overflow: 'hidden',
+    ...shadow.soft,
   },
   heading: {
     marginTop: 32,

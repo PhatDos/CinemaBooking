@@ -10,6 +10,7 @@ public class MovieService
     private const int MaximumDescriptionLength = 4000;
     private const int MaximumDurationMinutes = 500;
     private const int MaximumUrlLength = 1000;
+    private const int MaximumPublicIdLength = 255;
 
     private readonly IMovieRepository _movieRepository;
     private readonly IGenreRepository _genreRepository;
@@ -53,6 +54,7 @@ public class MovieService
             request.DurationMinutes,
             request.ReleaseDate,
             request.PosterUrl,
+            request.PosterPublicId,
             request.TrailerUrl);
 
         var genre =
@@ -66,6 +68,7 @@ public class MovieService
             DurationMinutes = request.DurationMinutes,
             ReleaseDate = request.ReleaseDate,
             PosterUrl = NormalizeOptional(request.PosterUrl),
+            PosterPublicId = NormalizeOptional(request.PosterPublicId),
             TrailerUrl = NormalizeOptional(request.TrailerUrl),
             GenreId = genre?.Id,
             Genre = genre?.Name,
@@ -101,6 +104,7 @@ public class MovieService
                 request.DurationMinutes,
                 request.ReleaseDate,
                 request.PosterUrl,
+                request.PosterPublicId,
                 request.TrailerUrl);
         }
 
@@ -134,6 +138,7 @@ public class MovieService
                 DurationMinutes = request.DurationMinutes,
                 ReleaseDate = request.ReleaseDate,
                 PosterUrl = NormalizeOptional(request.PosterUrl),
+                PosterPublicId = NormalizeOptional(request.PosterPublicId),
                 TrailerUrl = NormalizeOptional(request.TrailerUrl),
                 GenreId = request.GenreId,
                 Genre = request.GenreId is not null &&
@@ -165,6 +170,7 @@ public class MovieService
             request.DurationMinutes,
             request.ReleaseDate,
             request.PosterUrl,
+            request.PosterPublicId,
             request.TrailerUrl);
 
         var genre =
@@ -183,6 +189,7 @@ public class MovieService
         movie.DurationMinutes = request.DurationMinutes;
         movie.ReleaseDate = request.ReleaseDate;
         movie.PosterUrl = NormalizeOptional(request.PosterUrl);
+        movie.PosterPublicId = NormalizeOptional(request.PosterPublicId);
         movie.TrailerUrl = NormalizeOptional(request.TrailerUrl);
         movie.GenreId = genre?.Id;
         movie.Genre = genre?.Name;
@@ -201,6 +208,7 @@ public class MovieService
             DurationMinutes = movie.DurationMinutes,
             ReleaseDate = movie.ReleaseDate,
             PosterUrl = movie.PosterUrl,
+            PosterPublicId = movie.PosterPublicId,
             TrailerUrl = movie.TrailerUrl,
             GenreId = movie.GenreId,
             Genre = movie.GenreRef?.Name ?? movie.Genre,
@@ -241,6 +249,7 @@ public class MovieService
         int durationMinutes,
         DateTime releaseDate,
         string? posterUrl,
+        string? posterPublicId,
         string? trailerUrl)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -298,6 +307,13 @@ public class MovieService
                 "Poster URL must be a valid HTTP or HTTPS URL.");
         }
 
+        if (!string.IsNullOrWhiteSpace(posterPublicId) &&
+            posterPublicId.Trim().Length > MaximumPublicIdLength)
+        {
+            throw new BusinessRuleException(
+                $"Poster public id must be {MaximumPublicIdLength} characters or fewer.");
+        }
+
         if (!string.IsNullOrWhiteSpace(trailerUrl) &&
             trailerUrl.Trim().Length > MaximumUrlLength)
         {
@@ -305,10 +321,10 @@ public class MovieService
                 $"Trailer URL must be {MaximumUrlLength} characters or fewer.");
         }
 
-        if (!IsValidUrl(trailerUrl))
+        if (!IsValidYouTubeUrl(trailerUrl))
         {
             throw new BusinessRuleException(
-                "Trailer URL must be a valid HTTP or HTTPS URL.");
+                "Trailer URL must be a valid YouTube URL.");
         }
 
     }
@@ -326,6 +342,87 @@ public class MovieService
                 out var uri)
             && (uri.Scheme == Uri.UriSchemeHttp ||
                 uri.Scheme == Uri.UriSchemeHttps);
+    }
+
+    private static bool IsValidYouTubeUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return true;
+        }
+
+        if (!Uri.TryCreate(
+                url.Trim(),
+                UriKind.Absolute,
+                out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp &&
+                uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return false;
+        }
+
+        var host = uri.Host.ToLowerInvariant();
+
+        if (host == "youtu.be")
+        {
+            return !string.IsNullOrWhiteSpace(
+                uri.AbsolutePath.Trim('/'));
+        }
+
+        if (host is not ("youtube.com" or "www.youtube.com" or "m.youtube.com"))
+        {
+            return false;
+        }
+
+        if (uri.AbsolutePath == "/watch")
+        {
+            return !string.IsNullOrWhiteSpace(
+                GetQueryValue(uri, "v"));
+        }
+
+        if (uri.AbsolutePath.StartsWith(
+                "/shorts/",
+                StringComparison.OrdinalIgnoreCase) ||
+            uri.AbsolutePath.StartsWith(
+                "/embed/",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return !string.IsNullOrWhiteSpace(
+                uri.AbsolutePath.Split(
+                    '/',
+                    StringSplitOptions.RemoveEmptyEntries)
+                    .ElementAtOrDefault(1));
+        }
+
+        return false;
+    }
+
+    private static string? GetQueryValue(
+        Uri uri,
+        string key)
+    {
+        var query = uri.Query.TrimStart('?');
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pair = part.Split('=', 2);
+
+            if (pair.Length == 2 &&
+                string.Equals(
+                    Uri.UnescapeDataString(pair[0]),
+                    key,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return Uri.UnescapeDataString(pair[1]);
+            }
+        }
+
+        return null;
     }
 
     private static string? NormalizeOptional(string? value)

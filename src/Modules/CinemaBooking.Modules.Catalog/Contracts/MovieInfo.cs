@@ -7,6 +7,7 @@ public sealed record MovieInfo(
     int DurationMinutes,
     DateTime ReleaseDate,
     string? PosterUrl,
+    string? PosterPublicId,
     string? TrailerUrl,
     Guid? GenreId,
     string? Genre,

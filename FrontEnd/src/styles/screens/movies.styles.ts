@@ -70,6 +70,41 @@ export const styles = StyleSheet.create({
     paddingBottom: bottomNavHeight + 24,
     gap: 16,
   },
+  emptyList: {
+    flexGrow: 1,
+    padding: 20,
+    paddingTop: 10,
+    paddingBottom: bottomNavHeight + 24,
+  },
+  filters: {
+    paddingBottom: 2,
+  },
+  filterRail: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  filterChip: {
+    maxWidth: 180,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  filterChipSelected: {
+    borderColor: colors.ink,
+    backgroundColor: colors.ink,
+  },
+  filterChipText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  filterChipTextSelected: {
+    color: colors.surface,
+  },
   card: {
     flexDirection: 'row',
     borderWidth: 1,
@@ -151,6 +186,23 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  emptyText: {
+    marginTop: 8,
+    color: colors.muted,
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: 'center',
   },
   error: {
     color: colors.danger,

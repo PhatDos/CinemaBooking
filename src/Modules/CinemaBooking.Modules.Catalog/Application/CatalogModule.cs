@@ -34,6 +34,7 @@ public class CatalogModule : ICatalogModule
                 movie.DurationMinutes,
                 movie.ReleaseDate,
                 movie.PosterUrl,
+                movie.PosterPublicId,
                 movie.TrailerUrl,
                 movie.GenreId,
                 movie.GenreRef != null
@@ -62,6 +63,7 @@ public class CatalogModule : ICatalogModule
                 movie.DurationMinutes,
                 movie.ReleaseDate,
                 movie.PosterUrl,
+                movie.PosterPublicId,
                 movie.TrailerUrl,
                 movie.GenreId,
                 movie.GenreRef != null

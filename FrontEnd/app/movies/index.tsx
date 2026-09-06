@@ -1,23 +1,25 @@
 import { router, Redirect, type Href } from 'expo-router';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { getGenres } from '@/src/api/genres';
 import { getNowShowingMovies } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
 import { LogoutButton } from '@/src/components/LogoutButton';
-import type { Movie } from '@/src/types';
+import type { Genre, Movie } from '@/src/types';
 import { styles } from '@/src/styles/screens/movies.styles';
 
 const scanTicketRoute = '/staff/scan-ticket' as Href;
@@ -25,10 +27,28 @@ const manageMoviesRoute = '/movies/manage' as Href;
 
 export default function MoviesScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [genres, setGenres] = useState<Genre[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [selectedGenreId, setSelectedGenreId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  const filteredMovies = useMemo(() => {
+    if (!selectedGenreId) {
+      return movies;
+    }
+
+    const selectedGenre = genres.find((genre) => genre.id === selectedGenreId);
+
+    return movies.filter((movie) =>
+      movie.genreId === selectedGenreId ||
+      (
+        !movie.genreId &&
+        selectedGenre &&
+        movie.genre?.toLowerCase() === selectedGenre.name.toLowerCase()
+      ));
+  }, [genres, movies, selectedGenreId]);
 
   async function loadMovies(showSpinner = true) {
     if (showSpinner) {
@@ -38,8 +58,18 @@ export default function MoviesScreen() {
     setError('');
 
     try {
-      const result = await getNowShowingMovies();
-      setMovies(result);
+      const [movieResult, genreResult] = await Promise.all([
+        getNowShowingMovies(),
+        getGenres(),
+      ]);
+
+      setMovies(movieResult);
+      setGenres(genreResult);
+      setSelectedGenreId((current) =>
+        current && genreResult.some((genre) => genre.id === current)
+          ? current
+          : null,
+      );
     } catch (loadError) {
       console.error(loadError);
       setError('Cannot load movies');
@@ -118,21 +148,49 @@ export default function MoviesScreen() {
           </Pressable>
         </View>
       ) : (
-        <FlatList
-          contentContainerStyle={styles.list}
-          data={movies}
-          keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl
-              onRefresh={() => {
-                setRefreshing(true);
-                loadMovies(false);
-              }}
-              refreshing={refreshing}
-            />
-          }
-          renderItem={({ item, index }) => {
-            return (
+        <>
+          <View style={styles.filters}>
+            <ScrollView
+              contentContainerStyle={styles.filterRail}
+              horizontal
+              showsHorizontalScrollIndicator={false}>
+              <FilterChip
+                label="All"
+                selected={!selectedGenreId}
+                onPress={() => setSelectedGenreId(null)}
+              />
+              {genres.map((genre) => (
+                <FilterChip
+                  key={genre.id}
+                  label={genre.name}
+                  selected={genre.id === selectedGenreId}
+                  onPress={() => setSelectedGenreId(genre.id)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+
+          <FlatList
+            contentContainerStyle={filteredMovies.length === 0 ? styles.emptyList : styles.list}
+            data={filteredMovies}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>No movies found</Text>
+                <Text style={styles.emptyText}>Try another genre or check upcoming showtimes later.</Text>
+              </View>
+            }
+            refreshControl={
+              <RefreshControl
+                onRefresh={() => {
+                  setRefreshing(true);
+                  loadMovies(false);
+                }}
+                refreshing={refreshing}
+              />
+            }
+            renderItem={({ item, index }) => {
+              return (
               <FadeInView delay={index * 45}>
                 <AnimatedPressable
                   contentStyle={styles.card}
@@ -176,13 +234,37 @@ export default function MoviesScreen() {
                   </View>
                 </AnimatedPressable>
               </FadeInView>
-            );
-          }}
-        />
+              );
+            }}
+          />
+        </>
       )}
 
       <BottomNav />
     </View>
+  );
+}
+
+function FilterChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <AnimatedPressable
+      contentStyle={[styles.filterChip, selected && styles.filterChipSelected]}
+      onPress={onPress}
+      pressedScale={0.97}>
+      <Text
+        numberOfLines={1}
+        style={[styles.filterChipText, selected && styles.filterChipTextSelected]}>
+        {label}
+      </Text>
+    </AnimatedPressable>
   );
 }
 
