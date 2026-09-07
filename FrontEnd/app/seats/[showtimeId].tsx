@@ -322,12 +322,12 @@ export default function SeatsScreen() {
 
       <View style={styles.legend}>
         <LegendItem color="#ffffff" label="Available" />
+        <LegendItem color="#344054" label="Unavailable" />
+        <LegendItem color={colors.primary} label="Selected" />
+        <LegendItem color="#fde68a" label="Holding" />
         <LegendItem color="#ffffff" label={formatSeatTypeLegend('Standard', priceByType)} />
         <LegendItem color="#ede9fe" label={formatSeatTypeLegend('VIP', priceByType)} />
         <LegendItem color="#ffe4e6" label={formatSeatTypeLegend('Couple', priceByType)} />
-        <LegendItem color={colors.primary} label="Selected" />
-        <LegendItem color="#fde68a" label="Holding" />
-        <LegendItem color="#344054" label="Unavailable" />
       </View>
 
       <Text style={styles.note}>Selected: {selectedSeatIds.size}</Text>

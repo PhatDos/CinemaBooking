@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { bottomNavHeight } from '@/src/styles/layout';
 import { colors, radius, shadow } from '@/src/theme';
 
-export const seatGap = 4;
+export const seatGap = 6;
 
 export const styles = StyleSheet.create({
   container: {
@@ -115,6 +115,8 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
+    marginRight: 6,
+    marginLeft: 4
   },
   seats: {
     flex: 1,
@@ -183,12 +185,14 @@ export const styles = StyleSheet.create({
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 14,
+    columnGap: 14,
+    rowGap: 10,
     marginTop: 26,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '47%',
     gap: 6,
   },
   legendSwatch: {
