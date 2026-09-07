@@ -50,10 +50,51 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
   actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
     marginTop: 16,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  importActionPressableFill: {
+    flex: 1,
+  },
+  importActionButton: {
+    minHeight: 46,
+    maxHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  importActionButtonNeutral: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  importActionButtonPrimary: {
+    backgroundColor: colors.primary,
+    ...shadow.soft,
+  },
+  importActionButtonFill: {
+    flex: 1,
+    width: '100%',
+  },
+  importActionButtonDisabled: {
+    backgroundColor: colors.disabled,
+  },
+  importActionButtonTextNeutral: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  importActionButtonTextPrimary: {
+    color: colors.surface,
+    fontSize: 15,
+    fontWeight: '900',
   },
   primaryButton: {
     minHeight: 46,
@@ -135,8 +176,6 @@ export const styles = StyleSheet.create({
     color: colors.primary,
   },
   card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: '#e7eaf0',
     borderRadius: radius.md,
@@ -144,13 +183,22 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     ...shadow.card,
   },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    padding: 14,
+    paddingBottom: 10,
+  },
   poster: {
-    width: 98,
-    height: 172,
+    width: 120,
+    height: 180,
+    borderRadius: radius.sm,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.ink,
+    overflow: 'hidden',
   },
   posterImage: {
     height: '100%',
@@ -163,20 +211,30 @@ export const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
-    padding: 14,
+    minWidth: 0,
+  },
+  cardBody: {
+    borderTopWidth: 1,
+    borderTopColor: '#eef0f4',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
     gap: 8,
   },
   title: {
     flex: 1,
+    minWidth: 0,
     color: colors.ink,
     fontSize: 18,
     fontWeight: '900',
   },
   badge: {
+    flexShrink: 0,
     borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 5,
@@ -247,7 +305,7 @@ export const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     marginTop: 12,
   },
   secondaryButton: {
@@ -290,7 +348,7 @@ export const styles = StyleSheet.create({
     borderColor: '#fecaca',
     borderRadius: radius.md,
     backgroundColor: '#fef2f2',
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
     paddingVertical: 8,
   },
   rejectButtonText: {

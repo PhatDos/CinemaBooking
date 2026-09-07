@@ -7,7 +7,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react';
-import { Modal, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { styles } from '@/src/styles/components/app-notification.styles';
 
@@ -69,20 +69,14 @@ export function AppNotificationProvider({ children }: PropsWithChildren) {
   return (
     <AppNotificationContext.Provider value={value}>
       {children}
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setNotification(null)}
-        transparent
-        visible={notification !== null}>
-        <View style={styles.scrim}>
-          {notification ? (
-            <View style={[styles.card, styles[notification.tone]]}>
-              <Text style={styles.title}>{getTitle(notification.tone)}</Text>
-              <Text style={styles.message}>{notification.message}</Text>
-            </View>
-          ) : null}
+      {notification ? (
+        <View pointerEvents="box-none" style={styles.scrim}>
+          <View pointerEvents="none" style={[styles.card, styles[notification.tone]]}>
+            <Text style={styles.title}>{getTitle(notification.tone)}</Text>
+            <Text style={styles.message}>{notification.message}</Text>
+          </View>
         </View>
-      </Modal>
+      ) : null}
     </AppNotificationContext.Provider>
   );
 }

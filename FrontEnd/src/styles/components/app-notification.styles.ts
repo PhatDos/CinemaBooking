@@ -4,9 +4,11 @@ import { colors, radius, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
   scrim: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    backgroundColor: 'rgba(16, 24, 40, 0.16)',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    left: 0,
+    zIndex: 50,
     paddingHorizontal: 18,
     paddingTop: 64,
   },

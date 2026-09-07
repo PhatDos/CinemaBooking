@@ -292,26 +292,35 @@ export default function MovieImportsScreen() {
         </Text>
 
         <View style={styles.actions}>
-          <ActionButton
-            disabled={busy}
-            label="Discover Moveek"
-            loading={bulkAction === 'discover'}
-            onPress={handleDiscover}
-          />
-          <ActionButton
-            disabled={busy || !selectedBatchId}
-            label="Crawl all details"
-            loading={bulkAction === 'crawl'}
-            onPress={handleCrawlAll}
-            secondary
-          />
-          <ActionButton
-            disabled={busy}
-            label="Run full import"
-            loading={bulkAction === 'run'}
-            onPress={handleRunImport}
-            secondary
-          />
+          <View style={styles.actionRow}>
+            <ActionButton
+              disabled={busy}
+              fill
+              label="Run full import"
+              loading={bulkAction === 'run'}
+              onPress={handleRunImport}
+              variant="primary"
+            />
+          </View>
+
+          <View style={styles.actionRow}>
+            <ActionButton
+              disabled={busy || !selectedBatchId}
+              fill
+              label="Crawl all details"
+              loading={bulkAction === 'crawl'}
+              onPress={handleCrawlAll}
+              variant="neutral"
+            />
+            <ActionButton
+              disabled={busy}
+              fill
+              label="Discover Moveek"
+              loading={bulkAction === 'discover'}
+              onPress={handleDiscover}
+              variant="neutral"
+            />
+          </View>
         </View>
       </View>
 
@@ -395,31 +404,43 @@ export default function MovieImportsScreen() {
 
 type ActionButtonProps = {
   disabled: boolean;
+  fill?: boolean;
   label: string;
   loading: boolean;
   onPress: () => void;
-  secondary?: boolean;
+  variant?: 'neutral' | 'primary';
 };
 
 function ActionButton({
   disabled,
+  fill = false,
   label,
   loading,
   onPress,
-  secondary = false,
+  variant = 'neutral',
 }: ActionButtonProps) {
+  const isPrimary = variant === 'primary';
+
   return (
     <AnimatedPressable
       contentStyle={[
-        secondary ? styles.secondaryButton : styles.primaryButton,
-        disabled && styles.disabledButton,
+        styles.importActionButton,
+        isPrimary ? styles.importActionButtonPrimary : styles.importActionButtonNeutral,
+        fill && styles.importActionButtonFill,
+        disabled && styles.importActionButtonDisabled,
       ]}
       disabled={disabled}
-      onPress={onPress}>
+      onPress={onPress}
+      pressableStyle={fill && styles.importActionPressableFill}>
       {loading ? (
-        <ActivityIndicator color={secondary ? '#111827' : '#ffffff'} />
+        <ActivityIndicator color={isPrimary ? '#ffffff' : '#111827'} />
       ) : (
-        <Text style={secondary ? styles.secondaryButtonText : styles.primaryButtonText}>
+        <Text
+          style={
+            isPrimary
+              ? styles.importActionButtonTextPrimary
+              : styles.importActionButtonTextNeutral
+          }>
           {label}
         </Text>
       )}
@@ -449,55 +470,59 @@ function CandidateCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.poster}>
-        {candidate.posterUrl ? (
-          <Image
-            // contentFit="cover"
-            source={{ uri: candidate.posterUrl }}
-            style={styles.posterImage}
-            transition={180}
-          />
-        ) : (
-          <Text style={styles.posterText}>
-            {candidate.status === 'Discovered' ? 'Link' : 'Poster'}
-          </Text>
-        )}
-      </View>
-
-      <View style={styles.info}>
-        <View style={styles.titleRow}>
-          <Text numberOfLines={2} style={styles.title}>{sourceTitle}</Text>
-          <StatusBadge status={candidate.status} />
+      <View style={styles.cardTop}>
+        <View style={styles.poster}>
+          {candidate.posterUrl ? (
+            <Image
+              contentFit="cover"
+              source={{ uri: candidate.posterUrl }}
+              style={styles.posterImage}
+              transition={180}
+            />
+          ) : (
+            <Text style={styles.posterText}>
+              {candidate.status === 'Discovered' ? 'Link' : 'Poster'}
+            </Text>
+          )}
         </View>
 
-        <Text style={styles.meta}>
-          {candidate.durationMinutes ? `${candidate.durationMinutes} min` : 'No duration'}
-          {' | '}
-          {candidate.releaseDate
-            ? formatDate(candidate.releaseDate)
-            : formatReleaseTimestamp(candidate.releaseTimestamp)}
-        </Text>
+        <View style={styles.info}>
+          <View style={styles.titleRow}>
+            <Text numberOfLines={3} style={styles.title}>{sourceTitle}</Text>
+            <StatusBadge status={candidate.status} />
+          </View>
 
-        {genreNames.length > 0 ? (
-          <Text style={styles.genre}>{genreNames.join(', ')}</Text>
-        ) : (
-          <Text style={styles.genre}>No genre</Text>
-        )}
-
-        {candidate.popularity !== null ? (
           <Text style={styles.meta}>
-            Popularity {Math.round(candidate.popularity).toLocaleString('vi-VN')}
+            {candidate.durationMinutes ? `${candidate.durationMinutes} min` : 'No duration'}
+            {' | '}
+            {candidate.releaseDate
+              ? formatDate(candidate.releaseDate)
+              : formatReleaseTimestamp(candidate.releaseTimestamp)}
           </Text>
-        ) : null}
 
-        {candidate.warnings ? (
-          <Text style={styles.warning}>{candidate.warnings}</Text>
-        ) : null}
+          {genreNames.length > 0 ? (
+            <Text style={styles.genre}>{genreNames.join(', ')}</Text>
+          ) : (
+            <Text style={styles.genre}>No genre</Text>
+          )}
 
-        {candidate.detailError ? (
-          <Text style={styles.warning}>{candidate.detailError}</Text>
-        ) : null}
+          {candidate.popularity !== null ? (
+            <Text style={styles.meta}>
+              Popularity {Math.round(candidate.popularity).toLocaleString('vi-VN')}
+            </Text>
+          ) : null}
 
+          {candidate.warnings ? (
+            <Text numberOfLines={3} style={styles.warning}>{candidate.warnings}</Text>
+          ) : null}
+
+          {candidate.detailError ? (
+            <Text numberOfLines={3} style={styles.warning}>{candidate.detailError}</Text>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.cardBody}>
         <Text numberOfLines={3} style={styles.description}>
           {candidate.description || 'Discovered from listing. Crawl detail to load metadata.'}
         </Text>

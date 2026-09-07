@@ -606,16 +606,6 @@ public sealed class MovieImportService
             warnings.Add("Trailer is missing.");
         }
 
-        var unknownGenres = await GetUnknownGenresAsync(
-            genreNames,
-            cancellationToken);
-
-        if (unknownGenres.Count > 0)
-        {
-            warnings.Add(
-                $"Genres need review: {string.Join(", ", unknownGenres)}.");
-        }
-
         return warnings;
     }
 
@@ -637,11 +627,11 @@ public sealed class MovieImportService
 
         foreach (var genreName in genreNames)
         {
-            var slug = MovieImportNormalizer.ToSlug(genreName);
+            var slug = NormalizeGenreSlug(genreName);
             var genre = genres.FirstOrDefault(item =>
                 string.Equals(item.Slug, slug, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(
-                    MovieImportNormalizer.ToSlug(item.Name),
+                    NormalizeGenreSlug(item.Name),
                     slug,
                     StringComparison.OrdinalIgnoreCase));
 
@@ -676,14 +666,27 @@ public sealed class MovieImportService
             cancellationToken);
         var resolvedSlugs = resolved
             .Select(genre => genre.Slug)
-            .Concat(resolved.Select(genre => MovieImportNormalizer.ToSlug(genre.Name)))
+            .Concat(resolved.Select(genre => NormalizeGenreSlug(genre.Name)))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return genreNames
             .Where(genreName =>
-                !resolvedSlugs.Contains(MovieImportNormalizer.ToSlug(genreName)))
+                !resolvedSlugs.Contains(NormalizeGenreSlug(genreName)))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private static string NormalizeGenreSlug(string genreName)
+    {
+        var slug = MovieImportNormalizer.ToSlug(genreName);
+
+        return slug switch
+        {
+            "science-fiction" => "sci-fi",
+            "sci-fi" => "sci-fi",
+            "sci-fi-movie" => "sci-fi",
+            _ => slug
+        };
     }
 
     private async Task UpsertExternalSourceAsync(

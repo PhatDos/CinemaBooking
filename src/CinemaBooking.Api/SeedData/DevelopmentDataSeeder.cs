@@ -38,6 +38,10 @@ public static class DevelopmentDataSeeder
             "comedy",
             "https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=900&q=80"),
         new(
+            "Crime",
+            "crime",
+            "https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&w=900&q=80"),
+        new(
             "Documentary",
             "documentary",
             "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=900&q=80"),
@@ -49,6 +53,10 @@ public static class DevelopmentDataSeeder
             "Family",
             "family",
             "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Fantasy",
+            "fantasy",
+            "https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=900&q=80"),
         new(
             "Horror",
             "horror",
