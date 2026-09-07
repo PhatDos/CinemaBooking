@@ -380,9 +380,16 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
 
     private static DateTime? ParseDate(string? value)
     {
+        if (DateTimeOffset.TryParse(
+                value,
+                out var offsetDate))
+        {
+            return offsetDate.Date;
+        }
+
         return DateTime.TryParse(
-            value,
-            out var date)
+                value,
+                out var date)
             ? date.Date
             : null;
     }
