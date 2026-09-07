@@ -62,7 +62,11 @@ public class GenreRepository : IGenreRepository
         return await _dbContext.Movies
             .AnyAsync(
                 movie => movie.GenreId == id,
-                cancellationToken);
+                cancellationToken) ||
+            await _dbContext.MovieGenres
+                .AnyAsync(
+                    movieGenre => movieGenre.GenreId == id,
+                    cancellationToken);
     }
 
     public async Task AddAsync(

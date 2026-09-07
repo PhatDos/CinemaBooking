@@ -11,14 +11,18 @@ import {
   View,
 } from 'react-native';
 
+import { ApiError } from '@/src/api/client';
+import { clearGenresCache } from '@/src/api/genres';
 import {
   approveMovieImportCandidate,
+  crawlMovieImportBatch,
+  crawlMovieImportCandidate,
+  discoverMovieImport,
   getMovieImportBatches,
   getMovieImportCandidates,
   rejectMovieImportCandidate,
   runMovieImport,
 } from '@/src/api/movie-imports';
-import { clearGenresCache } from '@/src/api/genres';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
@@ -34,6 +38,8 @@ import type {
 
 const movieManageRoute = '/movies/manage' as Href;
 
+type BulkAction = 'discover' | 'crawl' | 'run' | null;
+
 export default function MovieImportsScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { showNotification } = useAppNotification();
@@ -42,18 +48,36 @@ export default function MovieImportsScreen() {
   const [candidates, setCandidates] = useState<MovieImportCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [running, setRunning] = useState(false);
+  const [bulkAction, setBulkAction] = useState<BulkAction>(null);
   const [savingCandidateId, setSavingCandidateId] = useState<string | null>(null);
   const [candidateToReject, setCandidateToReject] =
     useState<MovieImportCandidate | null>(null);
   const [error, setError] = useState('');
 
   const isAdmin = user?.roles.includes('Admin') ?? false;
+  const busy = bulkAction !== null || savingCandidateId !== null;
 
   const selectedBatch = useMemo(
     () => batches.find((batch) => batch.id === selectedBatchId) ?? null,
     [batches, selectedBatchId],
   );
+
+  const counts = useMemo(() => {
+    return candidates.reduce<Record<MovieImportCandidateStatus, number>>(
+      (result, candidate) => ({
+        ...result,
+        [candidate.status]: result[candidate.status] + 1,
+      }),
+      {
+        Approved: 0,
+        Crawled: 0,
+        Discovered: 0,
+        Failed: 0,
+        NeedsReview: 0,
+        Rejected: 0,
+      },
+    );
+  }, [candidates]);
 
   const loadImports = useCallback(async (
     batchId: string | null = null,
@@ -79,7 +103,7 @@ export default function MovieImportsScreen() {
       }
     } catch (loadError) {
       console.error(loadError);
-      setError('Cannot load movie imports');
+      setError(getFriendlyError(loadError, 'Cannot load movie imports'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -96,29 +120,101 @@ export default function MovieImportsScreen() {
     }
   }, [isAuthenticated, isAdmin, loadImports]);
 
-  async function handleRunImport() {
-    if (running) {
+  async function handleDiscover() {
+    if (busy) {
       return;
     }
 
-    setRunning(true);
+    setBulkAction('discover');
+    setError('');
+
+    try {
+      const batch = await discoverMovieImport({ source: 'Moveek' });
+
+      showNotification('Moveek links discovered.', { tone: 'success' });
+      await loadImports(batch.id, false);
+    } catch (discoverError) {
+      console.error(discoverError);
+      showNotification(
+        getFriendlyError(discoverError, 'Cannot discover Moveek movies right now.'),
+        { tone: 'error' },
+      );
+    } finally {
+      setBulkAction(null);
+    }
+  }
+
+  async function handleCrawlAll() {
+    if (busy || !selectedBatchId) {
+      return;
+    }
+
+    setBulkAction('crawl');
+    setError('');
+
+    try {
+      await crawlMovieImportBatch(selectedBatchId);
+      showNotification('Movie details crawled.', { tone: 'success' });
+      await loadImports(selectedBatchId, false);
+    } catch (crawlError) {
+      console.error(crawlError);
+      showNotification(
+        getFriendlyError(crawlError, 'Cannot crawl this batch right now.'),
+        { tone: 'error' },
+      );
+    } finally {
+      setBulkAction(null);
+    }
+  }
+
+  async function handleRunImport() {
+    if (busy) {
+      return;
+    }
+
+    setBulkAction('run');
     setError('');
 
     try {
       const batch = await runMovieImport({ source: 'Moveek' });
 
-      showNotification('Movie import completed.', { tone: 'success' });
+      showNotification('Moveek import completed.', { tone: 'success' });
       await loadImports(batch.id, false);
     } catch (runError) {
       console.error(runError);
-      showNotification('Cannot run movie import right now.', { tone: 'error' });
+      showNotification(
+        getFriendlyError(runError, 'Cannot run movie import right now.'),
+        { tone: 'error' },
+      );
     } finally {
-      setRunning(false);
+      setBulkAction(null);
+    }
+  }
+
+  async function handleCrawlCandidate(candidate: MovieImportCandidate) {
+    if (busy) {
+      return;
+    }
+
+    setSavingCandidateId(candidate.id);
+
+    try {
+      await crawlMovieImportCandidate(candidate.id);
+      showNotification('Movie detail crawled.', { tone: 'success' });
+      await loadImports(candidate.batchId, false);
+    } catch (crawlError) {
+      console.error(crawlError);
+      showNotification(
+        getFriendlyError(crawlError, 'Cannot crawl this movie right now.'),
+        { tone: 'error' },
+      );
+    } finally {
+      setSavingCandidateId(null);
     }
   }
 
   async function handleApprove(candidate: MovieImportCandidate) {
-    if (savingCandidateId) {
+    if (busy) {
       return;
     }
 
@@ -131,14 +227,17 @@ export default function MovieImportsScreen() {
       await loadImports(candidate.batchId, false);
     } catch (approveError) {
       console.error(approveError);
-      showNotification('Cannot approve this candidate.', { tone: 'error' });
+      showNotification(
+        getFriendlyError(approveError, 'Cannot approve this candidate.'),
+        { tone: 'error' },
+      );
     } finally {
       setSavingCandidateId(null);
     }
   }
 
   async function handleReject(candidate: MovieImportCandidate) {
-    if (savingCandidateId) {
+    if (busy && savingCandidateId !== candidate.id) {
       return;
     }
 
@@ -151,7 +250,10 @@ export default function MovieImportsScreen() {
       await loadImports(candidate.batchId, false);
     } catch (rejectError) {
       console.error(rejectError);
-      showNotification('Cannot reject this candidate.', { tone: 'error' });
+      showNotification(
+        getFriendlyError(rejectError, 'Cannot reject this candidate.'),
+        { tone: 'error' },
+      );
     } finally {
       setSavingCandidateId(null);
     }
@@ -178,7 +280,7 @@ export default function MovieImportsScreen() {
       <View style={styles.header}>
         <AnimatedPressable
           contentStyle={styles.backButton}
-          disabled={running}
+          disabled={busy}
           onPress={() => router.replace(movieManageRoute)}>
           <Text style={styles.backButtonText}>Back</Text>
         </AnimatedPressable>
@@ -186,20 +288,30 @@ export default function MovieImportsScreen() {
         <Text style={styles.kicker}>Admin</Text>
         <Text style={styles.heading}>Movie Import</Text>
         <Text style={styles.subtitle}>
-          Review Moveek metadata before updating the catalog.
+          Discover Moveek links first, then crawl details and approve into Catalog.
         </Text>
 
         <View style={styles.actions}>
-          <AnimatedPressable
-            contentStyle={[styles.primaryButton, running && styles.disabledButton]}
-            disabled={running}
-            onPress={handleRunImport}>
-            {running ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Run Moveek Import</Text>
-            )}
-          </AnimatedPressable>
+          <ActionButton
+            disabled={busy}
+            label="Discover Moveek"
+            loading={bulkAction === 'discover'}
+            onPress={handleDiscover}
+          />
+          <ActionButton
+            disabled={busy || !selectedBatchId}
+            label="Crawl all details"
+            loading={bulkAction === 'crawl'}
+            onPress={handleCrawlAll}
+            secondary
+          />
+          <ActionButton
+            disabled={busy}
+            label="Run full import"
+            loading={bulkAction === 'run'}
+            onPress={handleRunImport}
+            secondary
+          />
         </View>
       </View>
 
@@ -229,6 +341,7 @@ export default function MovieImportsScreen() {
           ListHeaderComponent={
             <ImportSummary
               batches={batches}
+              counts={counts}
               selectedBatch={selectedBatch}
               onSelectBatch={(batchId) => {
                 setSelectedBatchId(batchId);
@@ -239,95 +352,18 @@ export default function MovieImportsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>No import candidates</Text>
-              <Text style={styles.emptyText}>Run Moveek import to stage movies.</Text>
+              <Text style={styles.emptyText}>Discover Moveek movies to stage links.</Text>
             </View>
           }
           renderItem={({ item, index }) => (
             <FadeInView delay={index * 35}>
-              <View style={styles.card}>
-                <View style={styles.poster}>
-                  {item.posterUrl ? (
-                    <Image
-                      contentFit="cover"
-                      source={{ uri: item.posterUrl }}
-                      style={styles.posterImage}
-                      transition={180}
-                    />
-                  ) : (
-                    <Text style={styles.posterText}>Poster</Text>
-                  )}
-                </View>
-
-                <View style={styles.info}>
-                  <View style={styles.titleRow}>
-                    <Text numberOfLines={2} style={styles.title}>{item.title}</Text>
-                    <StatusBadge status={item.status} />
-                  </View>
-
-                  <Text style={styles.meta}>
-                    {item.durationMinutes ? `${item.durationMinutes} min` : 'No duration'}
-                    {' | '}
-                    {item.releaseDate ? formatDate(item.releaseDate) : 'No release date'}
-                  </Text>
-
-                  <Text style={styles.genre}>
-                    {item.genreName ?? 'No genre'}
-                  </Text>
-
-                  {item.warnings ? (
-                    <Text style={styles.warning}>{item.warnings}</Text>
-                  ) : null}
-
-                  <Text numberOfLines={3} style={styles.description}>
-                    {item.description || 'No description'}
-                  </Text>
-
-                  {item.matchMovie ? (
-                    <View style={styles.matchBox}>
-                      <Text style={styles.matchLabel}>Matched movie</Text>
-                      <Text style={styles.matchTitle}>{item.matchMovie.title}</Text>
-                    </View>
-                  ) : null}
-
-                  <View style={styles.cardActions}>
-                    <AnimatedPressable
-                      contentStyle={styles.secondaryButton}
-                      onPress={() => void Linking.openURL(item.sourceUrl)}>
-                      <Text style={styles.secondaryButtonText}>Source</Text>
-                    </AnimatedPressable>
-
-                    {item.trailerUrl ? (
-                      <AnimatedPressable
-                        contentStyle={styles.secondaryButton}
-                        onPress={() => void Linking.openURL(item.trailerUrl!)}>
-                        <Text style={styles.secondaryButtonText}>Trailer</Text>
-                      </AnimatedPressable>
-                    ) : null}
-
-                    {canChangeStatus(item.status) ? (
-                      <>
-                        <AnimatedPressable
-                          contentStyle={styles.approveButton}
-                          disabled={savingCandidateId === item.id}
-                          onPress={() => void handleApprove(item)}>
-                          {savingCandidateId === item.id ? (
-                            <ActivityIndicator color="#067647" />
-                          ) : (
-                            <Text style={styles.approveButtonText}>Approve</Text>
-                          )}
-                        </AnimatedPressable>
-
-                        <AnimatedPressable
-                          contentStyle={styles.rejectButton}
-                          disabled={savingCandidateId === item.id}
-                          onPress={() => setCandidateToReject(item)}>
-                          <Text style={styles.rejectButtonText}>Reject</Text>
-                        </AnimatedPressable>
-                      </>
-                    ) : null}
-                  </View>
-                </View>
-              </View>
+              <CandidateCard
+                candidate={item}
+                loading={savingCandidateId === item.id}
+                onApprove={() => void handleApprove(item)}
+                onCrawl={() => void handleCrawlCandidate(item)}
+                onReject={() => setCandidateToReject(item)}
+              />
             </FadeInView>
           )}
         />
@@ -357,14 +393,187 @@ export default function MovieImportsScreen() {
   );
 }
 
+type ActionButtonProps = {
+  disabled: boolean;
+  label: string;
+  loading: boolean;
+  onPress: () => void;
+  secondary?: boolean;
+};
+
+function ActionButton({
+  disabled,
+  label,
+  loading,
+  onPress,
+  secondary = false,
+}: ActionButtonProps) {
+  return (
+    <AnimatedPressable
+      contentStyle={[
+        secondary ? styles.secondaryButton : styles.primaryButton,
+        disabled && styles.disabledButton,
+      ]}
+      disabled={disabled}
+      onPress={onPress}>
+      {loading ? (
+        <ActivityIndicator color={secondary ? '#111827' : '#ffffff'} />
+      ) : (
+        <Text style={secondary ? styles.secondaryButtonText : styles.primaryButtonText}>
+          {label}
+        </Text>
+      )}
+    </AnimatedPressable>
+  );
+}
+
+type CandidateCardProps = {
+  candidate: MovieImportCandidate;
+  loading: boolean;
+  onApprove: () => void;
+  onCrawl: () => void;
+  onReject: () => void;
+};
+
+function CandidateCard({
+  candidate,
+  loading,
+  onApprove,
+  onCrawl,
+  onReject,
+}: CandidateCardProps) {
+  const sourceTitle = candidate.listingTitle ?? candidate.title;
+  const genreNames = candidate.genreNames.length > 0
+    ? candidate.genreNames
+    : candidate.listingGenres;
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.poster}>
+        {candidate.posterUrl ? (
+          <Image
+            // contentFit="cover"
+            source={{ uri: candidate.posterUrl }}
+            style={styles.posterImage}
+            transition={180}
+          />
+        ) : (
+          <Text style={styles.posterText}>
+            {candidate.status === 'Discovered' ? 'Link' : 'Poster'}
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.info}>
+        <View style={styles.titleRow}>
+          <Text numberOfLines={2} style={styles.title}>{sourceTitle}</Text>
+          <StatusBadge status={candidate.status} />
+        </View>
+
+        <Text style={styles.meta}>
+          {candidate.durationMinutes ? `${candidate.durationMinutes} min` : 'No duration'}
+          {' | '}
+          {candidate.releaseDate
+            ? formatDate(candidate.releaseDate)
+            : formatReleaseTimestamp(candidate.releaseTimestamp)}
+        </Text>
+
+        {genreNames.length > 0 ? (
+          <Text style={styles.genre}>{genreNames.join(', ')}</Text>
+        ) : (
+          <Text style={styles.genre}>No genre</Text>
+        )}
+
+        {candidate.popularity !== null ? (
+          <Text style={styles.meta}>
+            Popularity {Math.round(candidate.popularity).toLocaleString('vi-VN')}
+          </Text>
+        ) : null}
+
+        {candidate.warnings ? (
+          <Text style={styles.warning}>{candidate.warnings}</Text>
+        ) : null}
+
+        {candidate.detailError ? (
+          <Text style={styles.warning}>{candidate.detailError}</Text>
+        ) : null}
+
+        <Text numberOfLines={3} style={styles.description}>
+          {candidate.description || 'Discovered from listing. Crawl detail to load metadata.'}
+        </Text>
+
+        {candidate.matchMovie ? (
+          <View style={styles.matchBox}>
+            <Text style={styles.matchLabel}>Matched movie</Text>
+            <Text style={styles.matchTitle}>{candidate.matchMovie.title}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.cardActions}>
+          <AnimatedPressable
+            contentStyle={styles.secondaryButton}
+            onPress={() => void Linking.openURL(candidate.sourceUrl)}>
+            <Text style={styles.secondaryButtonText}>Source</Text>
+          </AnimatedPressable>
+
+          {candidate.trailerUrl ? (
+            <AnimatedPressable
+              contentStyle={styles.secondaryButton}
+              onPress={() => void Linking.openURL(candidate.trailerUrl!)}>
+              <Text style={styles.secondaryButtonText}>Trailer</Text>
+            </AnimatedPressable>
+          ) : null}
+
+          {canCrawl(candidate.status) ? (
+            <AnimatedPressable
+              contentStyle={styles.secondaryButton}
+              disabled={loading}
+              onPress={onCrawl}>
+              {loading ? (
+                <ActivityIndicator color="#111827" />
+              ) : (
+                <Text style={styles.secondaryButtonText}>Crawl detail</Text>
+              )}
+            </AnimatedPressable>
+          ) : null}
+
+          {canApprove(candidate.status) ? (
+            <AnimatedPressable
+              contentStyle={styles.approveButton}
+              disabled={loading}
+              onPress={onApprove}>
+              {loading ? (
+                <ActivityIndicator color="#067647" />
+              ) : (
+                <Text style={styles.approveButtonText}>Approve</Text>
+              )}
+            </AnimatedPressable>
+          ) : null}
+
+          {canReject(candidate.status) ? (
+            <AnimatedPressable
+              contentStyle={styles.rejectButton}
+              disabled={loading}
+              onPress={onReject}>
+              <Text style={styles.rejectButtonText}>Reject</Text>
+            </AnimatedPressable>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 type ImportSummaryProps = {
   batches: MovieImportBatch[];
+  counts: Record<MovieImportCandidateStatus, number>;
   selectedBatch: MovieImportBatch | null;
   onSelectBatch: (batchId: string) => void;
 };
 
 function ImportSummary({
   batches,
+  counts,
   selectedBatch,
   onSelectBatch,
 }: ImportSummaryProps) {
@@ -380,6 +589,11 @@ function ImportSummary({
         {selectedBatch ? (
           <Text style={styles.summaryMeta}>
             {selectedBatch.candidateCount} candidates | {formatDateTime(selectedBatch.startedAt)}
+          </Text>
+        ) : null}
+        {selectedBatch ? (
+          <Text style={styles.summaryMeta}>
+            {counts.Discovered} discovered | {counts.Crawled} crawled | {counts.NeedsReview} review | {counts.Failed} failed
           </Text>
         ) : null}
       </View>
@@ -425,12 +639,24 @@ function getStatusStyleKey(status: MovieImportCandidateStatus) {
       return 'badgeRejected';
     case 'NeedsReview':
       return 'badgeReview';
+    case 'Failed':
+      return 'badgeRejected';
+    case 'Discovered':
+      return 'badgeDiscovered';
     default:
       return 'badgeSuggested';
   }
 }
 
-function canChangeStatus(status: MovieImportCandidateStatus) {
+function canCrawl(status: MovieImportCandidateStatus) {
+  return status === 'Discovered' || status === 'Failed';
+}
+
+function canApprove(status: MovieImportCandidateStatus) {
+  return status === 'Crawled' || status === 'NeedsReview';
+}
+
+function canReject(status: MovieImportCandidateStatus) {
   return status !== 'Approved' && status !== 'Rejected';
 }
 
@@ -442,10 +668,28 @@ function CenteredLoader() {
   );
 }
 
+function getFriendlyError(error: unknown, fallback: string) {
+  if (error instanceof ApiError && error.status === 404) {
+    return `${fallback} Import API is missing on the running backend. Rebuild/restart Docker API.`;
+  }
+
+  return error instanceof ApiError
+    ? error.message
+    : fallback;
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('vi-VN', {
     dateStyle: 'medium',
   }).format(new Date(value));
+}
+
+function formatReleaseTimestamp(value: number | null) {
+  if (!value) {
+    return 'No release date';
+  }
+
+  return formatDate(new Date(value * 1000).toISOString());
 }
 
 function formatDateTime(value: string) {

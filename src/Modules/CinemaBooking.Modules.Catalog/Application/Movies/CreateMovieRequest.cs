@@ -28,5 +28,7 @@ public class CreateMovieRequest
 
     public Guid? GenreId { get; set; }
 
+    public IReadOnlyCollection<Guid>? GenreIds { get; set; }
+
     public bool IsActive { get; set; } = true;
 }

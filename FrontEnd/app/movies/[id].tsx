@@ -132,7 +132,9 @@ export default function MovieDetailScreen() {
         <View style={styles.metaRow}>
           <Text style={styles.meta}>{movie.durationMinutes} min</Text>
           <Text style={styles.meta}>Release: {formatDate(movie.releaseDate)}</Text>
-          {movie.genre ? <Text style={styles.genre}>{movie.genre}</Text> : null}
+          {getGenreLabel(movie) ? (
+            <Text style={styles.genre}>{getGenreLabel(movie)}</Text>
+          ) : null}
         </View>
 
         {trailerVideoId ? (
@@ -255,4 +257,10 @@ function getInitials(title: string) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase())
     .join('');
+}
+
+function getGenreLabel(movie: MovieDetail) {
+  return movie.genres?.length
+    ? movie.genres.map((genre) => genre.name).join(', ')
+    : movie.genre ?? '';
 }

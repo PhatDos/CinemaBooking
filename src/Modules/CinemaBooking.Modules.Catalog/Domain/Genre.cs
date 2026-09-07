@@ -13,4 +13,7 @@ public class Genre
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Movie> Movies { get; set; } = new List<Movie>();
+
+    public ICollection<MovieGenre> MovieGenres { get; set; } =
+        new List<MovieGenre>();
 }

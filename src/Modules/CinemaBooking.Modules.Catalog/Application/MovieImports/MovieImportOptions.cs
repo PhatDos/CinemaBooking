@@ -12,7 +12,7 @@ public sealed class MovieImportOptions
 
     public int RequestDelayMs { get; init; } = 1500;
 
-    public int MaxMovies { get; init; } = 40;
+    public int MaxMovies { get; init; }
 
     public string UserAgent { get; init; } =
         "CinemaBookingBot/1.0 (+local-dev)";
@@ -26,7 +26,6 @@ public sealed class MoveekImportOptions
 
     public string[] ListingPaths { get; init; } =
     [
-        "/phim-dang-chieu/",
-        "/phim-sap-chieu/"
+        "/dang-chieu/"
     ];
 }

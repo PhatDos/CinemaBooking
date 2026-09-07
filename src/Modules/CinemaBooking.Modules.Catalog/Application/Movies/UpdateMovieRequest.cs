@@ -28,5 +28,7 @@ public class UpdateMovieRequest
 
     public Guid? GenreId { get; set; }
 
+    public IReadOnlyCollection<Guid>? GenreIds { get; set; }
+
     public bool IsActive { get; set; }
 }

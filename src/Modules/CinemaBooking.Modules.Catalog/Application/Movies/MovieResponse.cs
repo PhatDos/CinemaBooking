@@ -22,5 +22,8 @@ public class MovieResponse
 
     public string? Genre { get; set; }
 
+    public IReadOnlyList<MovieGenreResponse> Genres { get; set; } =
+        [];
+
     public bool IsActive { get; set; }
 }

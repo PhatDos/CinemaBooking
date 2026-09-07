@@ -24,5 +24,8 @@ public class Movie
 
     public Genre? GenreRef { get; set; }
 
+    public ICollection<MovieGenre> MovieGenres { get; set; } =
+        new List<MovieGenre>();
+
     public bool IsActive { get; set; } = true;
 }

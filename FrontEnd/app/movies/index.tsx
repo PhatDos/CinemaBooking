@@ -42,9 +42,9 @@ export default function MoviesScreen() {
     const selectedGenre = genres.find((genre) => genre.id === selectedGenreId);
 
     return movies.filter((movie) =>
+      movie.genres?.some((genre) => genre.id === selectedGenreId) ||
       movie.genreId === selectedGenreId ||
       (
-        !movie.genreId &&
         selectedGenre &&
         movie.genre?.toLowerCase() === selectedGenre.name.toLowerCase()
       ));
@@ -211,9 +211,9 @@ export default function MoviesScreen() {
                     ) : (
                       <Text style={styles.posterText}>{getInitials(item.title)}</Text>
                     )}
-                    {item.genre ? (
+                    {getGenreLabel(item) ? (
                       <View style={styles.posterBadge}>
-                        <Text style={styles.posterBadgeText}>{item.genre}</Text>
+                        <Text style={styles.posterBadgeText}>{getGenreLabel(item)}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -289,4 +289,10 @@ function getInitials(title: string) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase())
     .join('');
+}
+
+function getGenreLabel(movie: Movie) {
+  return movie.genres?.length
+    ? movie.genres.map((genre) => genre.name).join(', ')
+    : movie.genre ?? '';
 }

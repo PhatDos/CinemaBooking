@@ -15,6 +15,8 @@ public class CatalogDbContext : DbContext
 
     public DbSet<Genre> Genres => Set<Genre>();
 
+    public DbSet<MovieGenre> MovieGenres => Set<MovieGenre>();
+
     public DbSet<MovieImportBatch> MovieImportBatches =>
         Set<MovieImportBatch>();
 

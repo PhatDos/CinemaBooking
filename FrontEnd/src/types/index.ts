@@ -35,6 +35,12 @@ export type ProblemDetails = {
   detail?: string;
 };
 
+export type MovieGenreRef = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 export type Movie = {
   id: string;
   title: string;
@@ -46,6 +52,7 @@ export type Movie = {
   trailerUrl: string | null;
   genreId: string | null;
   genre: string | null;
+  genres: MovieGenreRef[];
   isActive: boolean;
 };
 
@@ -76,6 +83,7 @@ export type CreateMovieRequest = {
   posterPublicId?: string | null;
   trailerUrl?: string | null;
   genreId?: string | null;
+  genreIds?: string[] | null;
   isActive?: boolean;
 };
 
@@ -95,8 +103,9 @@ export type BulkCreateMoviesResult = {
 export type MovieImportBatchStatus = 'Running' | 'Completed' | 'Failed';
 
 export type MovieImportCandidateStatus =
-  | 'NewSuggested'
-  | 'UpdateSuggested'
+  | 'Discovered'
+  | 'Crawled'
+  | 'Failed'
   | 'NeedsReview'
   | 'Approved'
   | 'Rejected';
@@ -116,6 +125,10 @@ export type MovieImportCandidate = {
   batchId: string;
   source: string;
   sourceUrl: string;
+  listingTitle: string | null;
+  listingGenres: string[];
+  popularity: number | null;
+  releaseTimestamp: number | null;
   title: string;
   normalizedTitle: string;
   description: string;
@@ -124,10 +137,12 @@ export type MovieImportCandidate = {
   posterUrl: string | null;
   trailerUrl: string | null;
   genreName: string | null;
+  genreNames: string[];
   matchMovieId: string | null;
   matchMovie: Movie | null;
   status: MovieImportCandidateStatus;
   warnings: string | null;
+  detailError: string | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -46,9 +46,17 @@ public static class DevelopmentDataSeeder
             "drama",
             "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?auto=format&fit=crop&w=900&q=80"),
         new(
+            "Family",
+            "family",
+            "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80"),
+        new(
             "Horror",
             "horror",
             "https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=900&q=80"),
+        new(
+            "Mystery",
+            "mystery",
+            "https://images.unsplash.com/photo-1503437313881-503a91226402?auto=format&fit=crop&w=900&q=80"),
         new(
             "Romance",
             "romance",
@@ -172,8 +180,10 @@ public static class DevelopmentDataSeeder
                 out var genre);
 
             var movie =
-                await dbContext.Movies.FirstOrDefaultAsync(movie =>
-                    movie.Title == seedMovie.Title);
+                await dbContext.Movies
+                    .Include(movie => movie.MovieGenres)
+                    .FirstOrDefaultAsync(movie =>
+                        movie.Title == seedMovie.Title);
 
             if (movie is not null)
             {
@@ -185,11 +195,12 @@ public static class DevelopmentDataSeeder
                 movie.GenreId = genre?.Id;
                 movie.Genre = seedMovie.Genre;
                 movie.IsActive = true;
+                EnsureMovieGenre(movie, genre);
 
                 continue;
             }
 
-            dbContext.Movies.Add(new Movie
+            var newMovie = new Movie
             {
                 Title = seedMovie.Title,
                 Description = seedMovie.Description,
@@ -200,7 +211,10 @@ public static class DevelopmentDataSeeder
                 GenreId = genre?.Id,
                 Genre = seedMovie.Genre,
                 IsActive = true
-            });
+            };
+
+            EnsureMovieGenre(newMovie, genre);
+            dbContext.Movies.Add(newMovie);
         }
 
         await dbContext.SaveChangesAsync();
@@ -211,6 +225,25 @@ public static class DevelopmentDataSeeder
                     .Contains(movie.Title))
             .OrderBy(movie => movie.Title)
             .ToListAsync();
+    }
+
+    private static void EnsureMovieGenre(
+        Movie movie,
+        Genre? genre)
+    {
+        if (genre is null ||
+            movie.MovieGenres.Any(movieGenre =>
+                movieGenre.GenreId == genre.Id))
+        {
+            return;
+        }
+
+        movie.MovieGenres.Add(new MovieGenre
+        {
+            MovieId = movie.Id,
+            GenreId = genre.Id,
+            CreatedAt = DateTime.UtcNow
+        });
     }
 
     private static async Task<Room> EnsureTheaterAsync(

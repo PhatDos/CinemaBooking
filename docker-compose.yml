@@ -32,7 +32,7 @@ services:
       MovieImport__RunOnDay: "${MOVIE_IMPORT_RUN_ON_DAY:-1}"
       MovieImport__RunAtHour: "${MOVIE_IMPORT_RUN_AT_HOUR:-3}"
       MovieImport__RequestDelayMs: "${MOVIE_IMPORT_REQUEST_DELAY_MS:-1500}"
-      MovieImport__MaxMovies: "${MOVIE_IMPORT_MAX_MOVIES:-40}"
+      MovieImport__MaxMovies: "${MOVIE_IMPORT_MAX_MOVIES:-0}"
       MovieImport__UserAgent: "${MOVIE_IMPORT_USER_AGENT:-CinemaBookingBot/1.0 (+local-dev)}"
       Email__Provider: "${EMAIL_PROVIDER:-Logging}"
       Email__Smtp__Host: "${EMAIL_SMTP_HOST:-}"

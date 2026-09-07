@@ -13,6 +13,14 @@ public sealed class MovieImportCandidateResponse
 
     public string SourceUrl { get; init; } = string.Empty;
 
+    public string? ListingTitle { get; init; }
+
+    public IReadOnlyList<string> ListingGenres { get; init; } = [];
+
+    public decimal? Popularity { get; init; }
+
+    public long? ReleaseTimestamp { get; init; }
+
     public string Title { get; init; } = string.Empty;
 
     public string NormalizedTitle { get; init; } = string.Empty;
@@ -29,6 +37,8 @@ public sealed class MovieImportCandidateResponse
 
     public string? GenreName { get; init; }
 
+    public IReadOnlyList<string> GenreNames { get; init; } = [];
+
     public Guid? MatchMovieId { get; init; }
 
     public MovieResponse? MatchMovie { get; init; }
@@ -36,6 +46,8 @@ public sealed class MovieImportCandidateResponse
     public MovieImportCandidateStatus Status { get; init; }
 
     public string? Warnings { get; init; }
+
+    public string? DetailError { get; init; }
 
     public DateTime CreatedAt { get; init; }
 

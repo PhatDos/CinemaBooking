@@ -44,8 +44,14 @@ export default function GenresScreen() {
       return [];
     }
 
-    return movies.filter((movie) => movie.genreId === selectedGenreId);
-  }, [movies, selectedGenreId]);
+    return movies.filter((movie) =>
+      movie.genres?.some((genre) => genre.id === selectedGenreId) ||
+      movie.genreId === selectedGenreId ||
+      (
+        selectedGenre &&
+        movie.genre?.toLowerCase() === selectedGenre.name.toLowerCase()
+      ));
+  }, [movies, selectedGenre, selectedGenreId]);
 
   useEffect(() => {
     if (isAuthenticated) {

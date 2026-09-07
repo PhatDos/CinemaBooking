@@ -28,7 +28,7 @@ import type { Genre, Movie, UpdateMovieRequest } from '@/src/types';
 type MovieFormState = {
   description: string;
   durationMinutes: string;
-  genreId: string;
+  genreIds: string[];
   isActive: boolean;
   posterPublicId: string;
   posterUrl: string;
@@ -40,7 +40,7 @@ type MovieFormState = {
 const defaultForm: MovieFormState = {
   description: '',
   durationMinutes: '',
-  genreId: '',
+  genreIds: [],
   isActive: true,
   posterPublicId: '',
   posterUrl: '',
@@ -208,6 +208,19 @@ export default function MovieFormScreen() {
     }));
   }
 
+  function toggleGenre(genreId: string) {
+    setForm((current) => {
+      const selected = current.genreIds.includes(genreId);
+
+      return {
+        ...current,
+        genreIds: selected
+          ? current.genreIds.filter((id) => id !== genreId)
+          : [...current.genreIds, genreId],
+      };
+    });
+  }
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -297,7 +310,7 @@ export default function MovieFormScreen() {
           </View>
 
           <View style={styles.genreHeader}>
-            <Text style={styles.label}>Genre</Text>
+          <Text style={styles.label}>Genres</Text>
             <AnimatedPressable
               contentStyle={styles.manageGenresButton}
               disabled={saving}
@@ -311,7 +324,7 @@ export default function MovieFormScreen() {
           ) : (
             <View style={styles.genreGrid}>
               {genres.map((genre) => {
-                const selected = form.genreId === genre.id;
+                const selected = form.genreIds.includes(genre.id);
 
                 return (
                   <AnimatedPressable
@@ -321,7 +334,7 @@ export default function MovieFormScreen() {
                       selected && styles.genreOptionSelected,
                     ]}
                     disabled={saving}
-                    onPress={() => updateField('genreId', genre.id)}>
+                    onPress={() => toggleGenre(genre.id)}>
                     <Image
                       contentFit="cover"
                       source={{ uri: genre.imageUrl }}
@@ -440,7 +453,9 @@ function toFormState(movie: Movie): MovieFormState {
   return {
     description: movie.description,
     durationMinutes: movie.durationMinutes.toString(),
-    genreId: movie.genreId ?? '',
+    genreIds: movie.genres?.length
+      ? movie.genres.map((genre) => genre.id)
+      : movie.genreId ? [movie.genreId] : [],
     isActive: movie.isActive,
     posterPublicId: movie.posterPublicId ?? '',
     posterUrl: movie.posterUrl ?? '',
@@ -451,10 +466,13 @@ function toFormState(movie: Movie): MovieFormState {
 }
 
 function toRequest(form: MovieFormState): UpdateMovieRequest {
+  const genreIds = form.genreIds;
+
   return {
     description: form.description.trim(),
     durationMinutes: Number(form.durationMinutes),
-    genreId: form.genreId || null,
+    genreId: genreIds[0] ?? null,
+    genreIds,
     isActive: form.isActive,
     posterPublicId: toOptionalString(form.posterPublicId),
     posterUrl: toOptionalString(form.posterUrl),
@@ -483,8 +501,8 @@ function validateForm(form: MovieFormState) {
     return 'Release date must use YYYY-MM-DD.';
   }
 
-  if (!form.genreId) {
-    return 'Genre is required.';
+  if (form.genreIds.length === 0) {
+    return 'At least one genre is required.';
   }
 
   if (!form.posterUrl.startsWith('file:') &&

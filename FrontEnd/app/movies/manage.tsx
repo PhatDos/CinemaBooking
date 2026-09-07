@@ -47,7 +47,11 @@ export default function MovieManageScreen() {
     }
 
     return movies.filter((movie) =>
-      [movie.title, movie.genre ?? '', movie.description]
+      [
+        movie.title,
+        getGenreLabel(movie),
+        movie.description,
+      ]
         .some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
   }, [movies, query]);
@@ -215,7 +219,9 @@ export default function MovieManageScreen() {
                     <Text style={styles.meta}>
                       {item.durationMinutes} min | {formatDate(item.releaseDate)}
                     </Text>
-                    {item.genre ? <Text style={styles.genre}>{item.genre}</Text> : null}
+                    {getGenreLabel(item) ? (
+                      <Text style={styles.genre}>{getGenreLabel(item)}</Text>
+                    ) : null}
                     <Text numberOfLines={2} style={styles.description}>
                       {item.description}
                     </Text>
@@ -301,10 +307,13 @@ function CenteredLoader() {
 }
 
 function toUpdateRequest(movie: Movie, isActive: boolean): UpdateMovieRequest {
+  const genreIds = getMovieGenreIds(movie);
+
   return {
     description: movie.description,
     durationMinutes: movie.durationMinutes,
-    genreId: movie.genreId,
+    genreId: genreIds[0] ?? null,
+    genreIds,
     isActive,
     posterPublicId: movie.posterPublicId,
     posterUrl: movie.posterUrl,
@@ -312,6 +321,18 @@ function toUpdateRequest(movie: Movie, isActive: boolean): UpdateMovieRequest {
     title: movie.title,
     trailerUrl: movie.trailerUrl,
   };
+}
+
+function getMovieGenreIds(movie: Movie) {
+  return movie.genres?.length
+    ? movie.genres.map((genre) => genre.id)
+    : movie.genreId ? [movie.genreId] : [];
+}
+
+function getGenreLabel(movie: Movie) {
+  return movie.genres?.length
+    ? movie.genres.map((genre) => genre.name).join(', ')
+    : movie.genre ?? '';
 }
 
 function formatDate(value: string) {

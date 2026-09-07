@@ -15,7 +15,7 @@ public class GenreService
     private const int MaximumImageUrlLength = 1000;
 
     private static readonly TimeSpan CacheDuration =
-        TimeSpan.FromMinutes(30);
+        TimeSpan.FromHours(30);
 
     private readonly IGenreRepository _genreRepository;
     private readonly IMemoryCache _cache;

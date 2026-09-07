@@ -21,6 +21,15 @@ public sealed class MovieImportCandidateConfiguration :
             .HasMaxLength(1000)
             .IsRequired();
 
+        builder.Property(candidate => candidate.ListingTitle)
+            .HasMaxLength(200);
+
+        builder.Property(candidate => candidate.ListingGenres)
+            .HasMaxLength(500);
+
+        builder.Property(candidate => candidate.Popularity)
+            .HasPrecision(18, 6);
+
         builder.Property(candidate => candidate.Title)
             .HasMaxLength(200)
             .IsRequired();
@@ -40,7 +49,7 @@ public sealed class MovieImportCandidateConfiguration :
             .HasMaxLength(1000);
 
         builder.Property(candidate => candidate.GenreName)
-            .HasMaxLength(200);
+            .HasMaxLength(500);
 
         builder.Property(candidate => candidate.Status)
             .HasConversion<string>()
@@ -48,6 +57,9 @@ public sealed class MovieImportCandidateConfiguration :
             .IsRequired();
 
         builder.Property(candidate => candidate.Warnings)
+            .HasMaxLength(2000);
+
+        builder.Property(candidate => candidate.DetailError)
             .HasMaxLength(2000);
 
         builder.Property(candidate => candidate.ContentHash)

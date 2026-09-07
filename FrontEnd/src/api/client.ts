@@ -8,6 +8,9 @@ export class ApiError extends Error {
     message: string,
     public readonly status: number,
     public readonly data: unknown,
+    public readonly method?: string,
+    public readonly path?: string,
+    public readonly url?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -31,6 +34,8 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const { auth = true, body, headers: optionHeaders, ...requestOptions } = options;
   const headers = new Headers(optionHeaders);
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const method = requestOptions.method?.toUpperCase() ?? 'GET';
+  const url = toApiUrl(path);
 
   headers.set('Accept', 'application/json');
 
@@ -45,16 +50,19 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   let response: Response;
 
   try {
-    response = await fetch(toApiUrl(path), {
+    response = await fetch(url, {
       ...requestOptions,
       headers,
       body: serializeBody(body, isFormData),
     });
   } catch (error) {
     throw new ApiError(
-      'Cannot connect to backend. Check Wi-Fi and API server.',
+      `Cannot connect to backend for ${method} ${path}. Check Wi-Fi and API server.`,
       0,
       error,
+      method,
+      path,
+      url,
     );
   }
 
@@ -65,7 +73,14 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       await unauthorizedHandler?.();
     }
 
-    throw new ApiError(getErrorMessage(data, response.status), response.status, data);
+    throw new ApiError(
+      getErrorMessage(data, response.status, method, path),
+      response.status,
+      data,
+      method,
+      path,
+      url,
+    );
   }
 
   return data as T;
@@ -83,6 +98,9 @@ export async function checkHealth(): Promise<string> {
       'Cannot connect to backend. Check Wi-Fi and API server.',
       0,
       error,
+      'GET',
+      '/health',
+      toApiUrl('/health'),
     );
   }
 
@@ -129,7 +147,12 @@ async function parseResponse(response: Response) {
   return text;
 }
 
-function getErrorMessage(data: unknown, status: number) {
+function getErrorMessage(
+  data: unknown,
+  status: number,
+  method: string,
+  path: string,
+) {
   if (isProblemDetails(data) && data.detail) {
     return data.detail;
   }
@@ -138,7 +161,7 @@ function getErrorMessage(data: unknown, status: number) {
     return data.title;
   }
 
-  return `Backend returned ${status}`;
+  return `Backend returned ${status} for ${method} ${path}`;
 }
 
 function isProblemDetails(data: unknown): data is { title?: string; detail?: string } {

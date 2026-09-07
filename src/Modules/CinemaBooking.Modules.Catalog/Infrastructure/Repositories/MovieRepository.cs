@@ -19,6 +19,8 @@ public class MovieRepository : IMovieRepository
         return await _dbContext.Movies
             .AsNoTracking()
             .Include(movie => movie.GenreRef)
+            .Include(movie => movie.MovieGenres)
+                .ThenInclude(movieGenre => movieGenre.Genre)
             .ToListAsync();
     }
 
@@ -27,6 +29,8 @@ public class MovieRepository : IMovieRepository
         return await _dbContext.Movies
             .AsNoTracking()
             .Include(movie => movie.GenreRef)
+            .Include(movie => movie.MovieGenres)
+                .ThenInclude(movieGenre => movieGenre.Genre)
             .FirstOrDefaultAsync(movie => movie.Id == id);
     }
 
@@ -34,6 +38,8 @@ public class MovieRepository : IMovieRepository
     {
         return await _dbContext.Movies
             .Include(movie => movie.GenreRef)
+            .Include(movie => movie.MovieGenres)
+                .ThenInclude(movieGenre => movieGenre.Genre)
             .FirstOrDefaultAsync(movie => movie.Id == id);
     }
 

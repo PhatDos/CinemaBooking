@@ -9,5 +9,5 @@ public sealed record ImportedMovieData(
     DateTime? ReleaseDate,
     string? PosterUrl,
     string? TrailerUrl,
-    string? GenreName,
+    IReadOnlyList<string> GenreNames,
     string ContentHash);

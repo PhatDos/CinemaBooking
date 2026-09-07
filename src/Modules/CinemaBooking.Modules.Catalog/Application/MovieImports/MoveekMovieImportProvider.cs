@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
@@ -27,24 +28,98 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
 
     public string Source => ProviderSource;
 
+    public async Task<IReadOnlyList<ImportedMovieListing>> DiscoverAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var listings = new Dictionary<string, ImportedMovieListing>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var listingPath in _options.Moveek.ListingPaths)
+        {
+            var listingUrl =
+                ToAbsoluteUrl(listingPath);
+            var html =
+                await _httpClient.GetStringAsync(
+                    listingUrl,
+                    cancellationToken);
+            var document =
+                await _parser.ParseDocumentAsync(
+                    html,
+                    cancellationToken);
+
+            foreach (var item in document.QuerySelectorAll(
+                         ".item[data-popularity][data-release]"))
+            {
+                var anchor =
+                    item.QuerySelector("a[href^='/phim/']");
+                var href =
+                    anchor?.GetAttribute("href");
+
+                if (string.IsNullOrWhiteSpace(href))
+                {
+                    continue;
+                }
+
+                var sourceUrl = ToAbsoluteUrl(href);
+                var title =
+                    NormalizeOptional(anchor?.GetAttribute("title")) ??
+                    NormalizeOptional(anchor?.TextContent) ??
+                    sourceUrl;
+
+                listings[sourceUrl] = new ImportedMovieListing(
+                    Source,
+                    sourceUrl,
+                    title,
+                    GetListingGenres(item.ClassList),
+                    ParseDecimal(item.GetAttribute("data-popularity")),
+                    ParseLong(item.GetAttribute("data-release")));
+            }
+
+            if (_options.RequestDelayMs > 0)
+            {
+                await Task.Delay(
+                    _options.RequestDelayMs,
+                    cancellationToken);
+            }
+        }
+
+        var result = listings.Values
+            .OrderByDescending(item => item.Popularity ?? 0)
+            .ThenBy(item => item.Title)
+            .ToList();
+
+        return _options.MaxMovies > 0
+            ? result.Take(_options.MaxMovies).ToList()
+            : result;
+    }
+
+    public async Task<ImportedMovieData?> FetchDetailAsync(
+        string sourceUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var html =
+            await _httpClient.GetStringAsync(
+                sourceUrl,
+                cancellationToken);
+
+        return await ParseMoviePageAsync(
+            html,
+            sourceUrl,
+            cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ImportedMovieData>> FetchAsync(
         CancellationToken cancellationToken = default)
     {
-        var urls = await FetchMovieUrlsAsync(cancellationToken);
+        var listings = await DiscoverAsync(cancellationToken);
         var movies = new List<ImportedMovieData>();
 
-        foreach (var url in urls.Take(_options.MaxMovies))
+        foreach (var listing in listings)
         {
             try
             {
-                var html =
-                    await _httpClient.GetStringAsync(
-                        url,
-                        cancellationToken);
-
-                var movie = await ParseMoviePageAsync(
-                    html,
-                    url,
+                var movie = await FetchDetailAsync(
+                    listing.SourceUrl,
                     cancellationToken);
 
                 if (movie is not null)
@@ -64,7 +139,7 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
                 _logger.LogWarning(
                     ex,
                     "Unable to import Moveek movie page {MovieUrl}.",
-                    url);
+                    listing.SourceUrl);
             }
         }
 
@@ -107,8 +182,8 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
             ParseDuration(GetString(movieJson, "duration"));
         var releaseDate =
             ParseDate(GetString(movieJson, "datePublished"));
-        var genre =
-            GetGenre(movieJson);
+        var genres =
+            GetGenres(movieJson);
         var posterUrl =
             GetImageUrl(movieJson) ??
             document.QuerySelector("meta[property='og:image']")
@@ -127,53 +202,15 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
             releaseDate,
             NormalizeOptionalUrl(posterUrl),
             trailerUrl,
-            NormalizeOptional(genre),
+            genres,
             MovieImportNormalizer.Hash(
                 title,
                 description,
-                duration?.ToString(),
+                duration?.ToString(CultureInfo.InvariantCulture),
                 releaseDate?.ToString("O"),
                 posterUrl,
                 trailerUrl,
-                genre));
-    }
-
-    private async Task<IReadOnlyList<string>> FetchMovieUrlsAsync(
-        CancellationToken cancellationToken)
-    {
-        var urls = new HashSet<string>(
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (var listingPath in _options.Moveek.ListingPaths)
-        {
-            var listingUrl =
-                ToAbsoluteUrl(listingPath);
-            var html =
-                await _httpClient.GetStringAsync(
-                    listingUrl,
-                    cancellationToken);
-            var document =
-                await _parser.ParseDocumentAsync(
-                    html,
-                    cancellationToken);
-
-            foreach (var href in document
-                         .QuerySelectorAll("a[href^='/phim/']")
-                         .Select(anchor => anchor.GetAttribute("href"))
-                         .Where(href => !string.IsNullOrWhiteSpace(href)))
-            {
-                urls.Add(ToAbsoluteUrl(href!));
-            }
-
-            if (_options.RequestDelayMs > 0)
-            {
-                await Task.Delay(
-                    _options.RequestDelayMs,
-                    cancellationToken);
-            }
-        }
-
-        return urls.ToList();
+                string.Join(", ", genres)));
     }
 
     private string ToAbsoluteUrl(string pathOrUrl)
@@ -181,7 +218,8 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
         if (Uri.TryCreate(
                 pathOrUrl,
                 UriKind.Absolute,
-                out var absolute))
+                out var absolute) &&
+            absolute.Scheme is "http" or "https")
         {
             return absolute.ToString();
         }
@@ -279,24 +317,24 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
             : null;
     }
 
-    private static string? GetGenre(JsonElement? element)
+    private static IReadOnlyList<string> GetGenres(JsonElement? element)
     {
         if (element is null ||
             !element.Value.TryGetProperty("genre", out var property))
         {
-            return null;
+            return [];
         }
 
         return property.ValueKind switch
         {
-            JsonValueKind.String => property.GetString(),
-            JsonValueKind.Array => string.Join(
-                ", ",
-                property.EnumerateArray()
-                    .Where(item => item.ValueKind == JsonValueKind.String)
-                    .Select(item => item.GetString())
-                    .Where(value => !string.IsNullOrWhiteSpace(value))),
-            _ => null
+            JsonValueKind.String => SplitGenreNames(property.GetString()),
+            JsonValueKind.Array => property.EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString())
+                .SelectMany(SplitGenreNames)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+            _ => []
         };
     }
 
@@ -346,6 +384,70 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
             value,
             out var date)
             ? date.Date
+            : null;
+    }
+
+    private static IReadOnlyList<string> GetListingGenres(
+        IEnumerable<string> classNames)
+    {
+        return classNames
+            .Where(className =>
+                className.StartsWith(
+                    "genre-",
+                    StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(
+                    className,
+                    "genre-dropdown",
+                    StringComparison.OrdinalIgnoreCase))
+            .Select(className => className["genre-".Length..])
+            .Select(HumanizeGenreSlug)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<string> SplitGenreNames(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? []
+            : value.Split(
+                    [',', '/', '|'],
+                    StringSplitOptions.TrimEntries |
+                    StringSplitOptions.RemoveEmptyEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+    }
+
+    private static string HumanizeGenreSlug(string value)
+    {
+        return string.Join(
+            " ",
+            value.Split(
+                    '-',
+                    StringSplitOptions.TrimEntries |
+                    StringSplitOptions.RemoveEmptyEntries)
+                .Select(part =>
+                    CultureInfo.InvariantCulture.TextInfo.ToTitleCase(part)));
+    }
+
+    private static decimal? ParseDecimal(string? value)
+    {
+        return decimal.TryParse(
+            value,
+            NumberStyles.Number,
+            CultureInfo.InvariantCulture,
+            out var result)
+            ? result
+            : null;
+    }
+
+    private static long? ParseLong(string? value)
+    {
+        return long.TryParse(
+            value,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var result)
+            ? result
             : null;
     }
 

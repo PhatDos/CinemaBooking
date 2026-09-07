@@ -51,6 +51,8 @@ export const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 16,
   },
   primaryButton: {
@@ -134,6 +136,7 @@ export const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: '#e7eaf0',
     borderRadius: radius.md,
@@ -143,7 +146,8 @@ export const styles = StyleSheet.create({
   },
   poster: {
     width: 98,
-    minHeight: 172,
+    height: 172,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.ink,
@@ -179,6 +183,9 @@ export const styles = StyleSheet.create({
   },
   badgeSuggested: {
     backgroundColor: '#e0f2fe',
+  },
+  badgeDiscovered: {
+    backgroundColor: '#f2f4f7',
   },
   badgeReview: {
     backgroundColor: '#fef3c7',

@@ -12,6 +12,14 @@ public sealed class MovieImportCandidate
 
     public string SourceUrl { get; set; } = string.Empty;
 
+    public string? ListingTitle { get; set; }
+
+    public string? ListingGenres { get; set; }
+
+    public decimal? Popularity { get; set; }
+
+    public long? ReleaseTimestamp { get; set; }
+
     public string Title { get; set; } = string.Empty;
 
     public string NormalizedTitle { get; set; } = string.Empty;
@@ -35,6 +43,8 @@ public sealed class MovieImportCandidate
     public MovieImportCandidateStatus Status { get; set; }
 
     public string? Warnings { get; set; }
+
+    public string? DetailError { get; set; }
 
     public string ContentHash { get; set; } = string.Empty;
 

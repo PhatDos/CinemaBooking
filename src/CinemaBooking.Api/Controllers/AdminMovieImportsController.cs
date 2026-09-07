@@ -18,6 +18,19 @@ public sealed class AdminMovieImportsController : ControllerBase
         _movieImportService = movieImportService;
     }
 
+    [HttpPost("discover")]
+    public async Task<IActionResult> Discover(
+        MovieImportRunRequest request,
+        CancellationToken cancellationToken)
+    {
+        var batch =
+            await _movieImportService.DiscoverAsync(
+                request,
+                cancellationToken);
+
+        return Ok(batch);
+    }
+
     [HttpPost("run")]
     public async Task<IActionResult> Run(
         MovieImportRunRequest request,
@@ -26,6 +39,19 @@ public sealed class AdminMovieImportsController : ControllerBase
         var batch =
             await _movieImportService.RunAsync(
                 request,
+                cancellationToken);
+
+        return Ok(batch);
+    }
+
+    [HttpPost("{batchId:guid}/crawl")]
+    public async Task<IActionResult> CrawlBatch(
+        Guid batchId,
+        CancellationToken cancellationToken)
+    {
+        var batch =
+            await _movieImportService.CrawlBatchAsync(
+                batchId,
                 cancellationToken);
 
         return Ok(batch);
@@ -72,5 +98,16 @@ public sealed class AdminMovieImportsController : ControllerBase
             cancellationToken);
 
         return NoContent();
+    }
+
+    [HttpPost("/api/admin/movie-import-candidates/{candidateId:guid}/crawl")]
+    public async Task<IActionResult> CrawlCandidate(
+        Guid candidateId,
+        CancellationToken cancellationToken)
+    {
+        return Ok(
+            await _movieImportService.CrawlCandidateAsync(
+                candidateId,
+                cancellationToken));
     }
 }
