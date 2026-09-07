@@ -18,6 +18,9 @@ public sealed record CreateCinemaRequest(
     [MaxLength(1000)]
     string? Description,
 
+    [MaxLength(1000)]
+    string? ImageUrl = null,
+
     [MaxLength(20)]
     string? ProvinceCode = null,
 

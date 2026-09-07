@@ -110,6 +110,13 @@ export const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.ink,
   },
+  thumbnail: {
+    width: 86,
+    minHeight: 86,
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+    overflow: 'hidden',
+  },
   avatarText: {
     color: colors.surface,
     fontSize: 18,

@@ -2,6 +2,11 @@ namespace CinemaBooking.Modules.Identity.Contracts;
 
 public interface IIdentityModule
 {
+    Task<IReadOnlyList<AdminUserInfo>> GetAdminUsersAsync(
+        string? search = null,
+        bool staffOnly = false,
+        CancellationToken cancellationToken = default);
+
     Task AddToStaffRoleAsync(
         Guid userId,
         CancellationToken cancellationToken = default);

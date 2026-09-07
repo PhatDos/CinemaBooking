@@ -29,6 +29,15 @@ export type CurrentUser = {
   roles: string[];
 };
 
+export type AdminUser = {
+  id: string;
+  email: string;
+  userName: string | null;
+  createdAt: string;
+  roles: string[];
+  assignedCinemaIds: string[];
+};
+
 export type ProblemDetails = {
   status?: number;
   title?: string;
@@ -271,6 +280,7 @@ export type Cinema = {
   address: string;
   city: string;
   description?: string | null;
+  imageUrl?: string | null;
   isActive: boolean;
   rooms?: Room[];
   provinceCode?: string | null;

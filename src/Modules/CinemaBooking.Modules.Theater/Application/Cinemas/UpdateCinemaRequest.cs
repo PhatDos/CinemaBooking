@@ -18,6 +18,9 @@ public sealed record UpdateCinemaRequest(
     [MaxLength(1000)]
     string? Description,
 
+    [MaxLength(1000)]
+    string? ImageUrl,
+
     bool IsActive,
 
     [MaxLength(20)]

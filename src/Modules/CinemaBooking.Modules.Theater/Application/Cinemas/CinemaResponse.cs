@@ -6,6 +6,7 @@ public sealed record CinemaResponse(
     string Address,
     string City,
     string? Description,
+    string? ImageUrl,
     bool IsActive,
     List<RoomResponse> Rooms,
     string? ProvinceCode = null,

@@ -6,7 +6,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -104,6 +103,37 @@ export default function GenresScreen() {
     return <CenteredLoader />;
   }
 
+  const genreHeader = (
+    <View style={styles.genreGrid}>
+      {genres.map((genre, index) => {
+        const selected = genre.id === selectedGenreId;
+
+        return (
+          <FadeInView delay={index * 35} key={genre.id} style={styles.genreItem}>
+            <AnimatedPressable
+              contentStyle={[
+                styles.genreCard,
+                selected && styles.genreCardSelected,
+              ]}
+              onPress={() => setSelectedGenreId(genre.id)}>
+              <Image
+                contentFit="cover"
+                source={{ uri: genre.imageUrl }}
+                style={StyleSheet.absoluteFill}
+                transition={180}
+              />
+              <View style={styles.genreShade}>
+                <Text numberOfLines={1} style={styles.genreName}>
+                  {genre.name}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          </FadeInView>
+        );
+      })}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -132,98 +162,65 @@ export default function GenresScreen() {
           </Pressable>
         </View>
       ) : (
-        <>
-          <ScrollView
-            contentContainerStyle={styles.genreRail}
-            horizontal
-            showsHorizontalScrollIndicator={false}>
-            {genres.map((genre, index) => {
-              const selected = genre.id === selectedGenreId;
-
-              return (
-                <FadeInView delay={index * 35} key={genre.id}>
-                  <AnimatedPressable
-                    contentStyle={[
-                      styles.genreCard,
-                      selected && styles.genreCardSelected,
-                    ]}
-                    onPress={() => setSelectedGenreId(genre.id)}>
+        <FlatList
+          contentContainerStyle={styles.list}
+          data={filteredMovies}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              onRefresh={() => {
+                setRefreshing(true);
+                void loadData(false);
+              }}
+              refreshing={refreshing}
+            />
+          }
+          ListHeaderComponent={genreHeader}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>No movies in this genre</Text>
+              <Text style={styles.emptyText}>Choose another genre or add movies from Admin.</Text>
+            </View>
+          }
+          renderItem={({ item, index }) => (
+            <FadeInView delay={index * 45}>
+              <AnimatedPressable
+                contentStyle={styles.movieCard}
+                onPress={() =>
+                  router.push({
+                    pathname: '/movies/[id]',
+                    params: { id: item.id },
+                  })
+                }>
+                <View style={styles.poster}>
+                  {item.posterUrl ? (
                     <Image
                       contentFit="cover"
-                      source={{ uri: genre.imageUrl }}
+                      source={{ uri: item.posterUrl }}
                       style={StyleSheet.absoluteFill}
-                      transition={180}
+                      transition={220}
                     />
-                    <View style={styles.genreShade}>
-                      <Text numberOfLines={1} style={styles.genreName}>
-                        {genre.name}
-                      </Text>
-                    </View>
-                  </AnimatedPressable>
-                </FadeInView>
-              );
-            })}
-          </ScrollView>
+                  ) : (
+                    <Text style={styles.posterText}>{getInitials(item.title)}</Text>
+                  )}
+                </View>
 
-          <FlatList
-            contentContainerStyle={styles.list}
-            data={filteredMovies}
-            keyExtractor={(item) => item.id}
-            refreshControl={
-              <RefreshControl
-                onRefresh={() => {
-                  setRefreshing(true);
-                  void loadData(false);
-                }}
-                refreshing={refreshing}
-              />
-            }
-            ListEmptyComponent={
-              <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>No movies in this genre</Text>
-                <Text style={styles.emptyText}>Choose another genre or add movies from Admin.</Text>
-              </View>
-            }
-            renderItem={({ item, index }) => (
-              <FadeInView delay={index * 45}>
-                <AnimatedPressable
-                  contentStyle={styles.movieCard}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/movies/[id]',
-                      params: { id: item.id },
-                    })
-                  }>
-                  <View style={styles.poster}>
-                    {item.posterUrl ? (
-                      <Image
-                        contentFit="cover"
-                        source={{ uri: item.posterUrl }}
-                        style={StyleSheet.absoluteFill}
-                        transition={220}
-                      />
-                    ) : (
-                      <Text style={styles.posterText}>{getInitials(item.title)}</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.movieInfo}>
-                    <Text numberOfLines={2} style={styles.movieTitle}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.movieMeta}>
-                      {item.durationMinutes} min | {formatDate(item.releaseDate)}
-                    </Text>
-                    <Text numberOfLines={2} style={styles.movieDescription}>
-                      {item.description || 'No description yet.'}
-                    </Text>
-                    <Text style={styles.movieAction}>View showtimes</Text>
-                  </View>
-                </AnimatedPressable>
-              </FadeInView>
-            )}
-          />
-        </>
+                <View style={styles.movieInfo}>
+                  <Text numberOfLines={2} style={styles.movieTitle}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.movieMeta}>
+                    {item.durationMinutes} min | {formatDate(item.releaseDate)}
+                  </Text>
+                  <Text numberOfLines={2} style={styles.movieDescription}>
+                    {item.description || 'No description yet.'}
+                  </Text>
+                  <Text style={styles.movieAction}>View showtimes</Text>
+                </View>
+              </AnimatedPressable>
+            </FadeInView>
+          )}
+        />
       )}
 
       <BottomNav />

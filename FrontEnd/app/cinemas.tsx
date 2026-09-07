@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Redirect, router, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -5,6 +6,7 @@ import {
   FlatList,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -235,9 +237,20 @@ export default function CinemasScreen() {
                   onPress={() =>
                     router.push(`/cinemas/${item.id}` as Href)
                   }>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{getInitials(formatCinemaName(item.name))}</Text>
-                  </View>
+                  {item.imageUrl ? (
+                    <View style={styles.thumbnail}>
+                      <Image
+                        contentFit="cover"
+                        source={{ uri: item.imageUrl }}
+                        style={StyleSheet.absoluteFill}
+                        transition={220}
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{getInitials(formatCinemaName(item.name))}</Text>
+                    </View>
+                  )}
 
                   <View style={styles.cardBody}>
                     <View style={styles.cardHeader}>

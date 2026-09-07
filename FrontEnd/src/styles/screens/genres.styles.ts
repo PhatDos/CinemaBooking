@@ -53,14 +53,19 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
-  genreRail: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 12,
+  genreGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+    marginBottom: 18,
+  },
+  genreItem: {
+    width: '48.5%',
   },
   genreCard: {
-    width: 152,
-    height: 92,
+    width: '100%',
+    aspectRatio: 16 / 9,
     borderWidth: 2,
     borderColor: 'transparent',
     borderRadius: radius.md,

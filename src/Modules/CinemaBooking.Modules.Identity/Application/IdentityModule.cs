@@ -21,6 +21,66 @@ public sealed class IdentityModule : IIdentityModule
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<AdminUserInfo>> GetAdminUsersAsync(
+        string? search = null,
+        bool staffOnly = false,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedSearch = search?.Trim().ToLowerInvariant();
+        var query = _dbContext.Users.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            query = query.Where(user =>
+                (user.Email != null &&
+                    user.Email.ToLower().Contains(normalizedSearch)) ||
+                (user.UserName != null &&
+                    user.UserName.ToLower().Contains(normalizedSearch)));
+        }
+
+        var users = await query
+            .OrderBy(user => user.Email)
+            .ToListAsync(cancellationToken);
+
+        var assignments = await _dbContext.StaffCinemaAssignments
+            .AsNoTracking()
+            .GroupBy(assignment => assignment.UserId)
+            .Select(group => new
+            {
+                UserId = group.Key,
+                CinemaIds = group
+                    .OrderBy(assignment => assignment.CreatedAt)
+                    .Select(assignment => assignment.CinemaId)
+                    .ToList()
+            })
+            .ToDictionaryAsync(
+                item => item.UserId,
+                item => (IReadOnlyList<Guid>)item.CinemaIds,
+                cancellationToken);
+
+        var result = new List<AdminUserInfo>();
+
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+
+            if (staffOnly && !roles.Contains(AppRoles.Staff))
+            {
+                continue;
+            }
+
+            result.Add(new AdminUserInfo(
+                user.Id,
+                user.Email ?? string.Empty,
+                user.UserName,
+                user.CreatedAt,
+                roles.ToList(),
+                assignments.GetValueOrDefault(user.Id, [])));
+        }
+
+        return result;
+    }
+
     public async Task AddToStaffRoleAsync(
         Guid userId,
         CancellationToken cancellationToken = default)

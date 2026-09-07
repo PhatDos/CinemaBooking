@@ -39,6 +39,7 @@ public class TheaterModule : ITheaterModule
                 cinema.Address,
                 cinema.City,
                 cinema.Description,
+                cinema.ImageUrl,
                 cinema.IsActive,
                 cinema.ProvinceCode,
                 cinema.ProvinceName,
@@ -78,6 +79,7 @@ public class TheaterModule : ITheaterModule
                 cinema.Address,
                 cinema.City,
                 cinema.Description,
+                cinema.ImageUrl,
                 cinema.IsActive,
                 cinema.ProvinceCode,
                 cinema.ProvinceName,
@@ -107,6 +109,7 @@ public class TheaterModule : ITheaterModule
                 cinema.Address,
                 cinema.City,
                 cinema.Description,
+                cinema.ImageUrl,
                 cinema.IsActive,
                 cinema.ProvinceCode,
                 cinema.ProvinceName,
@@ -121,6 +124,7 @@ public class TheaterModule : ITheaterModule
         string address,
         string city,
         string? description,
+        string? imageUrl = null,
         string? provinceCode = null,
         string? provinceName = null,
         string? wardCode = null,
@@ -144,6 +148,7 @@ public class TheaterModule : ITheaterModule
             WardName = NormalizeOptional(wardName),
             AddressLine = normalizedAddressLine,
             Description = description?.Trim(),
+            ImageUrl = NormalizeOptional(imageUrl),
             IsActive = true
         };
 
@@ -160,6 +165,7 @@ public class TheaterModule : ITheaterModule
         string address,
         string city,
         string? description,
+        string? imageUrl,
         bool isActive,
         string? provinceCode = null,
         string? provinceName = null,
@@ -193,6 +199,7 @@ public class TheaterModule : ITheaterModule
         cinema.WardName = NormalizeOptional(wardName);
         cinema.AddressLine = normalizedAddressLine;
         cinema.Description = description?.Trim();
+        cinema.ImageUrl = NormalizeOptional(imageUrl);
         cinema.IsActive = isActive;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -281,6 +288,7 @@ public class TheaterModule : ITheaterModule
             cinema.Address,
             cinema.City,
             cinema.Description,
+            cinema.ImageUrl,
             cinema.IsActive,
             cinema.ProvinceCode,
             cinema.ProvinceName,

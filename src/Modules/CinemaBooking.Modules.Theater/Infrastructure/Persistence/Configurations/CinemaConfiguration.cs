@@ -42,6 +42,9 @@ public class CinemaConfiguration : IEntityTypeConfiguration<Cinema>
         builder.Property(cinema => cinema.Description)
             .HasMaxLength(1000);
 
+        builder.Property(cinema => cinema.ImageUrl)
+            .HasMaxLength(1000);
+
         builder.Property(cinema => cinema.IsActive)
             .IsRequired();
 

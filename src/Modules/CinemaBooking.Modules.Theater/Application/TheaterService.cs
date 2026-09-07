@@ -118,6 +118,7 @@ public class TheaterService
             AddressLine = NormalizeOptional(request.AddressLine) ??
                 request.Address.Trim(),
             Description = request.Description?.Trim(),
+            ImageUrl = NormalizeOptional(request.ImageUrl),
             IsActive = true
         };
 
@@ -300,6 +301,7 @@ public class TheaterService
             cinema.Address,
             cinema.City,
             cinema.Description,
+            cinema.ImageUrl,
             cinema.IsActive,
             cinema.Rooms.Select(ToResponse).ToList(),
             cinema.ProvinceCode,

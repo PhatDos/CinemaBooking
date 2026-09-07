@@ -22,6 +22,8 @@ public class Cinema
 
     public string? Description { get; set; }
 
+    public string? ImageUrl { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public ICollection<Room> Rooms { get; set; } = new List<Room>();

@@ -48,6 +48,14 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
     textTransform: 'uppercase',
   },
+  heroImage: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
   title: {
     marginTop: 4,
     color: colors.ink,

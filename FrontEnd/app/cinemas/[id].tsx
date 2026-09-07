@@ -120,6 +120,16 @@ export default function CinemaDetailScreen() {
         </View>
 
         <FadeInView>
+          {cinema.imageUrl ? (
+            <View style={styles.heroImage}>
+              <Image
+                contentFit="cover"
+                source={{ uri: cinema.imageUrl }}
+                style={StyleSheet.absoluteFill}
+                transition={240}
+              />
+            </View>
+          ) : null}
           <Text style={styles.kicker}>Cinema</Text>
           <Text style={styles.title}>{formatCinemaName(cinema.name)}</Text>
           <Text style={styles.subtitle}>

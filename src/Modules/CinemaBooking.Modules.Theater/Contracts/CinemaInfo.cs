@@ -6,6 +6,7 @@ public sealed record CinemaInfo(
     string Address,
     string City,
     string? Description,
+    string? ImageUrl,
     bool IsActive,
     string? ProvinceCode = null,
     string? ProvinceName = null,

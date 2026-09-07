@@ -18,6 +18,21 @@ public sealed class AdminUsersController : ControllerBase
         _identityModule = identityModule;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] string? search,
+        [FromQuery] bool staffOnly,
+        CancellationToken cancellationToken)
+    {
+        var users =
+            await _identityModule.GetAdminUsersAsync(
+                search,
+                staffOnly,
+                cancellationToken);
+
+        return Ok(users);
+    }
+
     [HttpPost("{userId:guid}/staff")]
     public async Task<IActionResult> MakeStaff(
         Guid userId,
