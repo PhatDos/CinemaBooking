@@ -13,7 +13,7 @@ export function getShowtimeById(id: string) {
 export function createShowtime(request: CreateShowtimeRequest) {
   return apiFetch<Showtime>('/api/showtimes', {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: request,
   });
 }
 
@@ -22,6 +22,6 @@ export function bulkCreateShowtimes(
 ) {
   return apiFetch<BulkCreateShowtimesResult>('/api/showtimes/bulk', {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: request,
   });
 }

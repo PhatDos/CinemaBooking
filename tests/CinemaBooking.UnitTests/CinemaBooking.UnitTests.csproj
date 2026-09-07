@@ -19,7 +19,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\CinemaBooking.Modules.Booking\CinemaBooking.Modules.Booking.csproj" />
     <ProjectReference Include="..\..\src\Modules\CinemaBooking.Modules.Catalog\CinemaBooking.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\..\src\Modules\CinemaBooking.Modules.Identity\CinemaBooking.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\CinemaBooking.Modules.Scheduling\CinemaBooking.Modules.Scheduling.csproj" />
     <ProjectReference Include="..\..\src\Modules\CinemaBooking.Modules.Ticketing\CinemaBooking.Modules.Ticketing.csproj" />
+    <ProjectReference Include="..\..\src\Modules\CinemaBooking.Modules.Theater\CinemaBooking.Modules.Theater.csproj" />
+    <ProjectReference Include="..\..\src\CinemaBooking.Api\CinemaBooking.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

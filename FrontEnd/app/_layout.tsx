@@ -25,6 +25,7 @@ export default function RootLayout() {
           <Stack.Screen name="cinemas/[id]/history" options={{ headerShown: false }} />
           <Stack.Screen name="bookings" options={{ headerShown: false }} />
           <Stack.Screen name="staff/manage" options={{ headerShown: false }} />
+          <Stack.Screen name="staff/showtimes" options={{ headerShown: false }} />
           <Stack.Screen name="staff/scan-ticket" options={{ headerShown: false }} />
           <Stack.Screen name="seats/[showtimeId]" options={{ headerShown: false }} />
           <Stack.Screen name="checkout/[bookingId]" options={{ headerShown: false }} />

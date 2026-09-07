@@ -26,8 +26,14 @@ const items: MoreItem[] = [
   {
     href: '/staff/manage' as Href,
     icon: 'people-outline',
-    label: 'Manage Staff',
+    label: 'Add / Manage Staff',
     roles: ['Admin'],
+  },
+  {
+    href: '/staff/showtimes' as Href,
+    icon: 'calendar-outline',
+    label: 'Manage Showtimes',
+    roles: ['Admin', 'Staff'],
   },
   {
     href: '/staff/scan-ticket' as Href,

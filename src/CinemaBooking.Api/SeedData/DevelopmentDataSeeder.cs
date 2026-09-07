@@ -27,6 +27,12 @@ public static class DevelopmentDataSeeder
         "Seed Movie: SQL Final Boss"
     ];
 
+    private static readonly string[] LegacyMovieTitlePrefixes =
+    [
+        "Bulk Movie ",
+        "Ticket Smoke Movie "
+    ];
+
     private static readonly SeedCinema[] Cinemas =
     [
         new(
@@ -229,9 +235,6 @@ public static class DevelopmentDataSeeder
             schedulingDbContext,
             movies,
             rooms.Select(room => room.Id).ToArray());
-
-        await NormalizeDevelopmentShowtimePricesAsync(
-            schedulingDbContext);
     }
 
     private static async Task RemoveLegacySeedDataAsync(
@@ -241,7 +244,10 @@ public static class DevelopmentDataSeeder
     {
         var legacyMovieIds =
             await catalogDbContext.Movies
-                .Where(movie => LegacyMovieTitles.Contains(movie.Title))
+                .Where(movie =>
+                    LegacyMovieTitles.Contains(movie.Title) ||
+                    movie.Title.StartsWith(LegacyMovieTitlePrefixes[0]) ||
+                    movie.Title.StartsWith(LegacyMovieTitlePrefixes[1]))
                 .Select(movie => movie.Id)
                 .ToListAsync();
 
@@ -262,10 +268,16 @@ public static class DevelopmentDataSeeder
             }
         }
 
+        var legacyCinemaIds =
+            await theaterDbContext.Cinemas
+                .Where(cinema => LegacyCinemaNames.Contains(cinema.Name))
+                .Select(cinema => cinema.Id)
+                .ToListAsync();
+
         var legacyRoomIds =
             await theaterDbContext.Rooms
                 .Where(room =>
-                    LegacyCinemaNames.Contains(room.Cinema.Name))
+                    legacyCinemaIds.Contains(room.CinemaId))
                 .Select(room => room.Id)
                 .ToListAsync();
 
@@ -286,9 +298,32 @@ public static class DevelopmentDataSeeder
             }
         }
 
+        if (legacyRoomIds.Count > 0)
+        {
+            var legacySeats =
+                await theaterDbContext.Seats
+                    .Where(seat => legacyRoomIds.Contains(seat.RoomId))
+                    .ToListAsync();
+
+            if (legacySeats.Count > 0)
+            {
+                theaterDbContext.Seats.RemoveRange(legacySeats);
+            }
+
+            var legacyRooms =
+                await theaterDbContext.Rooms
+                    .Where(room => legacyRoomIds.Contains(room.Id))
+                    .ToListAsync();
+
+            if (legacyRooms.Count > 0)
+            {
+                theaterDbContext.Rooms.RemoveRange(legacyRooms);
+            }
+        }
+
         var legacyCinemas =
             await theaterDbContext.Cinemas
-                .Where(cinema => LegacyCinemaNames.Contains(cinema.Name))
+                .Where(cinema => legacyCinemaIds.Contains(cinema.Id))
                 .ToListAsync();
 
         if (legacyCinemas.Count > 0)
@@ -300,11 +335,25 @@ public static class DevelopmentDataSeeder
 
         var legacyMovies =
             await catalogDbContext.Movies
-                .Where(movie => LegacyMovieTitles.Contains(movie.Title))
+                .Where(movie =>
+                    LegacyMovieTitles.Contains(movie.Title) ||
+                    movie.Title.StartsWith(LegacyMovieTitlePrefixes[0]) ||
+                    movie.Title.StartsWith(LegacyMovieTitlePrefixes[1]))
                 .ToListAsync();
 
         if (legacyMovies.Count > 0)
         {
+            var legacyMovieGenres =
+                await catalogDbContext.MovieGenres
+                    .Where(movieGenre =>
+                        legacyMovieIds.Contains(movieGenre.MovieId))
+                    .ToListAsync();
+
+            if (legacyMovieGenres.Count > 0)
+            {
+                catalogDbContext.MovieGenres.RemoveRange(legacyMovieGenres);
+            }
+
             catalogDbContext.Movies.RemoveRange(legacyMovies);
 
             await catalogDbContext.SaveChangesAsync();
@@ -500,46 +549,12 @@ public static class DevelopmentDataSeeder
             rooms.Add(room);
         }
 
-        await EnsureAllCinemaRoomsHaveSeedLayoutAsync(dbContext);
+        foreach (var room in rooms)
+        {
+            await EnsureSeedSeatLayoutAsync(dbContext, room.Id);
+        }
 
         return rooms;
-    }
-
-    private static async Task EnsureAllCinemaRoomsHaveSeedLayoutAsync(
-        TheaterDbContext dbContext)
-    {
-        var cinemas =
-            await dbContext.Cinemas
-                .Include(cinema => cinema.Rooms)
-                .ToListAsync();
-
-        foreach (var cinema in cinemas)
-        {
-            if (cinema.Rooms.Count == 0)
-            {
-                var room = new Room
-                {
-                    CinemaId = cinema.Id,
-                    Name = DefaultRoomName,
-                    IsActive = true
-                };
-
-                dbContext.Rooms.Add(room);
-                cinema.Rooms.Add(room);
-            }
-        }
-
-        await dbContext.SaveChangesAsync();
-
-        var roomIds =
-            await dbContext.Rooms
-                .Select(room => room.Id)
-                .ToListAsync();
-
-        foreach (var roomId in roomIds)
-        {
-            await EnsureSeedSeatLayoutAsync(dbContext, roomId);
-        }
     }
 
     private static async Task EnsureSeedSeatLayoutAsync(
@@ -686,27 +701,6 @@ public static class DevelopmentDataSeeder
                     BasePrice = SeedBasePrice
                 });
             }
-        }
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task NormalizeDevelopmentShowtimePricesAsync(
-        SchedulingDbContext dbContext)
-    {
-        var showtimes =
-            await dbContext.Showtimes
-                .Where(showtime => showtime.BasePrice != SeedBasePrice)
-                .ToListAsync();
-
-        if (showtimes.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var showtime in showtimes)
-        {
-            showtime.BasePrice = SeedBasePrice;
         }
 
         await dbContext.SaveChangesAsync();
