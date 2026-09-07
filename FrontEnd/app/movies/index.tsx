@@ -1,4 +1,4 @@
-import { router, Redirect, type Href } from 'expo-router';
+import { router, Redirect } from 'expo-router';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -18,12 +18,8 @@ import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
-import { LogoutButton } from '@/src/components/LogoutButton';
 import type { Genre, Movie } from '@/src/types';
 import { styles } from '@/src/styles/screens/movies.styles';
-
-const scanTicketRoute = '/staff/scan-ticket' as Href;
-const manageMoviesRoute = '/movies/manage' as Href;
 
 export default function MoviesScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -101,9 +97,6 @@ export default function MoviesScreen() {
     return <CenteredLoader />;
   }
 
-  const canCheckIn = user?.roles.some((role) => role === 'Staff' || role === 'Admin') ?? false;
-  const canManageMovies = user?.roles.includes('Admin') ?? false;
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -111,32 +104,6 @@ export default function MoviesScreen() {
           <Text style={styles.kicker}>Cinema Booking</Text>
           <Text style={styles.heading}>Now Showing</Text>
           <Text style={styles.subtitle}>{user?.email}</Text>
-        </View>
-
-        <View style={styles.actions}>
-          {canManageMovies && (
-            <AnimatedPressable
-              contentStyle={styles.primaryActionButton}
-              onPress={() => router.push(manageMoviesRoute)}>
-              <Text style={styles.primaryActionText}>Manage Movies</Text>
-            </AnimatedPressable>
-          )}
-
-          {canCheckIn && (
-            <AnimatedPressable
-              contentStyle={styles.primaryActionButton}
-              onPress={() => router.push(scanTicketRoute)}>
-              <Text style={styles.primaryActionText}>Scan Ticket</Text>
-            </AnimatedPressable>
-          )}
-
-          <AnimatedPressable
-            contentStyle={styles.actionButton}
-            onPress={() => router.push('/bookings')}>
-            <Text style={styles.actionText}>My Bookings</Text>
-          </AnimatedPressable>
-
-          <LogoutButton style={styles.actionButton} textStyle={styles.actionText} />
         </View>
       </View>
 

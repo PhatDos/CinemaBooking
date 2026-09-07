@@ -10,7 +10,11 @@ import {
   View,
 } from 'react-native';
 
-import { getCinema, getCinemaShowtimes } from '@/src/api/cinemas';
+import {
+  getCinema,
+  getCinemaShowtimes,
+} from '@/src/api/cinemas';
+import { getCurrentStaffCinemaAssignment } from '@/src/api/staff';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
@@ -24,11 +28,13 @@ export default function CinemaDetailScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [cinema, setCinema] = useState<Cinema | null>(null);
   const [showtimes, setShowtimes] = useState<CinemaShowtime[]>([]);
+  const [isAssignedStaff, setIsAssignedStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const canViewHistory =
-    user?.roles.some((role) => role === 'Admin' || role === 'Staff') ?? false;
+  const isAdmin = user?.roles.includes('Admin') ?? false;
+  const isStaff = user?.roles.includes('Staff') ?? false;
+  const canViewHistory = isAdmin || isAssignedStaff;
 
   useEffect(() => {
     if (!id || !isAuthenticated) {
@@ -46,10 +52,14 @@ export default function CinemaDetailScreen() {
           getCinema(id),
           getCinemaShowtimes(id),
         ]);
+        const assignmentResult = !isAdmin && isStaff
+          ? await getCurrentStaffCinemaAssignment(id)
+          : null;
 
         if (!cancelled) {
           setCinema(cinemaResult);
           setShowtimes(showtimeResult);
+          setIsAssignedStaff(assignmentResult?.isAssigned ?? false);
         }
       } catch (loadError) {
         console.error(loadError);
@@ -69,7 +79,7 @@ export default function CinemaDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAuthenticated]);
+  }, [id, isAdmin, isStaff, isAuthenticated]);
 
   if (isLoading || loading) {
     return <CenteredLoader />;

@@ -44,16 +44,17 @@ const baseItems: NavItem[] = [
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const canScan = user?.roles.some((role) => role === 'Staff' || role === 'Admin') ?? false;
+  const canUseMore =
+    user?.roles.some((role) => role === 'Staff' || role === 'Admin') ?? false;
 
-  const items = canScan
+  const items = canUseMore
     ? [
         ...baseItems,
         {
-          label: 'Scan',
-          href: '/staff/scan-ticket' as Href,
-          icon: 'scan-outline' as const,
-          match: '/staff/scan-ticket',
+          label: 'More',
+          href: '/more' as Href,
+          icon: 'ellipsis-horizontal-circle-outline' as const,
+          match: '/more',
         },
       ]
     : baseItems;

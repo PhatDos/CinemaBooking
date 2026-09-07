@@ -380,11 +380,27 @@ public sealed partial class MoveekMovieImportProvider : IMovieImportProvider
 
     private static DateTime? ParseDate(string? value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (DateTimeOffset.TryParse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var dateWithOffset))
+        {
+            return dateWithOffset.Date;
+        }
+
         return DateTime.TryParse(
             value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
             out var date)
-            ? date.Date
-            : null;
+                ? date.Date
+                : null;
     }
 
     private static IReadOnlyList<string> GetListingGenres(

@@ -36,34 +36,6 @@ export const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
   },
-  actions: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  actionButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  primaryActionButton: {
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  actionText: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  primaryActionText: {
-    color: colors.surface,
-    fontSize: 14,
-    fontWeight: '800',
-  },
   list: {
     padding: 20,
     paddingTop: 10,

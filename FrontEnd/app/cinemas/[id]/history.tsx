@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { getCinema, getCinemaShowtimeHistory } from '@/src/api/cinemas';
+import { getCurrentStaffCinemaAssignment } from '@/src/api/staff';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
@@ -24,14 +25,18 @@ export default function CinemaHistoryScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [cinema, setCinema] = useState<Cinema | null>(null);
   const [showtimes, setShowtimes] = useState<CinemaShowtime[]>([]);
+  const [assignmentChecked, setAssignmentChecked] = useState(false);
+  const [isAssignedStaff, setIsAssignedStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const canViewHistory =
-    user?.roles.some((role) => role === 'Admin' || role === 'Staff') ?? false;
+  const isAdmin = user?.roles.includes('Admin') ?? false;
+  const isStaff = user?.roles.includes('Staff') ?? false;
+  const canAttemptHistory = isAdmin || isStaff;
+  const canViewHistory = isAdmin || isAssignedStaff;
 
   useEffect(() => {
-    if (!id || !isAuthenticated || !canViewHistory) {
+    if (!id || !isAuthenticated || !canAttemptHistory) {
       return;
     }
 
@@ -40,8 +45,24 @@ export default function CinemaHistoryScreen() {
     async function loadData() {
       setLoading(true);
       setError('');
+      setAssignmentChecked(false);
 
       try {
+        const assignmentResult = !isAdmin && isStaff
+          ? await getCurrentStaffCinemaAssignment(id)
+          : null;
+        const nextCanViewHistory = isAdmin || (assignmentResult?.isAssigned ?? false);
+
+        if (!nextCanViewHistory) {
+          if (!cancelled) {
+            setIsAssignedStaff(false);
+            setAssignmentChecked(true);
+            setLoading(false);
+          }
+
+          return;
+        }
+
         const [cinemaResult, historyResult] = await Promise.all([
           getCinema(id),
           getCinemaShowtimeHistory(id),
@@ -50,6 +71,8 @@ export default function CinemaHistoryScreen() {
         if (!cancelled) {
           setCinema(cinemaResult);
           setShowtimes(historyResult);
+          setIsAssignedStaff(assignmentResult?.isAssigned ?? false);
+          setAssignmentChecked(true);
         }
       } catch (loadError) {
         console.error(loadError);
@@ -69,7 +92,7 @@ export default function CinemaHistoryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [canViewHistory, id, isAuthenticated]);
+  }, [canAttemptHistory, id, isAdmin, isStaff, isAuthenticated]);
 
   if (isLoading) {
     return <CenteredLoader />;
@@ -79,7 +102,7 @@ export default function CinemaHistoryScreen() {
     return <Redirect href="/login" />;
   }
 
-  if (!canViewHistory) {
+  if (!canAttemptHistory || (assignmentChecked && !canViewHistory)) {
     return (
       <Redirect href={`/cinemas/${id}` as Href} />
     );

@@ -64,6 +64,13 @@ export function getCinemaShowtimeHistory(
   );
 }
 
+export function assignStaffToCinema(cinemaId: string, userId: string) {
+  return apiFetch<void>(`/api/cinemas/${cinemaId}/staff`, {
+    method: 'POST',
+    body: { userId },
+  });
+}
+
 export function getSeats() {
   return apiFetch<Seat[]>('/api/seats');
 }

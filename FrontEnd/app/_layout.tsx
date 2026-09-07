@@ -17,12 +17,14 @@ export default function RootLayout() {
           <Stack.Screen name="movies/manage" options={{ headerShown: false }} />
           <Stack.Screen name="movies/form" options={{ headerShown: false }} />
           <Stack.Screen name="movies/imports/index" options={{ headerShown: false }} />
+          <Stack.Screen name="more" options={{ headerShown: false }} />
           <Stack.Screen name="genres/index" options={{ headerShown: false }} />
           <Stack.Screen name="genres/manage" options={{ headerShown: false }} />
           <Stack.Screen name="cinemas" options={{ headerShown: false }} />
           <Stack.Screen name="cinemas/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="cinemas/[id]/history" options={{ headerShown: false }} />
           <Stack.Screen name="bookings" options={{ headerShown: false }} />
+          <Stack.Screen name="staff/manage" options={{ headerShown: false }} />
           <Stack.Screen name="staff/scan-ticket" options={{ headerShown: false }} />
           <Stack.Screen name="seats/[showtimeId]" options={{ headerShown: false }} />
           <Stack.Screen name="checkout/[bookingId]" options={{ headerShown: false }} />
