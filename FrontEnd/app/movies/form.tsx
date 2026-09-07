@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   Switch,
   Text,
   TextInput,
@@ -21,6 +22,7 @@ import { createMovie, getMovieById, updateMovie } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { useAppNotification } from '@/src/components/AppNotification';
+import { getYouTubeVideoId } from '@/src/media/youtube';
 import { styles } from '@/src/styles/screens/movie-form.styles';
 import { colors } from '@/src/theme';
 import type { Genre, Movie, UpdateMovieRequest } from '@/src/types';
@@ -60,6 +62,7 @@ export default function MovieFormScreen() {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [posterLocalUri, setPosterLocalUri] = useState<string | null>(null);
+  const [posterMimeType, setPosterMimeType] = useState('image/jpeg');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -135,6 +138,7 @@ export default function MovieFormScreen() {
         const uploaded = await uploadMoviePoster(
           posterLocalUri,
           signature,
+          posterMimeType,
         );
 
         request.posterUrl = uploaded.posterUrl;
@@ -153,10 +157,14 @@ export default function MovieFormScreen() {
     } catch (saveError) {
       console.error(saveError);
       const message = saveError instanceof ApiError
-        ? saveError.message
-        : editing ? 'Cannot update movie right now.' : 'Cannot create movie right now.';
-      setError(message);
-      showNotification(message, { tone: 'error' });
+      ? saveError.message
+      : editing ? 'Cannot update movie right now.' : 'Cannot create movie right now.';
+      const friendlyMessage =
+        saveError instanceof ApiError && saveError.status === 401
+          ? 'Session expired. Please log in again.'
+          : message;
+      setError(friendlyMessage);
+      showNotification(friendlyMessage, { tone: 'error' });
     } finally {
       setSaving(false);
     }
@@ -194,6 +202,7 @@ export default function MovieFormScreen() {
     }
 
     setPosterLocalUri(asset.uri);
+    setPosterMimeType(asset.mimeType ?? 'image/jpeg');
     updateField('posterUrl', asset.uri);
     updateField('posterPublicId', '');
   }
@@ -334,11 +343,12 @@ export default function MovieFormScreen() {
                       selected && styles.genreOptionSelected,
                     ]}
                     disabled={saving}
-                    onPress={() => toggleGenre(genre.id)}>
+                    onPress={() => toggleGenre(genre.id)}
+                    pressableStyle={styles.genrePressable}>
                     <Image
                       contentFit="cover"
-                      source={{ uri: genre.imageUrl }}
-                      style={styles.genreImage}
+                      source={{ uri: genre.imageUrl.trim() }}
+                      style={StyleSheet.absoluteFill}
                       transition={180}
                     />
                     <View style={styles.genreOverlay}>
@@ -556,44 +566,6 @@ function isValidOptionalYouTubeUrl(value: string) {
   }
 
   return getYouTubeVideoId(trimmed) !== null;
-}
-
-function getYouTubeVideoId(value: string) {
-  try {
-    const url = new URL(value);
-    const host = url.hostname.toLowerCase();
-
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      return null;
-    }
-
-    if (host === 'youtu.be') {
-      return cleanVideoId(url.pathname.slice(1));
-    }
-
-    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
-      return null;
-    }
-
-    if (url.pathname === '/watch') {
-      return cleanVideoId(url.searchParams.get('v'));
-    }
-
-    if (url.pathname.startsWith('/shorts/') ||
-        url.pathname.startsWith('/embed/')) {
-      return cleanVideoId(url.pathname.split('/')[2]);
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function cleanVideoId(value?: string | null) {
-  const trimmed = value?.trim();
-
-  return trimmed || null;
 }
 
 function toDateInputValue(value: string) {

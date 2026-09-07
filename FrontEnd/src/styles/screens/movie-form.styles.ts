@@ -128,9 +128,13 @@ export const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 16,
   },
+  genrePressable: {
+    width: '48%',
+  },
   genreOption: {
-    width: '47%',
-    minHeight: 84,
+    aspectRatio: 16 / 9,
+    position: 'relative',
+    width: '100%',
     borderWidth: 2,
     borderColor: 'transparent',
     borderRadius: radius.md,
@@ -141,11 +145,7 @@ export const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   genreImage: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    top: 0,
+    ...StyleSheet.absoluteFillObject,
   },
   genreOverlay: {
     flex: 1,

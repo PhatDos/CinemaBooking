@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system/legacy';
+
 import { apiFetch } from '@/src/api/client';
 
 export type MoviePosterUploadSignature = {
@@ -31,14 +33,12 @@ export function signMoviePosterUpload() {
 export async function uploadMoviePoster(
   imageUri: string,
   signature: MoviePosterUploadSignature,
+  mimeType = 'image/jpeg',
 ): Promise<UploadedMoviePoster> {
+  const file = await toCloudinaryFileValue(imageUri, mimeType);
   const formData = new FormData();
 
-  formData.append('file', {
-    uri: imageUri,
-    name: 'movie-poster.jpg',
-    type: 'image/jpeg',
-  } as unknown as Blob);
+  formData.append('file', file);
   formData.append('api_key', signature.apiKey);
   formData.append('timestamp', signature.timestamp.toString());
   formData.append('signature', signature.signature);
@@ -63,4 +63,16 @@ export async function uploadMoviePoster(
 
 function toOptimizedCloudinaryUrl(url: string) {
   return url.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+}
+
+async function toCloudinaryFileValue(imageUri: string, mimeType: string) {
+  if (imageUri.startsWith('data:') || imageUri.startsWith('http')) {
+    return imageUri;
+  }
+
+  const base64 = await FileSystem.readAsStringAsync(imageUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  return `data:${mimeType};base64,${base64}`;
 }

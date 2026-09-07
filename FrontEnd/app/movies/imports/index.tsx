@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   FlatList,
   Linking,
+  Modal,
   Pressable,
   RefreshControl,
   Text,
@@ -28,7 +29,9 @@ import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
+import { YouTubeEmbed } from '@/src/components/YouTubeEmbed';
 import { useAppNotification } from '@/src/components/AppNotification';
+import { getYouTubeVideoId } from '@/src/media/youtube';
 import { styles } from '@/src/styles/screens/movie-imports.styles';
 import type {
   MovieImportBatch,
@@ -52,6 +55,8 @@ export default function MovieImportsScreen() {
   const [savingCandidateId, setSavingCandidateId] = useState<string | null>(null);
   const [candidateToReject, setCandidateToReject] =
     useState<MovieImportCandidate | null>(null);
+  const [trailer, setTrailer] =
+    useState<{ title: string; videoId: string } | null>(null);
   const [error, setError] = useState('');
 
   const isAdmin = user?.roles.includes('Admin') ?? false;
@@ -259,6 +264,22 @@ export default function MovieImportsScreen() {
     }
   }
 
+  function handleOpenTrailer(candidate: MovieImportCandidate) {
+    const videoId = getYouTubeVideoId(candidate.trailerUrl);
+
+    if (!videoId) {
+      showNotification('Trailer URL is not a supported YouTube link.', {
+        tone: 'error',
+      });
+      return;
+    }
+
+    setTrailer({
+      title: candidate.title || candidate.listingTitle || 'Trailer',
+      videoId,
+    });
+  }
+
   if (isLoading) {
     return <CenteredLoader />;
   }
@@ -372,6 +393,7 @@ export default function MovieImportsScreen() {
                 onApprove={() => void handleApprove(item)}
                 onCrawl={() => void handleCrawlCandidate(item)}
                 onReject={() => setCandidateToReject(item)}
+                onTrailer={() => handleOpenTrailer(item)}
               />
             </FadeInView>
           )}
@@ -397,6 +419,10 @@ export default function MovieImportsScreen() {
         }}
         title="Reject import candidate?"
         visible={candidateToReject !== null}
+      />
+      <TrailerModal
+        onClose={() => setTrailer(null)}
+        trailer={trailer}
       />
     </View>
   );
@@ -454,6 +480,7 @@ type CandidateCardProps = {
   onApprove: () => void;
   onCrawl: () => void;
   onReject: () => void;
+  onTrailer: () => void;
 };
 
 function CandidateCard({
@@ -462,6 +489,7 @@ function CandidateCard({
   onApprove,
   onCrawl,
   onReject,
+  onTrailer,
 }: CandidateCardProps) {
   const sourceTitle = candidate.listingTitle ?? candidate.title;
   const genreNames = candidate.genreNames.length > 0
@@ -544,7 +572,7 @@ function CandidateCard({
           {candidate.trailerUrl ? (
             <AnimatedPressable
               contentStyle={styles.secondaryButton}
-              onPress={() => void Linking.openURL(candidate.trailerUrl!)}>
+              onPress={onTrailer}>
               <Text style={styles.secondaryButtonText}>Trailer</Text>
             </AnimatedPressable>
           ) : null}
@@ -586,6 +614,49 @@ function CandidateCard({
         </View>
       </View>
     </View>
+  );
+}
+
+type TrailerModalProps = {
+  onClose: () => void;
+  trailer: { title: string; videoId: string } | null;
+};
+
+function TrailerModal({ onClose, trailer }: TrailerModalProps) {
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      transparent
+      visible={trailer !== null}>
+      <View style={styles.trailerBackdrop}>
+        <Pressable
+          accessibilityLabel="Close trailer"
+          onPress={onClose}
+          style={styles.trailerBackdropPressable}
+        />
+        <View style={styles.trailerModal}>
+          <View style={styles.trailerHeader}>
+            <Text numberOfLines={2} style={styles.trailerTitle}>
+              {trailer?.title ?? 'Trailer'}
+            </Text>
+            <Pressable onPress={onClose} style={styles.trailerCloseButton}>
+              <Text style={styles.trailerCloseText}>Close</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.trailerPlayer}>
+            {trailer ? (
+              <YouTubeEmbed
+                height={220}
+                play={false}
+                videoId={trailer.videoId}
+              />
+            ) : null}
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 

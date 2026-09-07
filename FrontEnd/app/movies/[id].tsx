@@ -1,7 +1,6 @@
 import { router, Redirect, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useState } from 'react';
-import YoutubePlayer from 'react-native-youtube-iframe';
 import {
   ActivityIndicator,
   Pressable,
@@ -17,7 +16,9 @@ import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
+import { YouTubeEmbed } from '@/src/components/YouTubeEmbed';
 import { formatVenueName } from '@/src/display';
+import { getYouTubeVideoId } from '@/src/media/youtube';
 import type { MovieDetail, Showtime } from '@/src/types';
 import { styles } from '@/src/styles/screens/movie-detail.styles';
 
@@ -141,7 +142,7 @@ export default function MovieDetailScreen() {
           <View style={styles.trailerPanel}>
             <Text style={styles.trailerTitle}>Trailer</Text>
             <View style={styles.trailerPlayer}>
-              <YoutubePlayer
+              <YouTubeEmbed
                 height={210}
                 play={false}
                 videoId={trailerVideoId}
@@ -210,44 +211,6 @@ function formatCurrency(value: number) {
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-function getYouTubeVideoId(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const url = new URL(value);
-    const host = url.hostname.toLowerCase();
-
-    if (host === 'youtu.be') {
-      return cleanVideoId(url.pathname.slice(1));
-    }
-
-    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
-      return null;
-    }
-
-    if (url.pathname === '/watch') {
-      return cleanVideoId(url.searchParams.get('v'));
-    }
-
-    if (url.pathname.startsWith('/shorts/') ||
-        url.pathname.startsWith('/embed/')) {
-      return cleanVideoId(url.pathname.split('/')[2]);
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function cleanVideoId(value?: string | null) {
-  const trimmed = value?.trim();
-
-  return trimmed || null;
 }
 
 function getInitials(title: string) {
