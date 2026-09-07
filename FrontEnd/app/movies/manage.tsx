@@ -135,29 +135,37 @@ export default function MovieManageScreen() {
       </View>
 
       <View style={styles.toolbar}>
-        <TextInput
-          autoCapitalize="none"
-          placeholder="Search title or genre"
-          placeholderTextColor="#98a2b3"
-          value={query}
-          onChangeText={setQuery}
-          style={styles.searchInput}
-        />
-        <AnimatedPressable
-          contentStyle={styles.addButton}
-          onPress={() => router.push(movieFormRoute)}>
-          <Text style={styles.addButtonText}>Add</Text>
-        </AnimatedPressable>
-        <AnimatedPressable
-          contentStyle={styles.outlineButton}
-          onPress={() => router.push(genreManageRoute)}>
-          <Text style={styles.outlineButtonText}>Genres</Text>
-        </AnimatedPressable>
-        <AnimatedPressable
-          contentStyle={styles.outlineButton}
-          onPress={() => router.push(movieImportsRoute)}>
-          <Text style={styles.outlineButtonText}>Import</Text>
-        </AnimatedPressable>
+        <View style={styles.toolbarRow}>
+          <TextInput
+            autoCapitalize="none"
+            placeholder="Search title or genre"
+            placeholderTextColor="#98a2b3"
+            value={query}
+            onChangeText={setQuery}
+            style={styles.searchInput}
+          />
+        </View>
+
+        <View style={styles.toolbarRow}>
+          <AnimatedPressable
+            contentStyle={styles.toolbarPrimaryButton}
+            onPress={() => router.push(movieFormRoute)}
+            pressableStyle={styles.toolbarActionItem}>
+            <Text style={styles.toolbarPrimaryButtonText}>Add</Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            contentStyle={styles.toolbarOutlineButton}
+            onPress={() => router.push(genreManageRoute)}
+            pressableStyle={styles.toolbarActionItem}>
+            <Text style={styles.toolbarOutlineButtonText}>Genres</Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            contentStyle={styles.toolbarOutlineButton}
+            onPress={() => router.push(movieImportsRoute)}
+            pressableStyle={styles.toolbarActionItem}>
+            <Text style={styles.toolbarOutlineButtonText}>Import</Text>
+          </AnimatedPressable>
+        </View>
       </View>
 
       {error ? (
@@ -193,35 +201,40 @@ export default function MovieManageScreen() {
                 <AnimatedPressable
                   contentStyle={styles.card}
                   onPress={() => router.push(toMovieFormRoute(item.id))}>
-                  <View style={styles.poster}>
-                    {item.posterUrl ? (
-                      <Image
-                        contentFit="cover"
-                        source={{ uri: item.posterUrl }}
-                        style={StyleSheet.absoluteFill}
-                        transition={200}
-                      />
-                    ) : (
-                      <Text style={styles.posterText}>{getInitials(item.title)}</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.info}>
-                    <View style={styles.titleRow}>
-                      <Text numberOfLines={2} style={styles.title}>{item.title}</Text>
-                      <View style={[styles.badge, item.isActive ? styles.badgeActive : styles.badgeInactive]}>
-                        <Text style={[styles.badgeText, item.isActive ? styles.badgeTextActive : styles.badgeTextInactive]}>
-                          {item.isActive ? 'Active' : 'Inactive'}
-                        </Text>
-                      </View>
+                  <View style={styles.cardTop}>
+                    <View style={styles.poster}>
+                      {item.posterUrl ? (
+                        <Image
+                          contentFit="cover"
+                          source={{ uri: item.posterUrl }}
+                          style={StyleSheet.absoluteFill}
+                          transition={200}
+                        />
+                      ) : (
+                        <Text style={styles.posterText}>{getInitials(item.title)}</Text>
+                      )}
                     </View>
 
-                    <Text style={styles.meta}>
-                      {item.durationMinutes} min | {formatDate(item.releaseDate)}
-                    </Text>
-                    {getGenreLabel(item) ? (
-                      <Text style={styles.genre}>{getGenreLabel(item)}</Text>
-                    ) : null}
+                    <View style={styles.info}>
+                      <View style={styles.titleRow}>
+                        <Text numberOfLines={3} style={styles.title}>{item.title}</Text>
+                        <View style={[styles.badge, item.isActive ? styles.badgeActive : styles.badgeInactive]}>
+                          <Text style={[styles.badgeText, item.isActive ? styles.badgeTextActive : styles.badgeTextInactive]}>
+                            {item.isActive ? 'Active' : 'Inactive'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.meta}>
+                        {item.durationMinutes} min | {formatDate(item.releaseDate)}
+                      </Text>
+                      {getGenreLabel(item) ? (
+                        <Text style={styles.genre}>{getGenreLabel(item)}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  <View style={styles.cardBody}>
                     <Text numberOfLines={2} style={styles.description}>
                       {item.description}
                     </Text>

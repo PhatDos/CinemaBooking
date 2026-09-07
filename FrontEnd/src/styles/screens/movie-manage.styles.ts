@@ -34,11 +34,14 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
   toolbar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 20,
     paddingBottom: 12,
+  },
+  toolbarRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
   },
   searchInput: {
     flex: 1,
@@ -52,23 +55,28 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  addButton: {
+  toolbarActionItem: {
+    flex: 1,
+  },
+  toolbarPrimaryButton: {
     minHeight: 46,
-    minWidth: 76,
+    maxHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
+    paddingVertical: 11,
+    ...shadow.soft,
   },
-  addButtonText: {
+  toolbarPrimaryButtonText: {
     color: colors.surface,
     fontSize: 15,
     fontWeight: '900',
   },
-  outlineButton: {
+  toolbarOutlineButton: {
     minHeight: 46,
-    minWidth: 88,
+    maxHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -76,8 +84,9 @@ export const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
+    paddingVertical: 11,
   },
-  outlineButtonText: {
+  toolbarOutlineButtonText: {
     color: colors.ink,
     fontSize: 15,
     fontWeight: '900',
@@ -89,7 +98,6 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    flexDirection: 'row',
     borderWidth: 1,
     borderColor: '#e7eaf0',
     borderRadius: radius.md,
@@ -97,12 +105,22 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     ...shadow.card,
   },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    padding: 14,
+    paddingBottom: 10,
+  },
   poster: {
-    width: 92,
-    minHeight: 148,
+    width: 120,
+    height: 180,
+    borderRadius: radius.sm,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.ink,
+    overflow: 'hidden',
   },
   posterText: {
     color: colors.surface,
@@ -111,20 +129,30 @@ export const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
-    padding: 14,
+    minWidth: 0,
+  },
+  cardBody: {
+    borderTopWidth: 1,
+    borderTopColor: '#eef0f4',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
     gap: 10,
   },
   title: {
     flex: 1,
+    minWidth: 0,
     color: colors.ink,
     fontSize: 18,
     fontWeight: '900',
   },
   badge: {
+    flexShrink: 0,
     borderRadius: radius.sm,
     paddingHorizontal: 9,
     paddingVertical: 5,
