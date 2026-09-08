@@ -44,8 +44,6 @@ export const styles = StyleSheet.create({
     paddingBottom: bottomNavHeight + 24,
   },
   card: {
-    flexDirection: 'row',
-    gap: 14,
     borderWidth: 1,
     borderColor: '#e7eaf0',
     borderRadius: radius.md,
@@ -103,26 +101,27 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   avatar: {
-    width: 58,
-    height: 58,
+    width: '100%',
+    aspectRatio: 16 / 9,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
     backgroundColor: colors.ink,
   },
   thumbnail: {
-    width: 86,
-    minHeight: 86,
+    width: '100%',
+    aspectRatio: 16 / 9,
     borderRadius: radius.md,
     backgroundColor: colors.ink,
     overflow: 'hidden',
   },
   avatarText: {
     color: colors.surface,
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: '900',
   },
   cardBody: {
+    marginTop: 12,
     flex: 1,
   },
   cardHeader: {

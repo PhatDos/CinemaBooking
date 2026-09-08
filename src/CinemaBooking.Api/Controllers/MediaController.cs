@@ -16,4 +16,12 @@ public sealed class MediaController : ControllerBase
     {
         return Ok(signatureService.CreateMoviePosterSignature());
     }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost("cinema-image/sign-upload")]
+    public IActionResult SignCinemaImageUpload(
+        [FromServices] IImageUploadSignatureService signatureService)
+    {
+        return Ok(signatureService.CreateCinemaImageSignature());
+    }
 }

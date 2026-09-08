@@ -2,7 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 import { apiPost } from '@/src/api/client';
 
-export type MoviePosterUploadSignature = {
+export type ImageUploadSignature = {
   cloudName: string;
   apiKey: string;
   timestamp: number;
@@ -11,9 +11,17 @@ export type MoviePosterUploadSignature = {
   uploadUrl: string;
 };
 
+export type MoviePosterUploadSignature = ImageUploadSignature;
+export type CinemaImageUploadSignature = ImageUploadSignature;
+
 export type UploadedMoviePoster = {
   posterUrl: string;
   posterPublicId: string;
+};
+
+export type UploadedCinemaImage = {
+  imageUrl: string;
+  imagePublicId: string;
 };
 
 type CloudinaryUploadResponse = {
@@ -25,11 +33,41 @@ export function signMoviePosterUpload() {
   return apiPost<MoviePosterUploadSignature>('/api/media/movie-poster/sign-upload');
 }
 
+export function signCinemaImageUpload() {
+  return apiPost<CinemaImageUploadSignature>('/api/media/cinema-image/sign-upload');
+}
+
 export async function uploadMoviePoster(
   imageUri: string,
-  signature: MoviePosterUploadSignature,
+  signature: ImageUploadSignature,
   mimeType = 'image/jpeg',
 ): Promise<UploadedMoviePoster> {
+  const uploaded = await uploadCloudinaryImage(imageUri, signature, mimeType);
+
+  return {
+    posterUrl: uploaded.url,
+    posterPublicId: uploaded.publicId,
+  };
+}
+
+export async function uploadCinemaImage(
+  imageUri: string,
+  signature: ImageUploadSignature,
+  mimeType = 'image/jpeg',
+): Promise<UploadedCinemaImage> {
+  const uploaded = await uploadCloudinaryImage(imageUri, signature, mimeType);
+
+  return {
+    imageUrl: uploaded.url,
+    imagePublicId: uploaded.publicId,
+  };
+}
+
+async function uploadCloudinaryImage(
+  imageUri: string,
+  signature: ImageUploadSignature,
+  mimeType: string,
+) {
   const file = await toCloudinaryFileValue(imageUri, mimeType);
   const formData = new FormData();
 
@@ -47,12 +85,12 @@ export async function uploadMoviePoster(
   const data = await response.json() as CloudinaryUploadResponse;
 
   if (!response.ok || !data.secure_url || !data.public_id) {
-    throw new Error('Poster upload failed.');
+    throw new Error('Image upload failed.');
   }
 
   return {
-    posterUrl: toOptimizedCloudinaryUrl(data.secure_url),
-    posterPublicId: data.public_id,
+    url: toOptimizedCloudinaryUrl(data.secure_url),
+    publicId: data.public_id,
   };
 }
 

@@ -6,6 +6,7 @@ namespace CinemaBooking.Api.Media;
 public sealed class CloudinaryImageUploadSignatureService : IImageUploadSignatureService
 {
     private const string MoviePosterFolder = "cinema-booking/movies";
+    private const string CinemaImageFolder = "cinema-booking/cinemas";
 
     private readonly CloudinaryOptions _options;
     private readonly Cloudinary _cloudinary;
@@ -31,13 +32,23 @@ public sealed class CloudinaryImageUploadSignatureService : IImageUploadSignatur
 
     public ImageUploadSignatureResponse CreateMoviePosterSignature()
     {
+        return CreateSignature(MoviePosterFolder);
+    }
+
+    public ImageUploadSignatureResponse CreateCinemaImageSignature()
+    {
+        return CreateSignature(CinemaImageFolder);
+    }
+
+    private ImageUploadSignatureResponse CreateSignature(string folder)
+    {
         var timestamp =
             DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         var parameters =
             new SortedDictionary<string, object>
             {
-                ["folder"] = MoviePosterFolder,
+                ["folder"] = folder,
                 ["timestamp"] = timestamp
             };
 
@@ -49,7 +60,7 @@ public sealed class CloudinaryImageUploadSignatureService : IImageUploadSignatur
             _options.ApiKey,
             timestamp,
             signature,
-            MoviePosterFolder,
+            folder,
             $"https://api.cloudinary.com/v1_1/{_options.CloudName}/image/upload");
     }
 }

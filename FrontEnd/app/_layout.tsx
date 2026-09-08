@@ -23,6 +23,8 @@ export default function RootLayout() {
           <Stack.Screen name="cinemas" options={{ headerShown: false }} />
           <Stack.Screen name="cinemas/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="cinemas/[id]/history" options={{ headerShown: false }} />
+          <Stack.Screen name="cinemas/manage" options={{ headerShown: false }} />
+          <Stack.Screen name="cinemas/form" options={{ headerShown: false }} />
           <Stack.Screen name="bookings" options={{ headerShown: false }} />
           <Stack.Screen name="staff/manage" options={{ headerShown: false }} />
           <Stack.Screen name="staff/showtimes" options={{ headerShown: false }} />

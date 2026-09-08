@@ -79,7 +79,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   optionRow: {
-    minHeight: 60,
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -108,6 +108,24 @@ export const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: colors.primary,
+  },
+  cinemaOptionImage: {
+    width: 54,
+    height: 54,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.ink,
+  },
+  cinemaOptionImageMedia: {
+    width: '100%',
+    height: '100%',
+  },
+  cinemaOptionInitials: {
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: '900',
   },
   optionText: {
     flex: 1,

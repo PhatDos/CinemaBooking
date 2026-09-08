@@ -11,6 +11,23 @@ type GetCinemaShowtimeHistoryOptions = {
   to?: string;
 };
 
+export type CreateCinemaRequest = {
+  name: string;
+  address: string;
+  city: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  provinceCode?: string | null;
+  provinceName?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  addressLine?: string | null;
+};
+
+export type UpdateCinemaRequest = CreateCinemaRequest & {
+  isActive: boolean;
+};
+
 export function getCinemas(options: GetCinemasOptions = {}) {
   const query = new URLSearchParams();
 
@@ -29,6 +46,14 @@ export function getCinemas(options: GetCinemasOptions = {}) {
 
 export function getCinema(id: string) {
   return apiFetch<Cinema>(`/api/cinemas/${id}`);
+}
+
+export function createCinema(request: CreateCinemaRequest) {
+  return apiPost<Cinema>('/api/cinemas', request);
+}
+
+export function updateCinema(id: string, request: UpdateCinemaRequest) {
+  return apiPut<void>(`/api/cinemas/${id}`, request);
 }
 
 export function getRoom(id: string) {

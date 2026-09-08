@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -265,6 +266,7 @@ export default function StaffManageScreen() {
                     <View style={styles.radioOuter}>
                       {selected ? <View style={styles.radioInner} /> : null}
                     </View>
+                    <CinemaRowImage cinema={cinema} />
                     <View style={styles.cinemaText}>
                       <Text numberOfLines={1} style={styles.cinemaName}>
                         {formatCinemaName(cinema.name)}
@@ -313,6 +315,32 @@ export default function StaffManageScreen() {
       </ScrollView>
 
       <BottomNav />
+    </View>
+  );
+}
+
+function CinemaRowImage({ cinema }: { cinema: Cinema }) {
+  const imageUrl = cinema.imageUrl?.trim();
+
+  return (
+    <View style={styles.cinemaImage}>
+      {imageUrl ? (
+        <Image
+          contentFit="cover"
+          source={{ uri: imageUrl }}
+          style={styles.cinemaImageMedia}
+          transition={180}
+        />
+      ) : (
+        <Text style={styles.cinemaImageText}>
+          {formatCinemaName(cinema.name)
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase())
+            .join('')}
+        </Text>
+      )}
     </View>
   );
 }

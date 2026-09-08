@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 
 import { formatCinemaName } from '@/src/display';
@@ -51,6 +52,7 @@ export function CinemaSelector({
                 <View style={styles.radioOuter}>
                   {selected ? <View style={styles.radioInner} /> : null}
                 </View>
+                <CinemaOptionImage cinema={cinema} />
                 <View style={styles.optionText}>
                   <Text numberOfLines={1} style={styles.optionTitle}>
                     {formatCinemaName(cinema.name)}
@@ -63,6 +65,32 @@ export function CinemaSelector({
             );
           })}
         </View>
+      )}
+    </View>
+  );
+}
+
+function CinemaOptionImage({ cinema }: { cinema: Cinema }) {
+  const imageUrl = cinema.imageUrl?.trim();
+
+  return (
+    <View style={styles.cinemaOptionImage}>
+      {imageUrl ? (
+        <Image
+          contentFit="cover"
+          source={{ uri: imageUrl }}
+          style={styles.cinemaOptionImageMedia}
+          transition={180}
+        />
+      ) : (
+        <Text style={styles.cinemaOptionInitials}>
+          {formatCinemaName(cinema.name)
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase())
+            .join('')}
+        </Text>
       )}
     </View>
   );
