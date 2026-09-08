@@ -5,7 +5,7 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
-import { LogoutButton } from '@/src/components/LogoutButton';
+import { LogoutButton } from '@/src/auth/components/LogoutButton';
 import { colors } from '@/src/theme';
 import { styles } from '@/src/styles/screens/more.styles';
 

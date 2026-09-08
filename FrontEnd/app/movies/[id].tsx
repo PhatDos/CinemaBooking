@@ -16,7 +16,7 @@ import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
-import { YouTubeEmbed } from '@/src/components/YouTubeEmbed';
+import { YouTubeEmbed } from '@/src/features/movies/components/YouTubeEmbed';
 import { formatVenueName } from '@/src/display';
 import { getYouTubeVideoId } from '@/src/media/youtube';
 import type { MovieDetail, Showtime } from '@/src/types';

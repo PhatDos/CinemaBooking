@@ -1,6 +1,6 @@
 import { Modal, Pressable, Text, View } from 'react-native';
 
-import { YouTubeEmbed } from '@/src/components/YouTubeEmbed';
+import { YouTubeEmbed } from '@/src/features/movies/components/YouTubeEmbed';
 
 import { styles } from '../styles';
 import type { TrailerState } from '../utils';

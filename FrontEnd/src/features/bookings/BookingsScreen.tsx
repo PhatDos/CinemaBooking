@@ -5,7 +5,7 @@ import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { BottomNav } from '@/src/components/BottomNav';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
-import { LogoutButton } from '@/src/components/LogoutButton';
+import { LogoutButton } from '@/src/auth/components/LogoutButton';
 
 import { BookingCard } from './components/BookingCard';
 import { CheckoutCard } from './components/CheckoutCard';
