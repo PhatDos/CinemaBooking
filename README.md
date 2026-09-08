@@ -65,7 +65,7 @@ The backend is a modular monolith. Each module owns its domain, application, inf
 - Admin movie, genre, cinema, room, seat, staff, and showtime management.
 - Staff showtime management for assigned cinemas only.
 - Staff ticket scanning/check-in.
-- Movie import workflow for Moveek candidates.
+- Moveek movie import workflow with scheduled/admin-triggered discovery, candidate crawling, and admin approval.
 - Cloudinary poster upload/import plumbing.
 - Seed cinemas grouped by city with default rooms, seats, staff assignment, and showtimes.
 
@@ -120,6 +120,29 @@ Couple:   200000
 ```
 
 Seat availability, hold payment, and booking totals use the showtime's stored seat-type prices.
+
+## Movie Import
+
+Movie import is a candidate-based workflow. The system can automatically create a monthly Moveek import batch when `MovieImport:Enabled` is true, but movies are not inserted into the public catalog until an Admin approves a candidate.
+
+Flow:
+
+- Scheduled import check runs in `CinemaBooking.Api/MovieImports/MovieImportScheduler.cs`.
+- Admin can trigger discovery/crawl from `AdminMovieImportsController`.
+- `POST /api/admin/movie-imports/discover` creates a batch of discovered candidates from Moveek listing pages.
+- `POST /api/admin/movie-imports/run` discovers candidates and crawls their detail pages in one batch.
+- `POST /api/admin/movie-imports/{batchId}/crawl` crawls an existing batch.
+- `POST /api/admin/movie-import-candidates/{candidateId}/crawl` crawls one candidate.
+- `POST /api/admin/movie-import-candidates/{candidateId}/approve` inserts or updates the movie in Catalog.
+- Approved candidate posters can be mirrored through Cloudinary by `CloudinaryMoviePosterImporter`.
+
+Important files:
+
+- `src/CinemaBooking.Api/MovieImports/MovieImportScheduler.cs`
+- `src/CinemaBooking.Api/Controllers/AdminMovieImportsController.cs`
+- `src/Modules/CinemaBooking.Modules.Catalog/Application/MovieImports/MovieImportService.cs`
+- `src/Modules/CinemaBooking.Modules.Catalog/Application/MovieImports/MoveekMovieImportProvider.cs`
+- `src/CinemaBooking.Api/Media/CloudinaryMoviePosterImporter.cs`
 
 ## Local Backend Setup
 
