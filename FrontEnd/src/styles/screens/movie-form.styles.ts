@@ -145,7 +145,7 @@ export const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   genreImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   genreOverlay: {
     flex: 1,

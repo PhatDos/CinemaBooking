@@ -403,7 +403,7 @@ export const styles = StyleSheet.create({
     padding: 20,
   },
   trailerBackdropPressable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   trailerModal: {
     width: '100%',
