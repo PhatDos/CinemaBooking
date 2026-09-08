@@ -79,6 +79,10 @@ export function validateForm({
     return 'Seat prices must be between 1 and 10000000.';
   }
 
+  if (prices.standard > prices.vip || prices.vip > prices.couple) {
+    return 'Seat prices must be ordered Standard <= VIP <= Couple.';
+  }
+
   if (bulkMode) {
     const parsedTimes = parseBulkTimes(bulkTimes);
 

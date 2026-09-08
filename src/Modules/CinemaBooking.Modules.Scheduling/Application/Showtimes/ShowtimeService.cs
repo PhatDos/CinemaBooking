@@ -237,6 +237,13 @@ public class ShowtimeService
                 "Seat prices must be between 1 and 10000000.");
         }
 
+        if (prices.Standard > prices.Vip ||
+            prices.Vip > prices.Couple)
+        {
+            throw new BusinessRuleException(
+                "Seat prices must be ordered Standard <= VIP <= Couple.");
+        }
+
         var roomExists =
             await _theaterModule.RoomExistsAsync(
                 roomId,
