@@ -2,123 +2,167 @@
 
 ![CI](https://github.com/PhatDos/CinemaBooking/actions/workflows/ci.yml/badge.svg)
 
-CinemaBooking is a modular monolith cinema booking API built with ASP.NET Core, Entity Framework Core, SQL Server, Redis Cloud, JWT authentication, Swagger, and a mock payment flow.
+CinemaBooking is a cinema booking system with a modular ASP.NET Core backend and an Expo React Native frontend. It covers movie catalog management, genres, cinemas, rooms, seat maps, showtimes, staff assignment, ticket scanning, checkout, payment integration, and safe concurrent seat holds.
 
-The project focuses on the core booking problem: many customers can try to reserve the same seat at the same time, but only one reservation should win.
+The current app is built for local development with:
 
-## Architecture
+- ASP.NET Core / .NET 10
+- Entity Framework Core and SQL Server
+- Redis for temporary seat holds
+- JWT authentication with Admin, Staff, and customer flows
+- Expo Router / React Native / React Native Web
+- Cloudinary for movie poster upload/import support
+- PayOS payment flow and webhook handling
+- xUnit backend tests and k6 load tests
+
+## Project Structure
 
 ```text
-                +---------------+
-                |  Client / RN  |
-                +-------+-------+
-                        |
-                    HTTP/JWT
-                        |
-                        v
-+---------------------------------------------------+
-|                 ASP.NET Core API                  |
-|                                                   |
-|  +----------+  +---------+  +---------+           |
-|  | Identity |  | Catalog |  | Theater |           |
-|  +----------+  +---------+  +---------+           |
-|                                                   |
-|  +------------+  +---------+  +---------+         |
-|  | Scheduling |  | Booking |  | Payment |         |
-|  +------------+  +---------+  +---------+         |
-+----------------------+----------------------------+
-                       |
-              +--------+--------+
-              |                 |
-              v                 v
-        SQL Server        Redis Cloud
-              |                 |
-     Persistent state     Temporary seat holds
-     Unique constraints   TTL based locks
+CinemaBooking/
+  FrontEnd/                         Expo app
+    app/                            Expo Router screens
+    src/api/                        API clients
+    src/auth/                       auth context/token flow
+    src/styles/                     screen and component styles
+
+  src/
+    CinemaBooking.Api/              ASP.NET Core API, controllers, seed data
+    CinemaBooking.SharedKernel/     shared exceptions and common primitives
+    Modules/
+      CinemaBooking.Modules.Identity/
+      CinemaBooking.Modules.Catalog/
+      CinemaBooking.Modules.Theater/
+      CinemaBooking.Modules.Scheduling/
+      CinemaBooking.Modules.Booking/
+      CinemaBooking.Modules.Payment/
+      CinemaBooking.Modules.Ticketing/
+
+  tests/
+    CinemaBooking.UnitTests/
+    CinemaBooking.IntegrationTests/
+    load/                           k6 scripts
 ```
 
-CinemaBooking is implemented as a modular monolith. Each module owns its application, domain, infrastructure, and contracts layer.
+## Backend Modules
 
-Modules:
+The backend is a modular monolith. Each module owns its domain, application, infrastructure, contracts, and migrations where applicable. Modules communicate through contracts instead of reading another module's DbContext directly.
 
-- Identity
-- Catalog
-- Theater
-- Scheduling
-- Booking
-- Payment
+- `Identity`: users, roles, staff cinema assignments
+- `Catalog`: movies, genres, movie import pipeline
+- `Theater`: cinemas, rooms, seats, cinema images
+- `Scheduling`: showtimes and per-seat-type showtime pricing
+- `Booking`: seat holds, bookings, seat availability
+- `Payment`: PayOS payments, webhook handling, outbox
+- `Ticketing`: ticket generation, email outbox, ticket check-in
 
-Modules do not access another module's DbContext directly. Cross-module communication is performed through module contracts.
+## Main Features
 
-## Booking Concurrency
+- Browse now-showing movies and movie detail pages.
+- Inline YouTube trailer playback in-app.
+- Select seats with real-time availability.
+- Temporary Redis seat holds with expiry.
+- Booking and checkout through PayOS.
+- Admin movie, genre, cinema, room, seat, staff, and showtime management.
+- Staff showtime management for assigned cinemas only.
+- Staff ticket scanning/check-in.
+- Movie import workflow for Moveek candidates.
+- Cloudinary poster upload/import plumbing.
+- Seed cinemas grouped by city with default rooms, seats, staff assignment, and showtimes.
 
-Seat reservation uses two layers of protection.
+## Roles
 
-### Redis temporary hold
+- `Admin`
+  - Manages movies, genres, cinemas, rooms, seats, staff, imports, and showtimes.
+  - Can assign staff to cinemas.
+- `Staff`
+  - Can manage rooms/seats/showtimes only for assigned cinemas.
+  - Can scan/check in tickets for assigned cinemas.
+  - Cannot create or update the movie catalog.
+- Customer/user
+  - Browses movies, holds seats, books tickets, pays, and views bookings.
 
-When a customer selects a seat, the API creates a Redis key:
+## Seat Holds And Booking Safety
+
+Seat booking uses two protection layers.
+
+1. Redis temporary hold
 
 ```text
 seat-hold:{showtimeId}:{seatId}
 ```
 
-The key is written atomically using `SET NX` with a TTL. This ensures only one customer can temporarily hold a seat at a time.
+The key is written atomically using `SET NX` with a TTL, so only one user can temporarily hold a seat.
 
-### SQL Server unique constraint
+2. SQL unique constraint
 
-Redis is not treated as the final source of truth.
-
-`BookingSeats` has a unique constraint on:
+`BookingSeats` enforces uniqueness on:
 
 ```text
 (ShowtimeId, SeatId)
 ```
 
-This prevents double booking even if multiple requests reach the database concurrently.
+Redis improves user experience; SQL remains the final guard against double booking.
 
-## Booking Lifecycle
+## Showtime Pricing
 
-```text
-AVAILABLE
-    |
-    v
-  HELD        Redis temporary hold
-    |
-    v
-RESERVED     Booking = Pending
-   / \
-  /   \
- v     v
-BOOKED AVAILABLE
-  |       |
-Payment  Cancel / timeout
-success
-```
+Showtimes store prices per seat type:
 
-Status mapping:
+- `StandardPrice`
+- `VipPrice`
+- `CouplePrice`
+
+`BasePrice` is still kept for compatibility and mirrors the Standard price for new showtimes. Staff/Admin showtime creation defaults to:
 
 ```text
-AVAILABLE = no Redis hold and no active reservation
-HELD      = Redis hold exists
-RESERVED  = pending booking exists
-BOOKED    = confirmed booking exists
+Standard: 90000
+VIP:      100000
+Couple:   200000
 ```
 
-## Running Locally With Docker
+Seat availability, hold payment, and booking totals use the showtime's stored seat-type prices.
 
-Create a `.env` file from `.env.example`.
+## Local Backend Setup
+
+Requirements:
+
+- .NET 10 SDK
+- SQL Server or Docker
+- Redis connection string
+
+Copy the development settings template:
 
 ```powershell
-docker compose up --build
+Copy-Item src/CinemaBooking.Api/appsettings.Development.example.json src/CinemaBooking.Api/appsettings.Development.json
 ```
 
-The API is available at:
+Fill in local values for:
 
-```text
-http://localhost:8081
+- `ConnectionStrings:Database`
+- `ConnectionStrings:Redis`
+- `Jwt:Key`
+- `AdminSeed`
+- `StaffSeed`
+- optional `PayOS`
+- optional `Cloudinary`
+- optional `Email`
+
+Run migrations:
+
+```powershell
+dotnet ef database update --project src/Modules/CinemaBooking.Modules.Catalog --startup-project src/CinemaBooking.Api --context CatalogDbContext
+dotnet ef database update --project src/Modules/CinemaBooking.Modules.Theater --startup-project src/CinemaBooking.Api --context TheaterDbContext
+dotnet ef database update --project src/Modules/CinemaBooking.Modules.Scheduling --startup-project src/CinemaBooking.Api --context SchedulingDbContext
+dotnet ef database update --project src/Modules/CinemaBooking.Modules.Booking --startup-project src/CinemaBooking.Api --context BookingDbContext
+dotnet ef database update --project src/Modules/CinemaBooking.Modules.Payment --startup-project src/CinemaBooking.Api --context PaymentDbContext
+dotnet ef database update --project src/Modules/CinemaBooking.Modules.Ticketing --startup-project src/CinemaBooking.Api --context TicketingDbContext
+dotnet ef database update --project src/Modules/CinemaBooking.Modules.Identity --startup-project src/CinemaBooking.Api --context IdentityDbContext
 ```
 
-The compose file maps `8081:8080` because host port `8080` was already occupied during local testing. If your machine has port `8080` free, you can change the mapping back to `8080:8080`.
+Start the API:
+
+```powershell
+dotnet run --project src/CinemaBooking.Api --urls http://localhost:8081
+```
 
 Health check:
 
@@ -132,11 +176,116 @@ Swagger:
 http://localhost:8081/swagger
 ```
 
-Do not commit real SQL Server, Redis, JWT, or admin seed secrets.
+## Docker
+
+Create `.env` from `.env.example` and fill required values:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Run:
+
+```powershell
+docker compose up --build
+```
+
+The API is exposed on:
+
+```text
+http://localhost:8081
+```
+
+Docker Compose starts the API and SQL Server. Redis is supplied through `REDIS_CONNECTION_STRING`.
+
+## Frontend Setup
+
+Requirements:
+
+- Node.js
+- npm
+- Expo CLI through `npx expo`
+
+Install dependencies:
+
+```powershell
+cd FrontEnd
+npm install
+```
+
+Check the API URL in:
+
+```text
+FrontEnd/src/config/index.ts
+```
+
+For web on the same machine, `http://localhost:8081` is usually enough. For Expo Go on a phone, use the LAN IP of the backend machine, for example:
+
+```ts
+export const API_URL = 'http://192.168.1.158:8081';
+```
+
+Start Expo:
+
+```powershell
+npm start
+```
+
+The project defaults to Expo port `8082`.
+
+Useful scripts:
+
+```powershell
+npm run web
+npm run android
+npm run ios
+npm run lint
+```
+
+## Common API Areas
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `GET /api/movies`
+- `GET /api/movies/now-showing`
+- `POST /api/movies` Admin
+- `GET /api/genres`
+- `POST /api/genres` Admin
+- `GET /api/cinemas`
+- `POST /api/cinemas` Admin
+- `GET /api/cinemas/{cinemaId}/rooms`
+- `POST /api/cinemas/{cinemaId}/rooms` Admin/Staff with cinema authorization
+- `GET /api/cinemas/{cinemaId}/showtimes`
+- `POST /api/showtimes` Admin/Staff with room authorization
+- `POST /api/showtimes/bulk` Admin/Staff with room authorization
+- `GET /api/showtimes/{showtimeId}/seats`
+- `POST /api/showtimes/{showtimeId}/holds`
+- `POST /api/bookings`
+- `POST /api/payments`
+- `POST /api/tickets/check-in` Admin/Staff
+- `GET /api/staff/me/cinemas` Staff
+- `POST /api/cinemas/{cinemaId}/staff` Admin
+- `POST /api/admin/movie-imports/run` Admin
+
+## Tests
+
+Run backend tests:
+
+```powershell
+dotnet test CinemaBooking.slnx --configuration Release
+```
+
+Run frontend lint:
+
+```powershell
+cd FrontEnd
+npm run lint
+```
 
 ## k6 Load Tests
 
-Load tests are implemented using Grafana k6 in `tests/load`.
+Load scripts live in `tests/load`.
 
 Set the API URL:
 
@@ -144,17 +293,16 @@ Set the API URL:
 $env:BASE_URL="http://localhost:8081"
 ```
 
-Seed load-test customers:
+Seed test users:
 
 ```powershell
-& "C:\Program Files\k6\k6.exe" run tests/load/seed-users.js
+k6 run tests/load/seed-users.js
 ```
 
-Pick an available showtime and seat:
+Pick a showtime and available seat:
 
 ```powershell
 $showtime = @(Invoke-RestMethod "$env:BASE_URL/api/showtimes")[0]
-
 $seat = @(
   Invoke-RestMethod "$env:BASE_URL/api/showtimes/$($showtime.id)/seats" |
   Where-Object { $_.status -eq "AVAILABLE" }
@@ -164,79 +312,34 @@ $env:SHOWTIME_ID=$showtime.id
 $env:SEAT_ID=$seat.seatId
 ```
 
-Run concurrent hold test:
+Run load tests:
 
 ```powershell
-& "C:\Program Files\k6\k6.exe" run tests/load/concurrent-hold.js
+k6 run tests/load/concurrent-hold.js
+k6 run tests/load/hold-and-book-same-seat.js
+k6 run tests/load/hold-same-seat.js
+k6 run tests/load/seat-availability-read.js
 ```
 
-Run concurrent hold plus booking test:
+## Seed Data
 
-```powershell
-& "C:\Program Files\k6\k6.exe" run tests/load/hold-and-book-same-seat.js
-```
+Development seed data creates:
 
-Run shared-user 50 VU hold test:
+- Admin user from `AdminSeed`
+- Staff user from `StaffSeed`
+- city-grouped cinemas for Ho Chi Minh City, Ha Noi, Da Nang, Can Tho, and Hai Phong
+- default `Room 1`
+- standard 36-seat layout with Standard, VIP, and Couple seats
+- sample genres, movies, and future showtimes
 
-```powershell
-$env:EMAIL="loadtest1@cinema.local"
-$env:PASSWORD="Test123!"
+Legacy seed/test data with old prefixes is cleaned during development seeding.
 
-& "C:\Program Files\k6\k6.exe" run tests/load/hold-same-seat.js
-```
+## Notes
 
-Run seat availability read test:
-
-```powershell
-& "C:\Program Files\k6\k6.exe" run tests/load/seat-availability-read.js
-```
-
-## Load Testing Results
-
-Tests were executed against the Dockerized ASP.NET Core API and SQL Server with an external Redis instance.
-
-### Concurrent seat hold
-
-20 concurrent customers attempted to hold the same seat.
-
-| Metric | Result |
-|---|---:|
-| Successful holds | 1 |
-| Conflicts | 19 |
-| Unexpected responses | 0 |
-
-The Redis atomic hold allowed exactly one request to acquire the seat.
-
-### Concurrent hold plus booking
-
-20 concurrent customers attempted to reserve the same seat.
-
-| Metric | Result |
-|---|---:|
-| Successful holds | 1 |
-| Successful bookings | 1 |
-| Hold conflicts | 19 |
-
-Only one booking was created for the seat.
-
-### Shared-user hold
-
-50 virtual users used the same customer account and attempted to hold the same seat.
-
-| Metric | Result |
-|---|---:|
-| Successful holds | 1 |
-| Conflicts | 49 |
-
-### Seat availability read test
-
-| Metric | Result |
-|---|---:|
-| Requests | 59,969 |
-| Failed requests | 0% |
-| p95 response time | 125.97 ms |
-
-This is a workload test result, not a claim of 59,969 concurrent users.
+- Do not commit real SQL Server, Redis, JWT, PayOS, SMTP, Cloudinary, admin, or staff secrets.
+- Docker maps API host port `8081` to container port `8080`.
+- FE defaults to port `8082`.
+- Staff showtime management depends on staff being assigned to a cinema.
 
 ## CI
 
