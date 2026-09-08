@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-import { formatDateTime, formatRoomName } from '@/src/display';
+import { formatCinemaName, formatDateTime, formatRoomName } from '@/src/display';
 import type { Cinema, CinemaShowtime } from '@/src/types';
 
 import { styles } from '../styles';
@@ -41,6 +41,7 @@ export function UpcomingShowtimes({
                   {showtime.movieTitle}
                 </Text>
                 <Text numberOfLines={1} style={styles.showtimeMeta}>
+                  {selectedCinema ? `${formatCinemaName(selectedCinema.name)} | ` : ''}
                   {formatRoomName(showtime.roomName)} |{' '}
                   {formatDateTime(showtime.startTime)}
                 </Text>

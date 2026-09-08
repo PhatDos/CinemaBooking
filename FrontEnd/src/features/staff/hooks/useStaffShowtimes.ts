@@ -203,7 +203,7 @@ export function useStaffShowtimes(isAdmin: boolean) {
           vipPrice: seatPrices.vip,
         });
 
-        showNotification(`${result.createdCount} showtimes created.`, {
+        showNotification(`${result.createdCount} showtimes created for ${date}.`, {
           tone: 'success',
         });
       } else {
@@ -216,7 +216,7 @@ export function useStaffShowtimes(isAdmin: boolean) {
           startTime: buildLocalIsoDateTime(date, time),
           vipPrice: seatPrices.vip,
         });
-        showNotification('Showtime created.', { tone: 'success' });
+        showNotification(`Showtime created for ${date} ${time}.`, { tone: 'success' });
       }
 
       if (selectedCinemaId) {

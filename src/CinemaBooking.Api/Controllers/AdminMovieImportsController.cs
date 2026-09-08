@@ -1,5 +1,7 @@
+using CinemaBooking.Api.Infrastructure.Caching;
 using CinemaBooking.Modules.Catalog.Application.MovieImports;
 using CinemaBooking.Modules.Identity.Application.Roles;
+using CinemaBooking.SharedKernel.Caching;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,11 +13,14 @@ namespace CinemaBooking.Api.Controllers;
 public sealed class AdminMovieImportsController : ControllerBase
 {
     private readonly MovieImportService _movieImportService;
+    private readonly IAppCache _cache;
 
     public AdminMovieImportsController(
-        MovieImportService movieImportService)
+        MovieImportService movieImportService,
+        IAppCache cache)
     {
         _movieImportService = movieImportService;
+        _cache = cache;
     }
 
     [HttpPost("discover")]
@@ -82,10 +87,18 @@ public sealed class AdminMovieImportsController : ControllerBase
         Guid candidateId,
         CancellationToken cancellationToken)
     {
-        return Ok(
+        var movie =
             await _movieImportService.ApproveAsync(
                 candidateId,
-                cancellationToken));
+                cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [
+                AppCacheTags.CatalogMovies,
+                AppCacheTags.CatalogGenres
+            ],
+            cancellationToken);
+
+        return Ok(movie);
     }
 
     [HttpPost("/api/admin/movie-import-candidates/{candidateId:guid}/reject")]

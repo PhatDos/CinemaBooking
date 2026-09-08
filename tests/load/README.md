@@ -68,3 +68,54 @@ Run read performance test:
 ```powershell
 k6 run tests/load/seat-availability-read.js
 ```
+
+## Redis cache benchmarks
+
+Detailed cache keys, invalidation rules, integration test coverage, and benchmark result template are documented in:
+
+```text
+docs/redis-cache-verification.md
+```
+
+Start the API and Redis first, then set:
+
+```powershell
+$env:BASE_URL="http://localhost:8081"
+```
+
+Warm the cache before measuring hot-cache performance:
+
+```powershell
+Invoke-RestMethod "$env:BASE_URL/api/movies"
+Invoke-RestMethod "$env:BASE_URL/api/movies/now-showing"
+Invoke-RestMethod "$env:BASE_URL/api/cinemas"
+```
+
+Run cache-focused read benchmarks:
+
+```powershell
+k6 run tests/load/cache-movies.js
+k6 run tests/load/cache-now-showing.js
+k6 run tests/load/cache-cinemas.js
+```
+
+Optional cinema filters:
+
+```powershell
+$env:PROVINCE_CODE="DN"
+$env:WARD_CODE="HC"
+k6 run tests/load/cache-cinemas.js
+```
+
+Record these numbers for the before/after cache comparison:
+
+```text
+requests/sec
+p50
+p95
+p99
+failed requests
+cache_hit
+cache_miss
+cache_bypass
+```

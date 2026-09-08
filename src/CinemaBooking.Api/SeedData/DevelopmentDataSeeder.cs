@@ -1,12 +1,17 @@
 using CinemaBooking.Modules.Catalog.Domain;
 using CinemaBooking.Modules.Catalog.Infrastructure.Persistence;
+using CinemaBooking.Modules.Identity.Application.Roles;
 using CinemaBooking.Modules.Identity.Domain;
 using CinemaBooking.Modules.Identity.Infrastructure.Persistence;
 using CinemaBooking.Modules.Scheduling.Domain;
 using CinemaBooking.Modules.Scheduling.Infrastructure.Persistence;
 using CinemaBooking.Modules.Theater.Domain;
 using CinemaBooking.Modules.Theater.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CinemaBooking.Api.SeedData;
 
@@ -16,11 +21,6 @@ public static class DevelopmentDataSeeder
     private const decimal SeedBasePrice = 90000m;
     private const decimal SeedVipPrice = 100000m;
     private const decimal SeedCouplePrice = 200000m;
-
-    private static readonly string[] LegacyCinemaNames =
-    [
-        "Seed Cinema"
-    ];
 
     private static readonly string[] LegacyMovieTitles =
     [
@@ -33,76 +33,6 @@ public static class DevelopmentDataSeeder
     [
         "Bulk Movie ",
         "Ticket Smoke Movie "
-    ];
-
-    private static readonly SeedCinema[] Cinemas =
-    [
-        new(
-            "CGV Vincom Dong Khoi",
-            "72 Le Thanh Ton, Ben Nghe",
-            "Ho Chi Minh City",
-            "Central premium cinema near Nguyen Hue walking street.",
-            "79",
-            "Ho Chi Minh City",
-            "26740",
-            "Sai Gon Ward",
-            "72 Le Thanh Ton, Ben Nghe",
-            null),
-        new(
-            "Galaxy Nguyen Du",
-            "116 Nguyen Du, Ben Thanh",
-            "Ho Chi Minh City",
-            "Classic downtown cinema for late-night screenings.",
-            "79",
-            "Ho Chi Minh City",
-            "26740",
-            "Sai Gon Ward",
-            "116 Nguyen Du, Ben Thanh",
-            null),
-        new(
-            "CGV Vincom Ba Trieu",
-            "191 Ba Trieu, Le Dai Hanh",
-            "Ha Noi",
-            "Busy Ha Noi cinema with central access and family showtimes.",
-            "01",
-            "Ha Noi",
-            null,
-            "Hai Ba Trung",
-            "191 Ba Trieu, Le Dai Hanh",
-            null),
-        new(
-            "Lotte Cinema Da Nang",
-            "255-257 Hung Vuong, Hai Chau",
-            "Da Nang",
-            "Downtown Da Nang cinema for beach-city movie nights.",
-            "48",
-            "Da Nang",
-            null,
-            "Hai Chau",
-            "255-257 Hung Vuong, Hai Chau",
-            null),
-        new(
-            "Beta Cinemas Can Tho",
-            "Sense City, 1 Hoa Binh",
-            "Can Tho",
-            "Compact city cinema serving weekend family screenings.",
-            "92",
-            "Can Tho",
-            null,
-            "Ninh Kieu",
-            "Sense City, 1 Hoa Binh",
-            null),
-        new(
-            "CGV Aeon Mall Hai Phong",
-            "10 Vo Nguyen Giap, Le Chan",
-            "Hai Phong",
-            "Mall cinema with accessible showtimes and standard halls.",
-            "31",
-            "Hai Phong",
-            null,
-            "Le Chan",
-            "10 Vo Nguyen Giap, Le Chan",
-            null)
     ];
 
     private static readonly SeedGenre[] Genres =
@@ -209,12 +139,17 @@ public static class DevelopmentDataSeeder
         var identityDbContext =
             scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
 
+        var userManager =
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var roleManager =
+            scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+
         var configuration =
             scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
         await RemoveLegacySeedDataAsync(
             catalogDbContext,
-            theaterDbContext,
             schedulingDbContext);
 
         var genres =
@@ -225,23 +160,27 @@ public static class DevelopmentDataSeeder
                 catalogDbContext,
                 genres);
 
-        var rooms =
-            await EnsureTheaterAsync(theaterDbContext);
+        var cinemaContexts =
+            await EnsureTheaterDependenciesAsync(theaterDbContext);
 
-        await EnsureSeedStaffAssignmentAsync(
+        await EnsureSeedStaffAssignmentsAsync(
             identityDbContext,
+            userManager,
+            roleManager,
             configuration,
-            rooms[0].CinemaId);
+            cinemaContexts);
 
         await EnsureShowtimesAsync(
             schedulingDbContext,
             movies,
-            rooms.Select(room => room.Id).ToArray());
+            cinemaContexts
+                .Where(context => context.ShowtimeRoomId.HasValue)
+                .Select(context => context.ShowtimeRoomId!.Value)
+                .ToArray());
     }
 
     private static async Task RemoveLegacySeedDataAsync(
         CatalogDbContext catalogDbContext,
-        TheaterDbContext theaterDbContext,
         SchedulingDbContext schedulingDbContext)
     {
         var legacyMovieIds =
@@ -268,71 +207,6 @@ public static class DevelopmentDataSeeder
 
                 await schedulingDbContext.SaveChangesAsync();
             }
-        }
-
-        var legacyCinemaIds =
-            await theaterDbContext.Cinemas
-                .Where(cinema => LegacyCinemaNames.Contains(cinema.Name))
-                .Select(cinema => cinema.Id)
-                .ToListAsync();
-
-        var legacyRoomIds =
-            await theaterDbContext.Rooms
-                .Where(room =>
-                    legacyCinemaIds.Contains(room.CinemaId))
-                .Select(room => room.Id)
-                .ToListAsync();
-
-        if (legacyRoomIds.Count > 0)
-        {
-            var legacyRoomShowtimes =
-                await schedulingDbContext.Showtimes
-                    .Where(showtime =>
-                        legacyRoomIds.Contains(showtime.RoomId))
-                    .ToListAsync();
-
-            if (legacyRoomShowtimes.Count > 0)
-            {
-                schedulingDbContext.Showtimes.RemoveRange(
-                    legacyRoomShowtimes);
-
-                await schedulingDbContext.SaveChangesAsync();
-            }
-        }
-
-        if (legacyRoomIds.Count > 0)
-        {
-            var legacySeats =
-                await theaterDbContext.Seats
-                    .Where(seat => legacyRoomIds.Contains(seat.RoomId))
-                    .ToListAsync();
-
-            if (legacySeats.Count > 0)
-            {
-                theaterDbContext.Seats.RemoveRange(legacySeats);
-            }
-
-            var legacyRooms =
-                await theaterDbContext.Rooms
-                    .Where(room => legacyRoomIds.Contains(room.Id))
-                    .ToListAsync();
-
-            if (legacyRooms.Count > 0)
-            {
-                theaterDbContext.Rooms.RemoveRange(legacyRooms);
-            }
-        }
-
-        var legacyCinemas =
-            await theaterDbContext.Cinemas
-                .Where(cinema => legacyCinemaIds.Contains(cinema.Id))
-                .ToListAsync();
-
-        if (legacyCinemas.Count > 0)
-        {
-            theaterDbContext.Cinemas.RemoveRange(legacyCinemas);
-
-            await theaterDbContext.SaveChangesAsync();
         }
 
         var legacyMovies =
@@ -476,59 +350,24 @@ public static class DevelopmentDataSeeder
         });
     }
 
-    private static async Task<IReadOnlyList<Room>> EnsureTheaterAsync(
+    private static async Task<IReadOnlyList<SeedCinemaContext>> EnsureTheaterDependenciesAsync(
         TheaterDbContext dbContext)
     {
-        var rooms = new List<Room>();
+        var result = new List<SeedCinemaContext>();
+        var cinemas =
+            await dbContext.Cinemas
+                .Include(cinema => cinema.Rooms)
+                .Where(cinema => cinema.IsActive)
+                .OrderBy(cinema => cinema.Name)
+                .ToListAsync();
 
-        foreach (var seedCinema in Cinemas)
+        foreach (var cinema in cinemas)
         {
-            var cinema =
-                await dbContext.Cinemas
-                    .Include(item => item.Rooms)
-                    .FirstOrDefaultAsync(item =>
-                        item.Name == seedCinema.Name);
-
-            if (cinema is null)
-            {
-                cinema = new Cinema
-                {
-                    Name = seedCinema.Name,
-                    Address = seedCinema.Address,
-                    City = seedCinema.City,
-                    Description = seedCinema.Description,
-                    ImageUrl = seedCinema.ImageUrl,
-                    IsActive = true,
-                    ProvinceCode = seedCinema.ProvinceCode,
-                    ProvinceName = seedCinema.ProvinceName,
-                    WardCode = seedCinema.WardCode,
-                    WardName = seedCinema.WardName,
-                    AddressLine = seedCinema.AddressLine
-                };
-
-                dbContext.Cinemas.Add(cinema);
-            }
-            else
-            {
-                cinema.Address = seedCinema.Address;
-                cinema.City = seedCinema.City;
-                cinema.Description = seedCinema.Description;
-                cinema.ImageUrl = seedCinema.ImageUrl;
-                cinema.IsActive = true;
-                cinema.ProvinceCode = seedCinema.ProvinceCode;
-                cinema.ProvinceName = seedCinema.ProvinceName;
-                cinema.WardCode = seedCinema.WardCode;
-                cinema.WardName = seedCinema.WardName;
-                cinema.AddressLine = seedCinema.AddressLine;
-            }
-
-            await dbContext.SaveChangesAsync();
-
             var room =
-                await dbContext.Rooms
-                    .FirstOrDefaultAsync(item =>
-                        item.CinemaId == cinema.Id &&
-                        item.Name == DefaultRoomName);
+                cinema.Rooms
+                    .OrderByDescending(item => item.IsActive)
+                    .ThenBy(item => item.Name)
+                    .FirstOrDefault();
 
             if (room is null)
             {
@@ -540,23 +379,32 @@ public static class DevelopmentDataSeeder
                 };
 
                 dbContext.Rooms.Add(room);
-            }
-            else
-            {
-                room.IsActive = true;
+
+                await dbContext.SaveChangesAsync();
+                await EnsureSeedSeatLayoutAsync(dbContext, room.Id);
             }
 
-            await dbContext.SaveChangesAsync();
+            var roomIds =
+                await dbContext.Rooms
+                    .Where(item => item.CinemaId == cinema.Id)
+                    .Select(item => item.Id)
+                    .ToListAsync();
 
-            rooms.Add(room);
+            var roomIdWithSeats =
+                await dbContext.Seats
+                    .Where(seat => roomIds.Contains(seat.RoomId))
+                    .GroupBy(seat => seat.RoomId)
+                    .OrderBy(group => group.Key)
+                    .Select(group => (Guid?)group.Key)
+                    .FirstOrDefaultAsync();
+
+            result.Add(new SeedCinemaContext(
+                cinema.Id,
+                cinema.Name,
+                roomIdWithSeats));
         }
 
-        foreach (var room in rooms)
-        {
-            await EnsureSeedSeatLayoutAsync(dbContext, room.Id);
-        }
-
-        return rooms;
+        return result;
     }
 
     private static async Task EnsureSeedSeatLayoutAsync(
@@ -711,50 +559,158 @@ public static class DevelopmentDataSeeder
         await dbContext.SaveChangesAsync();
     }
 
-    private static async Task EnsureSeedStaffAssignmentAsync(
+    private static async Task EnsureSeedStaffAssignmentsAsync(
         IdentityDbContext dbContext,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole<Guid>> roleManager,
         IConfiguration configuration,
-        Guid cinemaId)
+        IReadOnlyList<SeedCinemaContext> cinemaContexts)
     {
-        var staffEmail =
-            configuration["StaffSeed:Email"]?.Trim().ToLowerInvariant();
+        var staffPassword =
+            configuration["StaffSeed:Password"];
 
-        if (string.IsNullOrWhiteSpace(staffEmail))
+        if (string.IsNullOrWhiteSpace(staffPassword) ||
+            cinemaContexts.Count == 0)
         {
             return;
         }
 
-        var staff =
-            await dbContext.Users
-                .FirstOrDefaultAsync(user =>
-                    user.Email != null &&
-                    user.Email.ToLower() == staffEmail);
-
-        if (staff is null)
+        if (!await roleManager.RoleExistsAsync(AppRoles.Staff))
         {
-            return;
-        }
+            var roleResult =
+                await roleManager.CreateAsync(
+                    new IdentityRole<Guid>(AppRoles.Staff));
 
-        var alreadyAssigned =
-            await dbContext.StaffCinemaAssignments
-                .AnyAsync(assignment =>
-                    assignment.UserId == staff.Id &&
-                    assignment.CinemaId == cinemaId);
-
-        if (alreadyAssigned)
-        {
-            return;
-        }
-
-        dbContext.StaffCinemaAssignments.Add(
-            new StaffCinemaAssignment
+            if (!roleResult.Succeeded)
             {
-                UserId = staff.Id,
-                CinemaId = cinemaId,
-                CreatedAt = DateTime.UtcNow
-            });
+                throw new InvalidOperationException(
+                    BuildIdentityErrorMessage(roleResult.Errors));
+            }
+        }
+
+        var usedSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var context in cinemaContexts)
+        {
+            var slug = CreateSlug(context.CinemaName);
+
+            if (!usedSlugs.Add(slug))
+            {
+                slug = $"{slug}.{context.CinemaId:N}"[..(slug.Length + 9)];
+                usedSlugs.Add(slug);
+            }
+
+            var staffEmail = $"staff.{slug}@cinema.local";
+            var staff =
+                await userManager.FindByEmailAsync(staffEmail);
+
+            if (staff is null)
+            {
+                staff = new ApplicationUser
+                {
+                    Id = Guid.NewGuid(),
+                    UserName = staffEmail,
+                    Email = staffEmail,
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var createResult =
+                    await userManager.CreateAsync(
+                        staff,
+                        staffPassword);
+
+                if (!createResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        BuildIdentityErrorMessage(createResult.Errors));
+                }
+            }
+
+            if (!await userManager.IsInRoleAsync(staff, AppRoles.Staff))
+            {
+                var addRoleResult =
+                    await userManager.AddToRoleAsync(staff, AppRoles.Staff);
+
+                if (!addRoleResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        BuildIdentityErrorMessage(addRoleResult.Errors));
+                }
+            }
+
+            var alreadyAssigned =
+                await dbContext.StaffCinemaAssignments
+                    .AnyAsync(assignment =>
+                        assignment.UserId == staff.Id &&
+                        assignment.CinemaId == context.CinemaId);
+
+            if (alreadyAssigned)
+            {
+                continue;
+            }
+
+            dbContext.StaffCinemaAssignments.Add(
+                new StaffCinemaAssignment
+                {
+                    UserId = staff.Id,
+                    CinemaId = context.CinemaId,
+                    CreatedAt = DateTime.UtcNow
+                });
+        }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private static string CreateSlug(
+        string value)
+    {
+        var normalized =
+            value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder();
+        var lastWasSeparator = false;
+
+        foreach (var character in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) ==
+                UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            if (character <= 127 &&
+                char.IsLetterOrDigit(character))
+            {
+                builder.Append(
+                    char.ToLowerInvariant(character));
+                lastWasSeparator = false;
+                continue;
+            }
+
+            if (!lastWasSeparator)
+            {
+                builder.Append('.');
+                lastWasSeparator = true;
+            }
+        }
+
+        var slug =
+            Regex.Replace(
+                builder.ToString().Trim('.'),
+                @"\.+",
+                ".");
+
+        return string.IsNullOrWhiteSpace(slug)
+            ? "cinema"
+            : slug;
+    }
+
+    private static string BuildIdentityErrorMessage(
+        IEnumerable<IdentityError> errors)
+    {
+        return string.Join(
+            "; ",
+            errors.Select(error => error.Description));
     }
 
     private sealed record SeedMovie(
@@ -771,17 +727,10 @@ public static class DevelopmentDataSeeder
         string Slug,
         string ImageUrl);
 
-    private sealed record SeedCinema(
-        string Name,
-        string Address,
-        string City,
-        string Description,
-        string? ProvinceCode,
-        string? ProvinceName,
-        string? WardCode,
-        string? WardName,
-        string? AddressLine,
-        string? ImageUrl);
+    private sealed record SeedCinemaContext(
+        Guid CinemaId,
+        string CinemaName,
+        Guid? ShowtimeRoomId);
 
     private sealed record SeedSeat(
         string Row,

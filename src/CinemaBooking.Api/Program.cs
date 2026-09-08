@@ -2,6 +2,7 @@ using System.Text;
 using CinemaBooking.Api.Authorization;
 using CinemaBooking.Api.Database;
 using CinemaBooking.Api.ExceptionHandling;
+using CinemaBooking.Api.Infrastructure.Caching;
 using CinemaBooking.Api.Locations;
 using CinemaBooking.Api.Media;
 using CinemaBooking.Api.MovieImports;
@@ -16,6 +17,7 @@ using CinemaBooking.Modules.Payment;
 using CinemaBooking.Modules.Scheduling;
 using CinemaBooking.Modules.Ticketing;
 using CinemaBooking.Modules.Theater;
+using CinemaBooking.SharedKernel.Caching;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
 using Microsoft.IdentityModel.Tokens;
@@ -58,6 +60,9 @@ builder.Services.AddPaymentModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddScoped<CinemaManagementAuthorizer>();
 builder.Services.AddScoped<TicketCheckInAuthorizer>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<AppCacheKeys>();
+builder.Services.AddScoped<IAppCache, RedisAppCache>();
 builder.Services.Configure<CloudinaryOptions>(
     builder.Configuration.GetSection(CloudinaryOptions.SectionName));
 builder.Services.AddScoped<
@@ -143,3 +148,5 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program;

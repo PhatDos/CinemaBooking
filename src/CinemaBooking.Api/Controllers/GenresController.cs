@@ -1,5 +1,7 @@
+using CinemaBooking.Api.Infrastructure.Caching;
 using CinemaBooking.Modules.Catalog.Application.Genres;
 using CinemaBooking.Modules.Identity.Application.Roles;
+using CinemaBooking.SharedKernel.Caching;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,17 @@ namespace CinemaBooking.Api.Controllers;
 public class GenresController : ControllerBase
 {
     private readonly GenreService _genreService;
+    private readonly IAppCache _cache;
+    private readonly AppCacheKeys _cacheKeys;
 
-    public GenresController(GenreService genreService)
+    public GenresController(
+        GenreService genreService,
+        IAppCache cache,
+        AppCacheKeys cacheKeys)
     {
         _genreService = genreService;
+        _cache = cache;
+        _cacheKeys = cacheKeys;
     }
 
     [HttpGet]
@@ -21,7 +30,12 @@ public class GenresController : ControllerBase
         CancellationToken cancellationToken)
     {
         var genres =
-            await _genreService.GetAllAsync(cancellationToken);
+            await _cache.GetOrCreateAsync(
+                _cacheKeys.GenresPublicList,
+                [AppCacheTags.CatalogGenres],
+                TimeSpan.FromHours(2),
+                _genreService.GetAllAsync,
+                cancellationToken);
 
         return Ok(genres);
     }
@@ -36,6 +50,12 @@ public class GenresController : ControllerBase
             await _genreService.CreateAsync(
                 request,
                 cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [
+                AppCacheTags.CatalogGenres,
+                AppCacheTags.CatalogMovies
+            ],
+            cancellationToken);
 
         return CreatedAtAction(
             nameof(GetAll),
@@ -54,6 +74,12 @@ public class GenresController : ControllerBase
             id,
             request,
             cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [
+                AppCacheTags.CatalogGenres,
+                AppCacheTags.CatalogMovies
+            ],
+            cancellationToken);
 
         return NoContent();
     }
@@ -66,6 +92,12 @@ public class GenresController : ControllerBase
     {
         await _genreService.DeleteAsync(
             id,
+            cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [
+                AppCacheTags.CatalogGenres,
+                AppCacheTags.CatalogMovies
+            ],
             cancellationToken);
 
         return NoContent();

@@ -25,7 +25,6 @@ public static class DependencyInjection
         services.AddDbContext<CatalogDbContext>(options =>
             options.UseSqlServer(connectionString));
 
-        services.AddMemoryCache();
         services.Configure<MovieImportOptions>(
             configuration.GetSection(MovieImportOptions.SectionName));
         services.AddScoped<IGenreRepository, GenreRepository>();

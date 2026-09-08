@@ -1,6 +1,8 @@
 using CinemaBooking.Api.Authorization;
+using CinemaBooking.Api.Infrastructure.Caching;
 using CinemaBooking.Modules.Scheduling.Application.Showtimes;
 using CinemaBooking.Modules.Identity.Application.Roles;
+using CinemaBooking.SharedKernel.Caching;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,13 +14,16 @@ public class ShowtimesController : ControllerBase
 {
     private readonly ShowtimeService _showtimeService;
     private readonly CinemaManagementAuthorizer _authorizer;
+    private readonly IAppCache _cache;
 
     public ShowtimesController(
         ShowtimeService showtimeService,
-        CinemaManagementAuthorizer authorizer)
+        CinemaManagementAuthorizer authorizer,
+        IAppCache cache)
     {
         _showtimeService = showtimeService;
         _authorizer = authorizer;
+        _cache = cache;
     }
 
     [HttpGet]
@@ -59,6 +64,9 @@ public class ShowtimesController : ControllerBase
             await _showtimeService.CreateAsync(
                 request,
                 cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [AppCacheTags.SchedulingShowtimes],
+            cancellationToken);
 
         return CreatedAtAction(
             nameof(GetById),
@@ -81,6 +89,9 @@ public class ShowtimesController : ControllerBase
             await _showtimeService.BulkCreateAsync(
                 request,
                 cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [AppCacheTags.SchedulingShowtimes],
+            cancellationToken);
 
         return Ok(result);
     }

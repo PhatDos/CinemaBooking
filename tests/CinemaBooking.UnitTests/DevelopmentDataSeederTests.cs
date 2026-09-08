@@ -1,11 +1,14 @@
 using CinemaBooking.Api.SeedData;
 using CinemaBooking.Modules.Catalog.Domain;
 using CinemaBooking.Modules.Catalog.Infrastructure.Persistence;
+using CinemaBooking.Modules.Identity.Application.Roles;
+using CinemaBooking.Modules.Identity.Domain;
 using CinemaBooking.Modules.Identity.Infrastructure.Persistence;
 using CinemaBooking.Modules.Scheduling.Domain;
 using CinemaBooking.Modules.Scheduling.Infrastructure.Persistence;
 using CinemaBooking.Modules.Theater.Domain;
 using CinemaBooking.Modules.Theater.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,24 +17,7 @@ namespace CinemaBooking.UnitTests;
 
 public class DevelopmentDataSeederTests
 {
-    private static readonly string[] SeedCinemaNames =
-    [
-        "CGV Vincom Dong Khoi",
-        "Galaxy Nguyen Du",
-        "CGV Vincom Ba Trieu",
-        "Lotte Cinema Da Nang",
-        "Beta Cinemas Can Tho",
-        "CGV Aeon Mall Hai Phong"
-    ];
-
-    private static readonly string[] SeedCities =
-    [
-        "Ho Chi Minh City",
-        "Ha Noi",
-        "Da Nang",
-        "Can Tho",
-        "Hai Phong"
-    ];
+    private const string StaffPassword = "StaffPassword123!";
 
     private static readonly string[] LegacyMovieTitles =
     [
@@ -47,86 +33,110 @@ public class DevelopmentDataSeederTests
     ];
 
     [Fact]
-    public async Task SeedAsync_creates_city_grouped_cinemas_with_default_room_seats_and_showtimes()
+    public async Task SeedAsync_does_not_create_cinemas_when_database_has_no_clean_cinema_data()
     {
         using var services = CreateServices();
 
         await DevelopmentDataSeeder.SeedAsync(services);
 
         using var scope = services.CreateScope();
-        var theaterDbContext =
+        var theater =
             scope.ServiceProvider.GetRequiredService<TheaterDbContext>();
-        var schedulingDbContext =
+        var scheduling =
             scope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
+        var identity =
+            scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
 
-        var cinemas =
-            await theaterDbContext.Cinemas
-                .Include(cinema => cinema.Rooms)
-                .Where(cinema => SeedCinemaNames.Contains(cinema.Name))
+        Assert.Empty(await theater.Cinemas.ToListAsync());
+        Assert.Empty(await theater.Rooms.ToListAsync());
+        Assert.Empty(await theater.Seats.ToListAsync());
+        Assert.Empty(await scheduling.Showtimes.ToListAsync());
+        Assert.Empty(await identity.StaffCinemaAssignments.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SeedAsync_preserves_clean_cinema_fields_and_creates_related_demo_data()
+    {
+        using var services = CreateServices();
+        var cinemaId = await AddCleanCinemaAsync(services);
+
+        await DevelopmentDataSeeder.SeedAsync(services);
+
+        using var scope = services.CreateScope();
+        var theater =
+            scope.ServiceProvider.GetRequiredService<TheaterDbContext>();
+        var scheduling =
+            scope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
+        var identity =
+            scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var userManager =
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var cinema =
+            await theater.Cinemas.SingleAsync(item => item.Id == cinemaId);
+
+        Assert.Equal("Clean Cinema", cinema.Name);
+        Assert.Equal("1 Real Street", cinema.Address);
+        Assert.Equal("Ho Chi Minh City", cinema.City);
+        Assert.Equal("Keep this description", cinema.Description);
+        Assert.Equal("https://example.com/cinema.jpg", cinema.ImageUrl);
+        Assert.True(cinema.IsActive);
+
+        var room =
+            await theater.Rooms.SingleAsync(item => item.CinemaId == cinemaId);
+        Assert.Equal("Room 1", room.Name);
+        Assert.True(room.IsActive);
+
+        var seats =
+            await theater.Seats
+                .Where(seat => seat.RoomId == room.Id)
                 .ToListAsync();
 
-        Assert.Equal(SeedCinemaNames.Length, cinemas.Count);
-
-        foreach (var city in SeedCities)
-        {
-            Assert.Contains(cinemas, cinema => cinema.City == city);
-        }
-
-        foreach (var cinema in cinemas)
-        {
-            var room = Assert.Single(
-                cinema.Rooms,
-                item => item.Name == "Room 1");
-
-            var seats =
-                await theaterDbContext.Seats
-                    .Where(seat => seat.RoomId == room.Id)
-                    .ToListAsync();
-
-            Assert.Equal(36, seats.Count);
-            Assert.Equal(20, seats.Count(seat => seat.Type == SeatType.Standard));
-            Assert.Equal(12, seats.Count(seat => seat.Type == SeatType.VIP));
-            Assert.Equal(4, seats.Count(seat => seat.Type == SeatType.Couple));
-        }
-
-        var seedRoomIds =
-            cinemas
-                .SelectMany(cinema => cinema.Rooms)
-                .Select(room => room.Id)
-                .ToHashSet();
+        Assert.Equal(36, seats.Count);
+        Assert.Equal(20, seats.Count(seat => seat.Type == SeatType.Standard));
+        Assert.Equal(12, seats.Count(seat => seat.Type == SeatType.VIP));
+        Assert.Equal(4, seats.Count(seat => seat.Type == SeatType.Couple));
 
         var showtimes =
-            await schedulingDbContext.Showtimes
-                .Where(showtime => seedRoomIds.Contains(showtime.RoomId))
+            await scheduling.Showtimes
+                .Where(showtime => showtime.RoomId == room.Id)
                 .ToListAsync();
 
-        Assert.Equal(seedRoomIds.Count * 3, showtimes.Count);
+        Assert.Equal(3, showtimes.Count);
         Assert.All(showtimes, showtime =>
         {
             Assert.True(showtime.StartTime > DateTime.UtcNow);
-            Assert.Equal(90000m, showtime.BasePrice);
             Assert.Equal(90000m, showtime.StandardPrice);
             Assert.Equal(100000m, showtime.VipPrice);
             Assert.Equal(200000m, showtime.CouplePrice);
         });
+
+        var assignment =
+            await identity.StaffCinemaAssignments
+                .SingleAsync(item => item.CinemaId == cinemaId);
+        var staff =
+            await userManager.FindByIdAsync(assignment.UserId.ToString());
+
+        Assert.NotNull(staff);
+        Assert.Equal("staff.clean.cinema@cinema.local", staff.Email);
+        Assert.True(await userManager.IsInRoleAsync(staff, AppRoles.Staff));
     }
 
     [Fact]
-    public async Task SeedAsync_removes_legacy_seed_cinema_and_movies()
+    public async Task SeedAsync_removes_legacy_movies_and_showtimes_without_removing_cinema_data()
     {
         using var services = CreateServices();
-        Guid legacyMovieId;
-        Guid bulkMovieId;
-        Guid smokeMovieId;
+        Guid legacyCinemaId;
         Guid legacyRoomId;
+        Guid legacyMovieId;
 
         using (var scope = services.CreateScope())
         {
-            var catalogDbContext =
+            var catalog =
                 scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-            var theaterDbContext =
+            var theater =
                 scope.ServiceProvider.GetRequiredService<TheaterDbContext>();
-            var schedulingDbContext =
+            var scheduling =
                 scope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
 
             var legacyMovie = new Movie
@@ -140,16 +150,15 @@ public class DevelopmentDataSeederTests
             var bulkMovie = new Movie
             {
                 Title = "Bulk Movie 1788312476 1",
-                Description = "Bulk test movie",
+                Description = "Bulk movie",
                 DurationMinutes = 90,
                 ReleaseDate = DateTime.UtcNow.Date,
-                TrailerUrl = "https://example.com/trailer-1",
                 IsActive = true
             };
             var smokeMovie = new Movie
             {
                 Title = "Ticket Smoke Movie 1788314960",
-                Description = "Smoke test movie",
+                Description = "Smoke movie",
                 DurationMinutes = 90,
                 ReleaseDate = DateTime.UtcNow.Date,
                 IsActive = true
@@ -157,98 +166,81 @@ public class DevelopmentDataSeederTests
             var legacyCinema = new Cinema
             {
                 Name = "Seed Cinema",
-                Address = "123 Seed Street",
+                Address = "Do not delete",
                 City = "Ho Chi Minh City",
                 IsActive = true
             };
             var legacyRoom = new Room
             {
                 CinemaId = legacyCinema.Id,
-                Name = "Seed Room 1",
+                Name = "Legacy Room",
                 IsActive = true
             };
 
-            catalogDbContext.Movies.AddRange(
+            catalog.Movies.AddRange(
                 legacyMovie,
                 bulkMovie,
                 smokeMovie);
-            theaterDbContext.Cinemas.Add(legacyCinema);
-            theaterDbContext.Rooms.Add(legacyRoom);
-            theaterDbContext.Seats.Add(new Seat
+            theater.Cinemas.Add(legacyCinema);
+            theater.Rooms.Add(legacyRoom);
+            theater.Seats.Add(new Seat
             {
                 RoomId = legacyRoom.Id,
                 Row = "A",
                 Number = 1,
                 Type = SeatType.Standard
             });
+            scheduling.Showtimes.Add(new Showtime
+            {
+                MovieId = legacyMovie.Id,
+                RoomId = legacyRoom.Id,
+                StartTime = DateTime.UtcNow.AddDays(1),
+                EndTime = DateTime.UtcNow.AddDays(1).AddHours(2),
+                BasePrice = 123000m,
+                StandardPrice = 123000m,
+                VipPrice = 133000m,
+                CouplePrice = 223000m
+            });
 
-            schedulingDbContext.Showtimes.AddRange(
-                new Showtime
-                {
-                    MovieId = legacyMovie.Id,
-                    RoomId = Guid.NewGuid(),
-                    StartTime = DateTime.UtcNow.AddDays(1),
-                    EndTime = DateTime.UtcNow.AddDays(1).AddHours(2),
-                    BasePrice = 123000m,
-                    StandardPrice = 123000m,
-                    VipPrice = 133000m,
-                    CouplePrice = 223000m
-                },
-                new Showtime
-                {
-                    MovieId = Guid.NewGuid(),
-                    RoomId = legacyRoom.Id,
-                    StartTime = DateTime.UtcNow.AddDays(1),
-                    EndTime = DateTime.UtcNow.AddDays(1).AddHours(2),
-                    BasePrice = 124000m,
-                    StandardPrice = 124000m,
-                    VipPrice = 134000m,
-                    CouplePrice = 224000m
-                });
+            await catalog.SaveChangesAsync();
+            await theater.SaveChangesAsync();
+            await scheduling.SaveChangesAsync();
 
-            await catalogDbContext.SaveChangesAsync();
-            await theaterDbContext.SaveChangesAsync();
-            await schedulingDbContext.SaveChangesAsync();
-
-            legacyMovieId = legacyMovie.Id;
-            bulkMovieId = bulkMovie.Id;
-            smokeMovieId = smokeMovie.Id;
+            legacyCinemaId = legacyCinema.Id;
             legacyRoomId = legacyRoom.Id;
+            legacyMovieId = legacyMovie.Id;
         }
 
         await DevelopmentDataSeeder.SeedAsync(services);
 
         using var verifyScope = services.CreateScope();
-        var catalog =
+        var verifyCatalog =
             verifyScope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-        var theater =
+        var verifyTheater =
             verifyScope.ServiceProvider.GetRequiredService<TheaterDbContext>();
-        var scheduling =
+        var verifyScheduling =
             verifyScope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
 
         Assert.DoesNotContain(
-            await catalog.Movies.Select(movie => movie.Title).ToListAsync(),
+            await verifyCatalog.Movies.Select(movie => movie.Title).ToListAsync(),
             LegacyMovieTitles.Contains);
         Assert.DoesNotContain(
-            await catalog.Movies.Select(movie => movie.Title).ToListAsync(),
+            await verifyCatalog.Movies.Select(movie => movie.Title).ToListAsync(),
             title => LegacyMovieTitlePrefixes.Any(prefix =>
                 title.StartsWith(prefix)));
+        Assert.True(
+            await verifyTheater.Cinemas.AnyAsync(cinema =>
+                cinema.Id == legacyCinemaId &&
+                cinema.Address == "Do not delete"));
+        Assert.True(
+            await verifyTheater.Rooms.AnyAsync(room => room.Id == legacyRoomId));
         Assert.False(
-            await theater.Cinemas.AnyAsync(cinema => cinema.Name == "Seed Cinema"));
-        Assert.False(
-            await theater.Rooms.AnyAsync(room => room.Id == legacyRoomId));
-        Assert.False(
-            await theater.Seats.AnyAsync(seat => seat.RoomId == legacyRoomId));
-        Assert.False(
-            await scheduling.Showtimes.AnyAsync(showtime =>
-                showtime.MovieId == legacyMovieId ||
-                showtime.MovieId == bulkMovieId ||
-                showtime.MovieId == smokeMovieId ||
-                showtime.RoomId == legacyRoomId));
+            await verifyScheduling.Showtimes.AnyAsync(showtime =>
+                showtime.MovieId == legacyMovieId));
     }
 
     [Fact]
-    public async Task SeedAsync_does_not_modify_custom_cinema_rooms_or_showtime_prices()
+    public async Task SeedAsync_does_not_modify_existing_rooms_seats_or_showtime_prices()
     {
         using var services = CreateServices();
         Guid customRoomId;
@@ -256,28 +248,28 @@ public class DevelopmentDataSeederTests
 
         using (var scope = services.CreateScope())
         {
-            var theaterDbContext =
+            var theater =
                 scope.ServiceProvider.GetRequiredService<TheaterDbContext>();
-            var schedulingDbContext =
+            var scheduling =
                 scope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
 
-            var customCinema = new Cinema
+            var cinema = new Cinema
             {
                 Name = "Independent Cinema",
                 Address = "1 Custom Street",
                 City = "Custom City",
                 IsActive = true
             };
-            var customRoom = new Room
+            var room = new Room
             {
-                CinemaId = customCinema.Id,
+                CinemaId = cinema.Id,
                 Name = "Private Hall",
                 IsActive = true
             };
-            var customShowtime = new Showtime
+            var showtime = new Showtime
             {
                 MovieId = Guid.NewGuid(),
-                RoomId = customRoom.Id,
+                RoomId = room.Id,
                 StartTime = DateTime.UtcNow.AddDays(2),
                 EndTime = DateTime.UtcNow.AddDays(2).AddHours(2),
                 BasePrice = 123456m,
@@ -286,38 +278,38 @@ public class DevelopmentDataSeederTests
                 CouplePrice = 223456m
             };
 
-            theaterDbContext.Cinemas.Add(customCinema);
-            theaterDbContext.Rooms.Add(customRoom);
-            theaterDbContext.Seats.Add(new Seat
+            theater.Cinemas.Add(cinema);
+            theater.Rooms.Add(room);
+            theater.Seats.Add(new Seat
             {
-                RoomId = customRoom.Id,
+                RoomId = room.Id,
                 Row = "Z",
                 Number = 99,
                 Type = SeatType.VIP
             });
-            schedulingDbContext.Showtimes.Add(customShowtime);
+            scheduling.Showtimes.Add(showtime);
 
-            await theaterDbContext.SaveChangesAsync();
-            await schedulingDbContext.SaveChangesAsync();
+            await theater.SaveChangesAsync();
+            await scheduling.SaveChangesAsync();
 
-            customRoomId = customRoom.Id;
-            customShowtimeId = customShowtime.Id;
+            customRoomId = room.Id;
+            customShowtimeId = showtime.Id;
         }
 
         await DevelopmentDataSeeder.SeedAsync(services);
 
         using var verifyScope = services.CreateScope();
-        var theater =
+        var verifyTheater =
             verifyScope.ServiceProvider.GetRequiredService<TheaterDbContext>();
-        var scheduling =
+        var verifyScheduling =
             verifyScope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
 
         var customSeats =
-            await theater.Seats
+            await verifyTheater.Seats
                 .Where(seat => seat.RoomId == customRoomId)
                 .ToListAsync();
         var persistedCustomShowtime =
-            await scheduling.Showtimes.SingleAsync(showtime =>
+            await verifyScheduling.Showtimes.SingleAsync(showtime =>
                 showtime.Id == customShowtimeId);
 
         var customSeat = Assert.Single(customSeats);
@@ -330,10 +322,80 @@ public class DevelopmentDataSeederTests
         Assert.Equal(223456m, persistedCustomShowtime.CouplePrice);
     }
 
+    [Fact]
+    public async Task SeedAsync_is_idempotent_for_related_data()
+    {
+        using var services = CreateServices();
+        var firstCinemaId = await AddCleanCinemaAsync(
+            services,
+            "Alpha Cinema");
+        var secondCinemaId = await AddCleanCinemaAsync(
+            services,
+            "Beta Cinema");
+
+        await DevelopmentDataSeeder.SeedAsync(services);
+        await DevelopmentDataSeeder.SeedAsync(services);
+
+        using var scope = services.CreateScope();
+        var theater =
+            scope.ServiceProvider.GetRequiredService<TheaterDbContext>();
+        var scheduling =
+            scope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
+        var identity =
+            scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+
+        Assert.Equal(2, await theater.Cinemas.CountAsync());
+        Assert.Equal(2, await theater.Rooms.CountAsync());
+        Assert.Equal(72, await theater.Seats.CountAsync());
+        Assert.Equal(6, await scheduling.Showtimes.CountAsync());
+        Assert.Equal(
+            2,
+            await identity.StaffCinemaAssignments
+                .Where(assignment =>
+                    assignment.CinemaId == firstCinemaId ||
+                    assignment.CinemaId == secondCinemaId)
+                .CountAsync());
+    }
+
+    private static async Task<Guid> AddCleanCinemaAsync(
+        ServiceProvider services,
+        string name = "Clean Cinema")
+    {
+        using var scope = services.CreateScope();
+        var theater =
+            scope.ServiceProvider.GetRequiredService<TheaterDbContext>();
+        var cinema = new Cinema
+        {
+            Name = name,
+            Address = "1 Real Street",
+            City = "Ho Chi Minh City",
+            Description = "Keep this description",
+            ImageUrl = "https://example.com/cinema.jpg",
+            IsActive = true,
+            ProvinceCode = "79",
+            ProvinceName = "Ho Chi Minh City",
+            WardCode = "26740",
+            WardName = "Sai Gon Ward",
+            AddressLine = "1 Real Street"
+        };
+
+        theater.Cinemas.Add(cinema);
+        await theater.SaveChangesAsync();
+
+        return cinema.Id;
+    }
+
     private static ServiceProvider CreateServices()
     {
         var databaseName = Guid.NewGuid().ToString();
         var services = new ServiceCollection();
+        var configuration =
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["StaffSeed:Password"] = StaffPassword
+                })
+                .Build();
 
         services.AddDbContext<CatalogDbContext>(options =>
             options.UseInMemoryDatabase($"{databaseName}-catalog"));
@@ -343,8 +405,11 @@ public class DevelopmentDataSeederTests
             options.UseInMemoryDatabase($"{databaseName}-scheduling"));
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseInMemoryDatabase($"{databaseName}-identity"));
-        services.AddSingleton<IConfiguration>(
-            new ConfigurationBuilder().Build());
+        services
+            .AddIdentityCore<ApplicationUser>()
+            .AddRoles<IdentityRole<Guid>>()
+            .AddEntityFrameworkStores<IdentityDbContext>();
+        services.AddSingleton<IConfiguration>(configuration);
 
         return services.BuildServiceProvider();
     }

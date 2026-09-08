@@ -15,7 +15,10 @@ public static class RedisConnectionFactory
         if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri) ||
             (uri.Scheme != "redis" && uri.Scheme != "rediss"))
         {
-            return ConfigurationOptions.Parse(connectionString);
+            var parsedOptions = ConfigurationOptions.Parse(connectionString);
+            parsedOptions.AbortOnConnectFail = false;
+
+            return parsedOptions;
         }
 
         if (string.IsNullOrWhiteSpace(uri.Host) || uri.Port <= 0)

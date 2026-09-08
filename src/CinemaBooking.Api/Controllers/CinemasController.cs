@@ -1,4 +1,5 @@
 using CinemaBooking.Api.Authorization;
+using CinemaBooking.Api.Infrastructure.Caching;
 using CinemaBooking.Modules.Catalog.Contracts;
 using CinemaBooking.Modules.Theater.Application;
 using CinemaBooking.Modules.Theater.Application.Cinemas;
@@ -7,6 +8,7 @@ using CinemaBooking.Modules.Theater.Application.Seats;
 using CinemaBooking.Modules.Identity.Application.Roles;
 using CinemaBooking.Modules.Scheduling.Contracts;
 using CinemaBooking.Modules.Theater.Contracts;
+using CinemaBooking.SharedKernel.Caching;
 using CinemaBooking.SharedKernel.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,19 +24,25 @@ public class CinemasController : ControllerBase
     private readonly ISchedulingModule _schedulingModule;
     private readonly ICatalogModule _catalogModule;
     private readonly CinemaManagementAuthorizer _authorizer;
+    private readonly IAppCache _cache;
+    private readonly AppCacheKeys _cacheKeys;
 
     public CinemasController(
         ITheaterModule theaterModule,
         TheaterService theaterService,
         ISchedulingModule schedulingModule,
         ICatalogModule catalogModule,
-        CinemaManagementAuthorizer authorizer)
+        CinemaManagementAuthorizer authorizer,
+        IAppCache cache,
+        AppCacheKeys cacheKeys)
     {
         _theaterModule = theaterModule;
         _theaterService = theaterService;
         _schedulingModule = schedulingModule;
         _catalogModule = catalogModule;
         _authorizer = authorizer;
+        _cache = cache;
+        _cacheKeys = cacheKeys;
     }
 
     [HttpGet]
@@ -43,10 +51,20 @@ public class CinemasController : ControllerBase
         [FromQuery] string? wardCode,
         CancellationToken cancellationToken)
     {
+        var normalizedProvinceCode = NormalizeQueryCode(provinceCode);
+        var normalizedWardCode = NormalizeQueryCode(wardCode);
+
         var cinemas =
-            await _theaterModule.GetCinemasAsync(
-                provinceCode,
-                wardCode,
+            await _cache.GetOrCreateAsync(
+                _cacheKeys.CinemaList(
+                    normalizedProvinceCode,
+                    normalizedWardCode),
+                [AppCacheTags.TheaterCinemas],
+                TimeSpan.FromMinutes(20),
+                token => _theaterModule.GetCinemasAsync(
+                    normalizedProvinceCode,
+                    normalizedWardCode,
+                    token),
                 cancellationToken);
 
         return Ok(cinemas);
@@ -71,6 +89,9 @@ public class CinemasController : ControllerBase
                 request.WardName,
                 request.AddressLine,
                 cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [AppCacheTags.TheaterCinemas],
+            cancellationToken);
 
         return CreatedAtAction(
             nameof(GetCinema),
@@ -84,8 +105,16 @@ public class CinemasController : ControllerBase
         CancellationToken cancellationToken)
     {
         var cinema =
-            await _theaterModule.GetCinemaAsync(
-                id,
+            await _cache.GetOrCreateAsync(
+                _cacheKeys.CinemaDetail(id),
+                [
+                    AppCacheTags.TheaterCinemas,
+                    AppCacheTags.TheaterCinema(id)
+                ],
+                TimeSpan.FromMinutes(20),
+                token => _theaterModule.GetCinemaAsync(
+                    id,
+                    token),
                 cancellationToken);
 
         if (cinema is null)
@@ -116,6 +145,12 @@ public class CinemasController : ControllerBase
             request.WardCode,
             request.WardName,
             request.AddressLine,
+            cancellationToken);
+        await _cache.InvalidateTagsAsync(
+            [
+                AppCacheTags.TheaterCinemas,
+                AppCacheTags.TheaterCinema(id)
+            ],
             cancellationToken);
 
         return NoContent();
@@ -304,8 +339,13 @@ public class CinemasController : ControllerBase
         Guid roomId)
     {
         var seats =
-            await _theaterService.GetSeatsByRoomAsync(
-                roomId);
+            await _cache.GetOrCreateAsync(
+                _cacheKeys.RoomSeatLayout(roomId),
+                [AppCacheTags.TheaterRoomSeats(roomId)],
+                TimeSpan.FromHours(2),
+                _ => _theaterService.GetSeatsByRoomAsync(
+                    roomId),
+                HttpContext.RequestAborted);
 
         return Ok(seats);
     }
@@ -332,6 +372,10 @@ public class CinemasController : ControllerBase
             return NotFound();
         }
 
+        await _cache.InvalidateTagsAsync(
+            [AppCacheTags.TheaterRoomSeats(roomId)],
+            cancellationToken);
+
         return Created(string.Empty, seat);
     }
 
@@ -351,8 +395,18 @@ public class CinemasController : ControllerBase
             await _theaterService.BulkCreateSeatsAsync(
                 roomId,
                 request.Seats);
+        await _cache.InvalidateTagsAsync(
+            [AppCacheTags.TheaterRoomSeats(roomId)],
+            cancellationToken);
 
         return Ok(result);
+    }
+
+    private static string? NormalizeQueryCode(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim().ToUpperInvariant();
     }
 
     private async Task<IReadOnlyList<CinemaShowtimeResponse>> BuildCinemaShowtimesAsync(

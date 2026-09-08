@@ -3,51 +3,29 @@ using System.Text;
 using CinemaBooking.Modules.Catalog.Application.Interfaces;
 using CinemaBooking.Modules.Catalog.Domain;
 using CinemaBooking.SharedKernel.Exceptions;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace CinemaBooking.Modules.Catalog.Application.Genres;
 
 public class GenreService
 {
-    private const string GenresCacheKey = "catalog:genres:all";
     private const int MaximumNameLength = 100;
     private const int MaximumSlugLength = 120;
     private const int MaximumImageUrlLength = 1000;
 
-    private static readonly TimeSpan CacheDuration =
-        TimeSpan.FromHours(30);
-
     private readonly IGenreRepository _genreRepository;
-    private readonly IMemoryCache _cache;
 
-    public GenreService(
-        IGenreRepository genreRepository,
-        IMemoryCache cache)
+    public GenreService(IGenreRepository genreRepository)
     {
         _genreRepository = genreRepository;
-        _cache = cache;
     }
 
     public async Task<IReadOnlyList<GenreResponse>> GetAllAsync(
         CancellationToken cancellationToken = default)
     {
-        if (_cache.TryGetValue<IReadOnlyList<GenreResponse>>(
-                GenresCacheKey,
-                out var cachedGenres) &&
-            cachedGenres is not null)
-        {
-            return cachedGenres;
-        }
-
         var genres =
             (await _genreRepository.GetAllAsync(cancellationToken))
             .Select(ToResponse)
             .ToList();
-
-        _cache.Set(
-            GenresCacheKey,
-            genres,
-            CacheDuration);
 
         return genres;
     }
@@ -90,7 +68,6 @@ public class GenreService
             genre,
             cancellationToken);
         await _genreRepository.SaveChangesAsync(cancellationToken);
-        ClearCache();
 
         return ToResponse(genre);
     }
@@ -141,7 +118,6 @@ public class GenreService
         genre.ImageUrl = imageUrl;
 
         await _genreRepository.SaveChangesAsync(cancellationToken);
-        ClearCache();
     }
 
     public async Task DeleteAsync(
@@ -176,7 +152,6 @@ public class GenreService
 
         _genreRepository.Remove(genre);
         await _genreRepository.SaveChangesAsync(cancellationToken);
-        ClearCache();
     }
 
     private async Task EnsureSlugIsUniqueAsync(
@@ -194,11 +169,6 @@ public class GenreService
         {
             throw new ConflictException("Genre slug already exists.");
         }
-    }
-
-    private void ClearCache()
-    {
-        _cache.Remove(GenresCacheKey);
     }
 
     private static GenreResponse ToResponse(Genre genre)
