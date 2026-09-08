@@ -231,7 +231,10 @@ public class SeatHoldService
                     seatId,
                     SeatPricing.Calculate(
                         showtime.BasePrice,
-                        seat.Type));
+                        seat.Type,
+                        showtime.StandardPrice,
+                        showtime.VipPrice,
+                        showtime.CouplePrice));
             })
             .ToArray();
 

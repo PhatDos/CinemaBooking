@@ -401,7 +401,10 @@ public class CinemasController : ControllerBase
                     room.Name,
                     showtime.StartTime,
                     showtime.EndTime,
-                    showtime.BasePrice);
+                    showtime.BasePrice,
+                    showtime.StandardPrice,
+                    showtime.VipPrice,
+                    showtime.CouplePrice);
             })
             .ToList();
     }
@@ -418,4 +421,7 @@ public sealed record CinemaShowtimeResponse(
     string RoomName,
     DateTime StartTime,
     DateTime EndTime,
-    decimal BasePrice);
+    decimal BasePrice,
+    decimal StandardPrice,
+    decimal VipPrice,
+    decimal CouplePrice);

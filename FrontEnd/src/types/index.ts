@@ -167,6 +167,9 @@ export type Showtime = {
   startTime: string;
   endTime: string;
   basePrice: number;
+  standardPrice: number;
+  vipPrice: number;
+  couplePrice: number;
 };
 
 export type CinemaShowtime = {
@@ -181,6 +184,9 @@ export type CinemaShowtime = {
   startTime: string;
   endTime: string;
   basePrice: number;
+  standardPrice: number;
+  vipPrice: number;
+  couplePrice: number;
 };
 
 export type CreateShowtimeRequest = {
@@ -188,6 +194,9 @@ export type CreateShowtimeRequest = {
   roomId: string;
   startTime: string;
   basePrice: number;
+  standardPrice?: number | null;
+  vipPrice?: number | null;
+  couplePrice?: number | null;
 };
 
 export type BulkCreateShowtimesRequest = {
@@ -195,6 +204,9 @@ export type BulkCreateShowtimesRequest = {
   roomId: string;
   startTimes: string[];
   basePrice: number;
+  standardPrice?: number | null;
+  vipPrice?: number | null;
+  couplePrice?: number | null;
 };
 
 export type BulkCreateShowtimesResult = {

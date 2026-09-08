@@ -14,4 +14,13 @@ public sealed class BulkCreateShowtimesRequest
 
     [Range(0, 10000000)]
     public decimal BasePrice { get; set; }
+
+    [Range(0, 10000000)]
+    public decimal? StandardPrice { get; set; }
+
+    [Range(0, 10000000)]
+    public decimal? VipPrice { get; set; }
+
+    [Range(0, 10000000)]
+    public decimal? CouplePrice { get; set; }
 }

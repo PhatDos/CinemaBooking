@@ -27,7 +27,10 @@ public class SchedulingModule : ISchedulingModule
                 MovieId = showtime.MovieId,
                 StartTime = showtime.StartTime,
                 EndTime = showtime.EndTime,
-                BasePrice = showtime.BasePrice
+                BasePrice = showtime.BasePrice,
+                StandardPrice = showtime.StandardPrice,
+                VipPrice = showtime.VipPrice,
+                CouplePrice = showtime.CouplePrice
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -51,7 +54,10 @@ public class SchedulingModule : ISchedulingModule
                 MovieId = showtime.MovieId,
                 StartTime = showtime.StartTime,
                 EndTime = showtime.EndTime,
-                BasePrice = showtime.BasePrice
+                BasePrice = showtime.BasePrice,
+                StandardPrice = showtime.StandardPrice,
+                VipPrice = showtime.VipPrice,
+                CouplePrice = showtime.CouplePrice
             })
             .ToListAsync(cancellationToken);
     }
@@ -110,7 +116,10 @@ public class SchedulingModule : ISchedulingModule
                 MovieId = showtime.MovieId,
                 StartTime = showtime.StartTime,
                 EndTime = showtime.EndTime,
-                BasePrice = showtime.BasePrice
+                BasePrice = showtime.BasePrice,
+                StandardPrice = showtime.StandardPrice,
+                VipPrice = showtime.VipPrice,
+                CouplePrice = showtime.CouplePrice
             })
             .ToListAsync(cancellationToken);
     }

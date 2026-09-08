@@ -69,7 +69,10 @@ public class SeatAvailabilityService
                 Type = seat.Type,
                 Price = SeatPricing.Calculate(
                     showtime.BasePrice,
-                    seat.Type),
+                    seat.Type,
+                    showtime.StandardPrice,
+                    showtime.VipPrice,
+                    showtime.CouplePrice),
                 Status = GetSeatStatus(
                     seat.Id,
                     statusBySeat,

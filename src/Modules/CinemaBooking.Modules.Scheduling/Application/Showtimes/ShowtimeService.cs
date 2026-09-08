@@ -9,6 +9,10 @@ namespace CinemaBooking.Modules.Scheduling.Application.Showtimes;
 public class ShowtimeService
 {
     private const int MaximumBulkShowtimes = 100;
+    private const decimal MaximumSeatPrice = 10000000m;
+    private const decimal DefaultStandardPrice = 90000m;
+    private const decimal DefaultVipPrice = 100000m;
+    private const decimal DefaultCouplePrice = 200000m;
 
     private readonly IShowtimeRepository _repository;
     private readonly ICatalogModule _catalogModule;
@@ -51,9 +55,15 @@ public class ShowtimeService
                 request.MovieId,
                 cancellationToken);
 
-        await EnsureValidRoomAndPriceAsync(
-            request.RoomId,
+        var prices = ResolveSeatPrices(
             request.BasePrice,
+            request.StandardPrice,
+            request.VipPrice,
+            request.CouplePrice);
+
+        await EnsureValidRoomAndSeatPricesAsync(
+            request.RoomId,
+            prices,
             cancellationToken);
 
         var endTime =
@@ -79,7 +89,10 @@ public class ShowtimeService
             RoomId = request.RoomId,
             StartTime = request.StartTime,
             EndTime = endTime,
-            BasePrice = request.BasePrice
+            BasePrice = prices.Standard,
+            StandardPrice = prices.Standard,
+            VipPrice = prices.Vip,
+            CouplePrice = prices.Couple
         };
 
         await _repository.AddAsync(
@@ -117,9 +130,15 @@ public class ShowtimeService
                 request.MovieId,
                 cancellationToken);
 
-        await EnsureValidRoomAndPriceAsync(
-            request.RoomId,
+        var prices = ResolveSeatPrices(
             request.BasePrice,
+            request.StandardPrice,
+            request.VipPrice,
+            request.CouplePrice);
+
+        await EnsureValidRoomAndSeatPricesAsync(
+            request.RoomId,
+            prices,
             cancellationToken);
 
         var duration =
@@ -163,7 +182,10 @@ public class ShowtimeService
                 RoomId = request.RoomId,
                 StartTime = candidate.Start,
                 EndTime = candidate.End,
-                BasePrice = request.BasePrice
+                BasePrice = prices.Standard,
+                StandardPrice = prices.Standard,
+                VipPrice = prices.Vip,
+                CouplePrice = prices.Couple
             })
             .ToList();
 
@@ -199,15 +221,20 @@ public class ShowtimeService
         return movie;
     }
 
-    private async Task EnsureValidRoomAndPriceAsync(
+    private async Task EnsureValidRoomAndSeatPricesAsync(
         Guid roomId,
-        decimal basePrice,
+        ShowtimeSeatPrices prices,
         CancellationToken cancellationToken)
     {
-        if (basePrice <= 0)
+        if (prices.Standard <= 0 ||
+            prices.Vip <= 0 ||
+            prices.Couple <= 0 ||
+            prices.Standard > MaximumSeatPrice ||
+            prices.Vip > MaximumSeatPrice ||
+            prices.Couple > MaximumSeatPrice)
         {
             throw new BusinessRuleException(
-                "Base price must be greater than zero.");
+                "Seat prices must be between 1 and 10000000.");
         }
 
         var roomExists =
@@ -219,6 +246,21 @@ public class ShowtimeService
         {
             throw new NotFoundException("Room not found.");
         }
+    }
+
+    private static ShowtimeSeatPrices ResolveSeatPrices(
+        decimal basePrice,
+        decimal? standardPrice,
+        decimal? vipPrice,
+        decimal? couplePrice)
+    {
+        var standard =
+            standardPrice ?? (basePrice > 0 ? basePrice : DefaultStandardPrice);
+
+        return new ShowtimeSeatPrices(
+            standard,
+            vipPrice ?? DefaultVipPrice,
+            couplePrice ?? DefaultCouplePrice);
     }
 
     private static void EnsureCandidatesDoNotOverlap(
@@ -267,11 +309,19 @@ public class ShowtimeService
             RoomId = showtime.RoomId,
             StartTime = showtime.StartTime,
             EndTime = showtime.EndTime,
-            BasePrice = showtime.BasePrice
+            BasePrice = showtime.BasePrice,
+            StandardPrice = showtime.StandardPrice,
+            VipPrice = showtime.VipPrice,
+            CouplePrice = showtime.CouplePrice
         };
     }
 
     private sealed record ShowtimeCandidate(
         DateTime Start,
         DateTime End);
+
+    private sealed record ShowtimeSeatPrices(
+        decimal Standard,
+        decimal Vip,
+        decimal Couple);
 }

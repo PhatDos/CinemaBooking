@@ -29,6 +29,18 @@ public class ShowtimeConfiguration
             .HasPrecision(18, 2)
             .IsRequired();
 
+        builder.Property(showtime => showtime.StandardPrice)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(showtime => showtime.VipPrice)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(showtime => showtime.CouplePrice)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.HasIndex(showtime => showtime.MovieId);
 
         builder.HasIndex(showtime => new

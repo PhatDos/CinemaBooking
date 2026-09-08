@@ -105,6 +105,9 @@ public class DevelopmentDataSeederTests
         {
             Assert.True(showtime.StartTime > DateTime.UtcNow);
             Assert.Equal(90000m, showtime.BasePrice);
+            Assert.Equal(90000m, showtime.StandardPrice);
+            Assert.Equal(100000m, showtime.VipPrice);
+            Assert.Equal(200000m, showtime.CouplePrice);
         });
     }
 
@@ -186,7 +189,10 @@ public class DevelopmentDataSeederTests
                     RoomId = Guid.NewGuid(),
                     StartTime = DateTime.UtcNow.AddDays(1),
                     EndTime = DateTime.UtcNow.AddDays(1).AddHours(2),
-                    BasePrice = 123000m
+                    BasePrice = 123000m,
+                    StandardPrice = 123000m,
+                    VipPrice = 133000m,
+                    CouplePrice = 223000m
                 },
                 new Showtime
                 {
@@ -194,7 +200,10 @@ public class DevelopmentDataSeederTests
                     RoomId = legacyRoom.Id,
                     StartTime = DateTime.UtcNow.AddDays(1),
                     EndTime = DateTime.UtcNow.AddDays(1).AddHours(2),
-                    BasePrice = 124000m
+                    BasePrice = 124000m,
+                    StandardPrice = 124000m,
+                    VipPrice = 134000m,
+                    CouplePrice = 224000m
                 });
 
             await catalogDbContext.SaveChangesAsync();
@@ -271,7 +280,10 @@ public class DevelopmentDataSeederTests
                 RoomId = customRoom.Id,
                 StartTime = DateTime.UtcNow.AddDays(2),
                 EndTime = DateTime.UtcNow.AddDays(2).AddHours(2),
-                BasePrice = 123456m
+                BasePrice = 123456m,
+                StandardPrice = 123456m,
+                VipPrice = 133456m,
+                CouplePrice = 223456m
             };
 
             theaterDbContext.Cinemas.Add(customCinema);
@@ -313,6 +325,9 @@ public class DevelopmentDataSeederTests
         Assert.Equal(99, customSeat.Number);
         Assert.Equal(SeatType.VIP, customSeat.Type);
         Assert.Equal(123456m, persistedCustomShowtime.BasePrice);
+        Assert.Equal(123456m, persistedCustomShowtime.StandardPrice);
+        Assert.Equal(133456m, persistedCustomShowtime.VipPrice);
+        Assert.Equal(223456m, persistedCustomShowtime.CouplePrice);
     }
 
     private static ServiceProvider CreateServices()

@@ -31,7 +31,9 @@ import { styles } from '@/src/styles/screens/staff-showtimes.styles';
 import { colors } from '@/src/theme';
 import type { Cinema, CinemaShowtime, Movie, Room } from '@/src/types';
 
-const defaultPrice = '90000';
+const defaultStandardPrice = '90000';
+const defaultVipPrice = '100000';
+const defaultCouplePrice = '200000';
 const defaultBulkTimes = '10:00, 13:00, 16:00, 19:00';
 
 export default function StaffShowtimesScreen() {
@@ -49,7 +51,9 @@ export default function StaffShowtimesScreen() {
   const [time, setTime] = useState('10:00');
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkTimes, setBulkTimes] = useState(defaultBulkTimes);
-  const [basePrice, setBasePrice] = useState(defaultPrice);
+  const [standardPrice, setStandardPrice] = useState(defaultStandardPrice);
+  const [vipPrice, setVipPrice] = useState(defaultVipPrice);
+  const [couplePrice, setCouplePrice] = useState(defaultCouplePrice);
   const [loading, setLoading] = useState(true);
   const [loadingCinema, setLoadingCinema] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -207,12 +211,16 @@ export default function StaffShowtimesScreen() {
       return;
     }
 
-    const price = Number(basePrice.trim());
+    const seatPrices = {
+      standard: Number(standardPrice.trim()),
+      vip: Number(vipPrice.trim()),
+      couple: Number(couplePrice.trim()),
+    };
     const validationError = validateForm({
       bulkMode,
       bulkTimes,
       date,
-      price,
+      prices: seatPrices,
       roomId: selectedRoomId,
       movieId: selectedMovieId,
       time,
@@ -233,10 +241,13 @@ export default function StaffShowtimesScreen() {
           buildLocalIsoDateTime(date, item),
         );
         const result = await bulkCreateShowtimes({
-          basePrice: price,
+          basePrice: seatPrices.standard,
+          couplePrice: seatPrices.couple,
           movieId: selectedMovieId!,
           roomId: selectedRoomId!,
+          standardPrice: seatPrices.standard,
           startTimes,
+          vipPrice: seatPrices.vip,
         });
 
         showNotification(`${result.createdCount} showtimes created.`, {
@@ -244,10 +255,13 @@ export default function StaffShowtimesScreen() {
         });
       } else {
         await createShowtime({
-          basePrice: price,
+          basePrice: seatPrices.standard,
+          couplePrice: seatPrices.couple,
           movieId: selectedMovieId!,
           roomId: selectedRoomId!,
+          standardPrice: seatPrices.standard,
           startTime: buildLocalIsoDateTime(date, time),
+          vipPrice: seatPrices.vip,
         });
         showNotification('Showtime created.', { tone: 'success' });
       }
@@ -463,16 +477,43 @@ export default function StaffShowtimesScreen() {
                 value={date}
               />
             </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>Base price</Text>
+          </View>
+
+          <View style={styles.formGrid}>
+            <View style={styles.priceField}>
+              <Text style={styles.label}>Standard</Text>
               <TextInput
                 editable={!saving}
                 keyboardType="numeric"
-                onChangeText={setBasePrice}
-                placeholder={defaultPrice}
+                onChangeText={setStandardPrice}
+                placeholder={defaultStandardPrice}
                 placeholderTextColor="#98a2b3"
                 style={styles.input}
-                value={basePrice}
+                value={standardPrice}
+              />
+            </View>
+            <View style={styles.priceField}>
+              <Text style={styles.label}>VIP</Text>
+              <TextInput
+                editable={!saving}
+                keyboardType="numeric"
+                onChangeText={setVipPrice}
+                placeholder={defaultVipPrice}
+                placeholderTextColor="#98a2b3"
+                style={styles.input}
+                value={vipPrice}
+              />
+            </View>
+            <View style={styles.priceField}>
+              <Text style={styles.label}>Couple</Text>
+              <TextInput
+                editable={!saving}
+                keyboardType="numeric"
+                onChangeText={setCouplePrice}
+                placeholder={defaultCouplePrice}
+                placeholderTextColor="#98a2b3"
+                style={styles.input}
+                value={couplePrice}
               />
             </View>
           </View>
@@ -548,7 +589,9 @@ export default function StaffShowtimesScreen() {
                     {formatDateTime(showtime.startTime)}
                   </Text>
                 </View>
-                <Text style={styles.price}>{formatCurrency(showtime.basePrice)}</Text>
+                <Text style={styles.price}>
+                  {formatSeatPrices(showtime.standardPrice, showtime.vipPrice, showtime.couplePrice)}
+                </Text>
               </View>
             ))}
           </View>
@@ -582,7 +625,7 @@ function validateForm({
   bulkTimes,
   date,
   movieId,
-  price,
+  prices,
   roomId,
   time,
 }: {
@@ -590,7 +633,11 @@ function validateForm({
   bulkTimes: string;
   date: string;
   movieId: string | null;
-  price: number;
+  prices: {
+    standard: number;
+    vip: number;
+    couple: number;
+  };
   roomId: string | null;
   time: string;
 }) {
@@ -606,8 +653,12 @@ function validateForm({
     return 'Date must use YYYY-MM-DD.';
   }
 
-  if (!Number.isFinite(price) || price <= 0) {
-    return 'Base price must be greater than 0.';
+  if (
+    !isValidPrice(prices.standard) ||
+    !isValidPrice(prices.vip) ||
+    !isValidPrice(prices.couple)
+  ) {
+    return 'Seat prices must be between 1 and 10000000.';
   }
 
   if (bulkMode) {
@@ -674,6 +725,10 @@ function buildLocalIsoDateTime(dateValue: string, timeValue: string) {
   return new Date(year, month - 1, day, hour, minute, 0, 0).toISOString();
 }
 
+function isValidPrice(value: number) {
+  return Number.isFinite(value) && value > 0 && value <= 10000000;
+}
+
 function toDateInputValue(value: Date) {
   const nextDay = new Date(value.getFullYear(), value.getMonth(), value.getDate() + 1);
   const year = nextDay.getFullYear();
@@ -718,6 +773,14 @@ function getMovieMeta(movie: Movie) {
   const genres = movie.genres.map((genre) => genre.name).join(', ') || movie.genre;
 
   return [genres, `${movie.durationMinutes} min`].filter(Boolean).join(' | ');
+}
+
+function formatSeatPrices(
+  standardPrice: number,
+  vipPrice: number,
+  couplePrice: number,
+) {
+  return `STD ${formatCurrency(standardPrice)} | VIP ${formatCurrency(vipPrice)} | Couple ${formatCurrency(couplePrice)}`;
 }
 
 function getCinemaCity(cinema: Cinema) {

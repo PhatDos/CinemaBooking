@@ -148,7 +148,10 @@ public class BookingService
                 SeatId = seatId,
                 Price = SeatPricing.Calculate(
                     showtime.BasePrice,
-                    seat.Type)
+                    seat.Type,
+                    showtime.StandardPrice,
+                    showtime.VipPrice,
+                    showtime.CouplePrice)
             });
         }
 

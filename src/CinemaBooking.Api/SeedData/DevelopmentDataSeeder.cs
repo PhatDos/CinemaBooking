@@ -14,6 +14,8 @@ public static class DevelopmentDataSeeder
 {
     private const string DefaultRoomName = "Room 1";
     private const decimal SeedBasePrice = 90000m;
+    private const decimal SeedVipPrice = 100000m;
+    private const decimal SeedCouplePrice = 200000m;
 
     private static readonly string[] LegacyCinemaNames =
     [
@@ -698,7 +700,10 @@ public static class DevelopmentDataSeeder
                     RoomId = roomId,
                     StartTime = startTime,
                     EndTime = startTime.AddMinutes(movie.DurationMinutes),
-                    BasePrice = SeedBasePrice
+                    BasePrice = SeedBasePrice,
+                    StandardPrice = SeedBasePrice,
+                    VipPrice = SeedVipPrice,
+                    CouplePrice = SeedCouplePrice
                 });
             }
         }

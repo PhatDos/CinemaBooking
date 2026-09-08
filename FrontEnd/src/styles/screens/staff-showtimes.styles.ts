@@ -242,6 +242,11 @@ export const styles = StyleSheet.create({
     minWidth: 150,
     marginBottom: 12,
   },
+  priceField: {
+    flex: 1,
+    minWidth: 112,
+    marginBottom: 12,
+  },
   label: {
     color: colors.ink,
     fontSize: 13,
@@ -287,8 +292,7 @@ export const styles = StyleSheet.create({
   },
   showtimeCard: {
     minHeight: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: 12,
     borderWidth: 1,
     borderColor: '#e7eaf0',
@@ -313,8 +317,9 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   price: {
+    width: '100%',
     color: colors.primary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
   },
   emptyPanel: {

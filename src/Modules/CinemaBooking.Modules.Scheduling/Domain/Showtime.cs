@@ -13,4 +13,10 @@ public class Showtime
     public DateTime EndTime { get; set; }
 
     public decimal BasePrice { get; set; }
+
+    public decimal StandardPrice { get; set; }
+
+    public decimal VipPrice { get; set; }
+
+    public decimal CouplePrice { get; set; }
 }
