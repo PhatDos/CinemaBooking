@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
-import { apiFetch } from '@/src/api/client';
+import { apiPost } from '@/src/api/client';
 
 export type MoviePosterUploadSignature = {
   cloudName: string;
@@ -22,12 +22,7 @@ type CloudinaryUploadResponse = {
 };
 
 export function signMoviePosterUpload() {
-  return apiFetch<MoviePosterUploadSignature>(
-    '/api/media/movie-poster/sign-upload',
-    {
-      method: 'POST',
-    },
-  );
+  return apiPost<MoviePosterUploadSignature>('/api/media/movie-poster/sign-upload');
 }
 
 export async function uploadMoviePoster(

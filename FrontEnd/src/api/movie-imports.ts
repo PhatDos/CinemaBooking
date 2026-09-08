@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost } from '@/src/api/client';
 import type {
   Movie,
   MovieImportBatch,
@@ -7,20 +7,14 @@ import type {
 } from '@/src/types';
 
 export function runMovieImport(request: MovieImportRunRequest = {}) {
-  return apiFetch<MovieImportBatch>('/api/admin/movie-imports/run', {
-    method: 'POST',
-    body: {
-      source: request.source ?? 'Moveek',
-    },
+  return apiPost<MovieImportBatch>('/api/admin/movie-imports/run', {
+    source: request.source ?? 'Moveek',
   });
 }
 
 export function discoverMovieImport(request: MovieImportRunRequest = {}) {
-  return apiFetch<MovieImportBatch>('/api/admin/movie-imports/discover', {
-    method: 'POST',
-    body: {
-      source: request.source ?? 'Moveek',
-    },
+  return apiPost<MovieImportBatch>('/api/admin/movie-imports/discover', {
+    source: request.source ?? 'Moveek',
   });
 }
 
@@ -35,37 +29,25 @@ export function getMovieImportCandidates(batchId: string) {
 }
 
 export function crawlMovieImportBatch(batchId: string) {
-  return apiFetch<MovieImportBatch>(
+  return apiPost<MovieImportBatch>(
     `/api/admin/movie-imports/${batchId}/crawl`,
-    {
-      method: 'POST',
-    },
   );
 }
 
 export function crawlMovieImportCandidate(candidateId: string) {
-  return apiFetch<MovieImportCandidate>(
+  return apiPost<MovieImportCandidate>(
     `/api/admin/movie-import-candidates/${candidateId}/crawl`,
-    {
-      method: 'POST',
-    },
   );
 }
 
 export function approveMovieImportCandidate(candidateId: string) {
-  return apiFetch<Movie>(
+  return apiPost<Movie>(
     `/api/admin/movie-import-candidates/${candidateId}/approve`,
-    {
-      method: 'POST',
-    },
   );
 }
 
 export function rejectMovieImportCandidate(candidateId: string) {
-  return apiFetch<void>(
+  return apiPost<void>(
     `/api/admin/movie-import-candidates/${candidateId}/reject`,
-    {
-      method: 'POST',
-    },
   );
 }

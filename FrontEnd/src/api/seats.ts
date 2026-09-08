@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost } from '@/src/api/client';
 import type { HoldSeatsRequest, HoldSeatsResponse, SeatAvailability } from '@/src/types';
 
 export function getSeatAvailability(showtimeId: string) {
@@ -6,8 +6,5 @@ export function getSeatAvailability(showtimeId: string) {
 }
 
 export function holdSeats(showtimeId: string, request: HoldSeatsRequest) {
-  return apiFetch<HoldSeatsResponse>(`/api/showtimes/${showtimeId}/holds`, {
-    method: 'POST',
-    body: request,
-  });
+  return apiPost<HoldSeatsResponse>(`/api/showtimes/${showtimeId}/holds`, request);
 }

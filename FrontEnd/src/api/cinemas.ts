@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost, apiPut } from '@/src/api/client';
 import type { Cinema, CinemaShowtime, Room, Seat, SeatType } from '@/src/types';
 
 type GetCinemasOptions = {
@@ -65,10 +65,7 @@ export function getCinemaShowtimeHistory(
 }
 
 export function assignStaffToCinema(cinemaId: string, userId: string) {
-  return apiFetch<void>(`/api/cinemas/${cinemaId}/staff`, {
-    method: 'POST',
-    body: { userId },
-  });
+  return apiPost<void>(`/api/cinemas/${cinemaId}/staff`, { userId });
 }
 
 export function getSeats() {
@@ -96,32 +93,20 @@ export type CreateSeatRequest = {
 };
 
 export function createRoom(cinemaId: string, request: CreateRoomRequest) {
-  return apiFetch<Room>(`/api/cinemas/${cinemaId}/rooms`, {
-    method: 'POST',
-    body: request,
-  });
+  return apiPost<Room>(`/api/cinemas/${cinemaId}/rooms`, request);
 }
 
 export function updateRoom(roomId: string, request: UpdateRoomRequest) {
-  return apiFetch<void>(`/api/rooms/${roomId}`, {
-    method: 'PUT',
-    body: request,
-  });
+  return apiPut<void>(`/api/rooms/${roomId}`, request);
 }
 
 export function createSeat(roomId: string, request: CreateSeatRequest) {
-  return apiFetch<Seat>(`/api/rooms/${roomId}/seats`, {
-    method: 'POST',
-    body: request,
-  });
+  return apiPost<Seat>(`/api/rooms/${roomId}/seats`, request);
 }
 
 export function bulkCreateSeats(roomId: string, seats: CreateSeatRequest[]) {
-  return apiFetch<{ createdCount: number; seatIds: string[] }>(
+  return apiPost<{ createdCount: number; seatIds: string[] }>(
     `/api/rooms/${roomId}/seats/bulk`,
-    {
-      method: 'POST',
-      body: { seats },
-    },
+    { seats },
   );
 }

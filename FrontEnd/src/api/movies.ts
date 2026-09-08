@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost, apiPut } from '@/src/api/client';
 import type {
   BulkCreateMoviesRequest,
   BulkCreateMoviesResult,
@@ -26,22 +26,13 @@ export function getMovieShowtimes(movieId: string) {
 }
 
 export function createMovie(request: CreateMovieRequest) {
-  return apiFetch<Movie>('/api/movies', {
-    method: 'POST',
-    body: request,
-  });
+  return apiPost<Movie>('/api/movies', request);
 }
 
 export function updateMovie(id: string, request: UpdateMovieRequest) {
-  return apiFetch<void>(`/api/movies/${id}`, {
-    method: 'PUT',
-    body: request,
-  });
+  return apiPut<void>(`/api/movies/${id}`, request);
 }
 
 export function bulkCreateMovies(request: BulkCreateMoviesRequest) {
-  return apiFetch<BulkCreateMoviesResult>('/api/movies/bulk', {
-    method: 'POST',
-    body: request,
-  });
+  return apiPost<BulkCreateMoviesResult>('/api/movies/bulk', request);
 }

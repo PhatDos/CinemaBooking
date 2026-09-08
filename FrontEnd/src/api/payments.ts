@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost } from '@/src/api/client';
 import type { Payment } from '@/src/types';
 
 export function getPayment(paymentId: string) {
@@ -14,8 +14,5 @@ export function getPaymentByHold(holdId: string) {
 }
 
 export function payHold(holdId: string) {
-  return apiFetch<Payment>('/api/payments', {
-    method: 'POST',
-    body: { holdId },
-  });
+  return apiPost<Payment>('/api/payments', { holdId });
 }

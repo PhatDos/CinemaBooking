@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost } from '@/src/api/client';
 import type { AdminUser } from '@/src/types';
 
 type GetAdminUsersOptions = {
@@ -25,7 +25,5 @@ export function getAdminUsers(options: GetAdminUsersOptions = {}) {
 }
 
 export function makeUserStaff(userId: string) {
-  return apiFetch<void>(`/api/admin/users/${userId}/staff`, {
-    method: 'POST',
-  });
+  return apiPost<void>(`/api/admin/users/${userId}/staff`);
 }

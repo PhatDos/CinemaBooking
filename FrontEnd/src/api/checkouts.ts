@@ -1,10 +1,8 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost } from '@/src/api/client';
 import type { Checkout } from '@/src/types';
 
 export function cancelCheckout(holdId: string) {
-  return apiFetch<Checkout>(`/api/checkouts/${holdId}/cancel`, {
-    method: 'POST',
-  });
+  return apiPost<Checkout>(`/api/checkouts/${holdId}/cancel`);
 }
 
 export function getCheckouts() {

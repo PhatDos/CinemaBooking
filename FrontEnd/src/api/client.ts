@@ -17,10 +17,12 @@ export class ApiError extends Error {
   }
 }
 
-type ApiRequestOptions = Omit<RequestInit, 'body'> & {
+export type ApiRequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
   auth?: boolean;
 };
+
+type ApiMethodOptions = Omit<ApiRequestOptions, 'body' | 'method'>;
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
@@ -87,6 +89,50 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 }
 
 export const apiFetch = apiRequest;
+
+export function apiGet<T>(
+  path: string,
+  options: ApiMethodOptions = {},
+) {
+  return apiRequest<T>(path, {
+    ...options,
+    method: 'GET',
+  });
+}
+
+export function apiPost<T>(
+  path: string,
+  body?: unknown,
+  options: ApiMethodOptions = {},
+) {
+  return apiRequest<T>(path, {
+    ...options,
+    method: 'POST',
+    body,
+  });
+}
+
+export function apiPut<T>(
+  path: string,
+  body?: unknown,
+  options: ApiMethodOptions = {},
+) {
+  return apiRequest<T>(path, {
+    ...options,
+    method: 'PUT',
+    body,
+  });
+}
+
+export function apiDelete<T>(
+  path: string,
+  options: ApiMethodOptions = {},
+) {
+  return apiRequest<T>(path, {
+    ...options,
+    method: 'DELETE',
+  });
+}
 
 export async function checkHealth(): Promise<string> {
   let response: Response;

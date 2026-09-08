@@ -1,10 +1,8 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost } from '@/src/api/client';
 import type { Booking, Ticket } from '@/src/types';
 
 export function cancelBooking(bookingId: string) {
-  return apiFetch<void>(`/api/bookings/${bookingId}/cancel`, {
-    method: 'POST',
-  });
+  return apiPost<void>(`/api/bookings/${bookingId}/cancel`);
 }
 
 export function getBooking(bookingId: string) {

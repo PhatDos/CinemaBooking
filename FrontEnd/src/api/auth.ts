@@ -1,20 +1,12 @@
-import { apiRequest } from '@/src/api/client';
+import { apiPost, apiRequest } from '@/src/api/client';
 import type { AuthResponse, CurrentUser, LoginRequest, RefreshTokenRequest } from '@/src/types';
 
 export function login(request: LoginRequest) {
-  return apiRequest<AuthResponse>('/api/auth/login', {
-    method: 'POST',
-    auth: false,
-    body: request,
-  });
+  return apiPost<AuthResponse>('/api/auth/login', request, { auth: false });
 }
 
 export function refreshAuth(request: RefreshTokenRequest) {
-  return apiRequest<AuthResponse>('/api/auth/refresh', {
-    method: 'POST',
-    auth: false,
-    body: request,
-  });
+  return apiPost<AuthResponse>('/api/auth/refresh', request, { auth: false });
 }
 
 export function getCurrentUser() {
@@ -22,8 +14,5 @@ export function getCurrentUser() {
 }
 
 export function logout(refreshToken: string) {
-  return apiRequest<void>('/api/auth/logout', {
-    method: 'POST',
-    body: { refreshToken },
-  });
+  return apiPost<void>('/api/auth/logout', { refreshToken });
 }

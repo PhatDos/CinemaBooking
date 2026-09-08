@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiDelete, apiFetch, apiPost, apiPut } from '@/src/api/client';
 import type {
   CreateGenreRequest,
   Genre,
@@ -41,10 +41,7 @@ export function clearGenresCache() {
 }
 
 export async function createGenre(request: CreateGenreRequest) {
-  const genre = await apiFetch<Genre>('/api/genres', {
-    method: 'POST',
-    body: request,
-  });
+  const genre = await apiPost<Genre>('/api/genres', request);
 
   clearGenresCache();
 
@@ -55,18 +52,13 @@ export async function updateGenre(
   id: string,
   request: UpdateGenreRequest,
 ) {
-  await apiFetch<void>(`/api/genres/${id}`, {
-    method: 'PUT',
-    body: request,
-  });
+  await apiPut<void>(`/api/genres/${id}`, request);
 
   clearGenresCache();
 }
 
 export async function deleteGenre(id: string) {
-  await apiFetch<void>(`/api/genres/${id}`, {
-    method: 'DELETE',
-  });
+  await apiDelete<void>(`/api/genres/${id}`);
 
   clearGenresCache();
 }

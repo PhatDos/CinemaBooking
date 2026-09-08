@@ -1,4 +1,4 @@
-import { apiFetch } from '@/src/api/client';
+import { apiFetch, apiPost } from '@/src/api/client';
 import type {
   BulkCreateShowtimesRequest,
   BulkCreateShowtimesResult,
@@ -11,17 +11,11 @@ export function getShowtimeById(id: string) {
 }
 
 export function createShowtime(request: CreateShowtimeRequest) {
-  return apiFetch<Showtime>('/api/showtimes', {
-    method: 'POST',
-    body: request,
-  });
+  return apiPost<Showtime>('/api/showtimes', request);
 }
 
 export function bulkCreateShowtimes(
   request: BulkCreateShowtimesRequest,
 ) {
-  return apiFetch<BulkCreateShowtimesResult>('/api/showtimes/bulk', {
-    method: 'POST',
-    body: request,
-  });
+  return apiPost<BulkCreateShowtimesResult>('/api/showtimes/bulk', request);
 }
