@@ -1,3 +1,16 @@
+import * as SecureStore from 'expo-secure-store';
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type PropsWithChildren,
+} from 'react';
+import { Platform, useColorScheme } from 'react-native';
+
 export const colors = {
   background: '#f7f8fb',
   surface: '#ffffff',
@@ -14,6 +27,106 @@ export const colors = {
   blue: '#175cd3',
   disabled: '#98a2b3',
 };
+
+export const darkColors = {
+  background: '#050505',
+  surface: '#111111',
+  surfaceAlt: '#171717',
+  ink: '#ffffff',
+  muted: '#a7b0c0',
+  border: '#242424',
+  primary: '#f4f4f5',
+  primaryDark: '#d4d4d8',
+  accent: '#8edbd2',
+  warning: '#fbbf24',
+  success: '#86efac',
+  danger: '#fca5a5',
+  blue: '#7dd3fc',
+  disabled: '#525866',
+};
+
+export type ThemeMode = 'light' | 'dark';
+
+type ThemeContextValue = {
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => Promise<void>;
+};
+
+const THEME_KEY = 'cinema.themeMode';
+const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+
+export function ThemeProvider({ children }: PropsWithChildren) {
+  const systemMode = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const [mode, setModeState] = useState<ThemeMode>(systemMode);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreTheme() {
+      const storedMode = await getStoredThemeMode();
+
+      if (active && storedMode) {
+        setModeState(storedMode);
+      }
+    }
+
+    void restoreTheme();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const setMode = useCallback(async (nextMode: ThemeMode) => {
+    setModeState(nextMode);
+    await setStoredThemeMode(nextMode);
+  }, []);
+
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      mode,
+      setMode,
+    }),
+    [mode, setMode],
+  );
+
+  return createElement(ThemeContext.Provider, { value }, children);
+}
+
+export function useThemePreference() {
+  const context = useContext(ThemeContext);
+
+  if (!context) {
+    throw new Error('useThemePreference must be used within ThemeProvider');
+  }
+
+  return context;
+}
+
+export function useThemeMode(): ThemeMode {
+  return useThemePreference().mode;
+}
+
+export function useAppTheme() {
+  return useThemeMode() === 'dark' ? darkColors : colors;
+}
+
+async function getStoredThemeMode() {
+  const value = Platform.OS === 'web'
+    ? globalThis.localStorage?.getItem(THEME_KEY) ?? null
+    : await SecureStore.getItemAsync(THEME_KEY);
+
+  return value === 'light' || value === 'dark' ? value : null;
+}
+
+async function setStoredThemeMode(mode: ThemeMode) {
+  if (Platform.OS === 'web') {
+    globalThis.localStorage?.setItem(THEME_KEY, mode);
+    return;
+  }
+
+  await SecureStore.setItemAsync(THEME_KEY, mode);
+}
 
 export const radius = {
   sm: 6,

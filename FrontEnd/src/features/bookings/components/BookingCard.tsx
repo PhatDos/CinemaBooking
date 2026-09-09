@@ -18,6 +18,7 @@ import {
 type BookingCardProps = {
   booking: Booking;
   cancelling: boolean;
+  dark: boolean;
   display?: ReservationDisplay;
   onCancel: () => void;
 };
@@ -25,6 +26,7 @@ type BookingCardProps = {
 export function BookingCard({
   booking,
   cancelling,
+  dark,
   display,
   onCancel,
 }: BookingCardProps) {
@@ -32,7 +34,7 @@ export function BookingCard({
 
   return (
     <AnimatedPressable
-      contentStyle={styles.card}
+      contentStyle={[styles.card, dark && styles.cardDark]}
       onPress={() =>
         router.push({
           pathname: '/checkout/[bookingId]',
@@ -41,8 +43,10 @@ export function BookingCard({
       }>
       <View style={styles.cardHeader}>
         <View style={styles.bookingTitleBlock}>
-          <Text style={styles.bookingId}>Booking</Text>
-          <Text style={styles.date}>Created: {formatDate(booking.createdAt)}</Text>
+          <Text style={[styles.bookingId, dark && styles.bookingIdDark]}>Booking</Text>
+          <Text style={[styles.date, dark && styles.dateDark]}>
+            Created: {formatDate(booking.createdAt)}
+          </Text>
         </View>
         <View style={[styles.badge, getStatusBadgeStyle(booking.status)]}>
           <Text style={[styles.badgeText, getStatusBadgeTextStyle(booking.status)]}>
@@ -52,31 +56,35 @@ export function BookingCard({
       </View>
 
       <View style={styles.bookingMetaGrid}>
-        <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Seats</Text>
+        <View style={[styles.metaBlock, dark && styles.metaBlockDark]}>
+          <Text style={[styles.metaLabel, dark && styles.metaLabelDark]}>Seats</Text>
           {seatLabels.length > 0 ? (
             <View style={styles.seatPills}>
               {seatLabels.map((seatLabel) => (
-                <View key={seatLabel} style={styles.seatPill}>
-                  <Text style={styles.seatPillText}>{seatLabel}</Text>
+                <View key={seatLabel} style={[styles.seatPill, dark && styles.seatPillDark]}>
+                  <Text style={[styles.seatPillText, dark && styles.seatPillTextDark]}>
+                    {seatLabel}
+                  </Text>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={styles.metaValue}>
+            <Text style={[styles.metaValue, dark && styles.metaValueDark]}>
               {formatSeatFallback(booking.seatIds.length)}
             </Text>
           )}
         </View>
-        <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Showtime</Text>
-          <Text numberOfLines={3} style={styles.metaValue}>
+        <View style={[styles.metaBlock, dark && styles.metaBlockDark]}>
+          <Text style={[styles.metaLabel, dark && styles.metaLabelDark]}>Showtime</Text>
+          <Text numberOfLines={3} style={[styles.metaValue, dark && styles.metaValueDark]}>
             {display?.showtimeLabel ?? 'Loading details...'}
           </Text>
         </View>
       </View>
 
-      <Text style={styles.total}>{formatCurrency(booking.totalAmount)}</Text>
+      <Text style={[styles.total, dark && styles.totalDark]}>
+        {formatCurrency(booking.totalAmount)}
+      </Text>
 
       {isPendingStatus(booking.status) ? (
         <View style={styles.cardActions}>

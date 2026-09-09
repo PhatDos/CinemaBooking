@@ -159,7 +159,10 @@ public class CinemasController : ControllerBase
     [HttpGet("{cinemaId:guid}/showtimes")]
     public async Task<IActionResult> GetUpcomingShowtimesByCinema(
         Guid cinemaId,
-        CancellationToken cancellationToken)
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] bool includePast = false,
+        CancellationToken cancellationToken = default)
     {
         var cinema =
             await _theaterModule.GetCinemaAsync(
@@ -169,6 +172,16 @@ public class CinemasController : ControllerBase
         if (cinema is null || !cinema.IsActive)
         {
             return NotFound();
+        }
+
+        if (from is not null &&
+            to is not null &&
+            from > to)
+        {
+            return BadRequest(new
+            {
+                message = "Showtime start date must be before end date."
+            });
         }
 
         var rooms =
@@ -183,6 +196,9 @@ public class CinemasController : ControllerBase
         var showtimes =
             await _schedulingModule.GetShowtimesByRoomIdsAsync(
                 activeRooms.Select(room => room.Id).ToArray(),
+                from,
+                to,
+                CanIncludePastShowtimes(includePast),
                 cancellationToken: cancellationToken);
 
         var response =
@@ -407,6 +423,13 @@ public class CinemasController : ControllerBase
         return string.IsNullOrWhiteSpace(value)
             ? null
             : value.Trim().ToUpperInvariant();
+    }
+
+    private bool CanIncludePastShowtimes(bool includePast)
+    {
+        return includePast &&
+            (User.IsInRole(AppRoles.Admin) ||
+                User.IsInRole(AppRoles.Staff));
     }
 
     private async Task<IReadOnlyList<CinemaShowtimeResponse>> BuildCinemaShowtimesAsync(

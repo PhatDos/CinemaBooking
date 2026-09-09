@@ -7,6 +7,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   content: {
     padding: 20,
     paddingTop: 64,
@@ -25,6 +28,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 9,
+  },
+  backLinkDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
   },
   backLinkText: {
     color: colors.ink,
@@ -47,6 +54,9 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
+  },
+  kickerDark: {
+    color: '#c8ced8',
   },
   heroImage: {
     width: '100%',
@@ -74,6 +84,9 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  addressDark: {
+    color: '#c4cad4',
+  },
   description: {
     marginTop: 12,
     color: colors.muted,
@@ -87,6 +100,11 @@ export const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
   },
+  showtimeLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+  },
   showtimeCard: {
     flexDirection: 'row',
     gap: 14,
@@ -97,6 +115,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 12,
     ...shadow.card,
+  },
+  showtimeCardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   historyCard: {
     flexDirection: 'row',
@@ -167,7 +190,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     gap: 10,
     marginTop: 14,
   },
@@ -180,6 +203,41 @@ export const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 14,
     fontWeight: '900',
+  },
+  roomBlock: {
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#e7eaf0',
+    paddingTop: 12,
+  },
+  roomBlockDark: {
+    borderTopColor: '#242424',
+  },
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+  },
+  timeChip: {
+    minWidth: 78,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    backgroundColor: '#f2f4f7',
+    paddingHorizontal: 16,
+  },
+  timeChipDark: {
+    backgroundColor: '#ffffff',
+  },
+  timeText: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  timeTextDark: {
+    color: '#050505',
   },
   historyLabel: {
     borderRadius: radius.sm,
@@ -197,6 +255,10 @@ export const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     padding: 18,
+  },
+  emptyDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
   },
   emptyTitle: {
     color: colors.ink,
@@ -216,6 +278,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 24,
   },
+  centerDark: {
+    backgroundColor: '#050505',
+  },
   error: {
     color: colors.danger,
     fontSize: 16,
@@ -227,8 +292,19 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  backButtonDark: {
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
+  },
   backButtonText: {
     color: colors.surface,
     fontWeight: '700',
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
   },
 });

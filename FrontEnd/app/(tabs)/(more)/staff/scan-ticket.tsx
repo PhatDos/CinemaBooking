@@ -2,8 +2,7 @@ import {
   CameraView,
   useCameraPermissions,
   type BarcodeScanningResult } from 'expo-camera';
-import { Redirect,
-  router } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect,
   useState } from 'react';
 import {
@@ -19,6 +18,7 @@ import { checkInTicket } from '@/src/api/tickets';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { FadeInView } from '@/src/components/FadeInView';
+import { goBackOrReplace } from '@/src/navigation';
 import type { CheckInTicketResponse } from '@/src/types';
 import { getCinema, getRoom, getSeats } from '@/src/api/cinemas';
 import { getMovieById } from '@/src/api/movies';
@@ -84,7 +84,7 @@ export default function ScanTicketScreen() {
         <Text style={styles.bodyText}>Your account cannot check in tickets.</Text>
         <AnimatedPressable
           contentStyle={styles.secondaryButton}
-          onPress={() => router.replace('/movies')}>
+          onPress={() => goBackOrReplace('/movies')}>
           <Text style={styles.secondaryButtonText}>Back to movies</Text>
         </AnimatedPressable>
       </View>
@@ -103,7 +103,7 @@ export default function ScanTicketScreen() {
         <AnimatedPressable contentStyle={styles.primaryButton} onPress={requestPermission}>
           <Text style={styles.primaryButtonText}>Allow camera</Text>
         </AnimatedPressable>
-        <AnimatedPressable contentStyle={styles.secondaryButton} onPress={() => router.back()}>
+        <AnimatedPressable contentStyle={styles.secondaryButton} onPress={() => goBackOrReplace('/more')}>
           <Text style={styles.secondaryButtonText}>Cancel</Text>
         </AnimatedPressable>
       </View>
@@ -180,7 +180,7 @@ export default function ScanTicketScreen() {
       />
 
       <View style={styles.topBar}>
-        <AnimatedPressable contentStyle={styles.backButton} onPress={() => router.back()}>
+        <AnimatedPressable contentStyle={styles.backButton} onPress={() => goBackOrReplace('/more')}>
           <Text style={styles.backButtonText}>Back</Text>
         </AnimatedPressable>
         <Text style={styles.screenTitle}>Scan Ticket</Text>

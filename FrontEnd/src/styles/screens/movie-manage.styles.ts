@@ -1,11 +1,14 @@
 import { StyleSheet } from 'react-native';
-import { bottomNavHeight } from '@/src/styles/layout';
+import { screenBottomPadding } from '@/src/styles/layout';
 import { colors, radius, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  containerDark: {
+    backgroundColor: '#050505',
   },
   header: {
     paddingHorizontal: 20,
@@ -14,6 +17,28 @@ export const styles = StyleSheet.create({
   },
   headerText: {
     maxWidth: 520,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  backButton: {
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  backButtonText: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '900',
   },
   kicker: {
     color: colors.primary,
@@ -36,6 +61,7 @@ export const styles = StyleSheet.create({
   toolbar: {
     gap: 8,
     paddingHorizontal: 20,
+    paddingTop: 12,
     paddingBottom: 12,
   },
   toolbarRow: {
@@ -54,6 +80,11 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     fontWeight: '700',
+  },
+  searchInputDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#080808',
+    color: '#ffffff',
   },
   toolbarActionItem: {
     flex: 1,
@@ -86,24 +117,33 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
   },
+  toolbarOutlineButtonDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
+  },
   toolbarOutlineButtonText: {
     color: colors.ink,
     fontSize: 15,
     fontWeight: '900',
   },
   list: {
-    padding: 20,
-    paddingTop: 8,
-    paddingBottom: bottomNavHeight + 24,
+    paddingTop: 0,
+    paddingBottom: screenBottomPadding,
     gap: 12,
   },
   card: {
+    marginHorizontal: 20,
     borderWidth: 1,
     borderColor: '#e7eaf0',
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     overflow: 'hidden',
     ...shadow.card,
+  },
+  cardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   cardTop: {
     flexDirection: 'row',
@@ -137,6 +177,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 14,
+  },
+  cardBodyDark: {
+    borderTopColor: '#242424',
   },
   titleRow: {
     flexDirection: 'row',
@@ -191,6 +234,9 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  descriptionDark: {
+    color: '#c4cad4',
+  },
   cardActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -207,6 +253,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 13,
     paddingVertical: 8,
+  },
+  secondaryButtonDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -252,6 +302,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 24,
   },
+  centerDark: {
+    backgroundColor: '#050505',
+  },
   error: {
     color: colors.danger,
     fontSize: 16,
@@ -271,6 +324,7 @@ export const styles = StyleSheet.create({
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 20,
     paddingVertical: 80,
   },
   emptyTitle: {
@@ -283,5 +337,14 @@ export const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
     textAlign: 'center',
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
+  },
+  accentTextDark: {
+    color: '#8edbd2',
   },
 });

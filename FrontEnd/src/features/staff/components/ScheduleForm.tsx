@@ -2,7 +2,7 @@ import { ActivityIndicator, Switch, Text, TextInput, View } from 'react-native';
 
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { formatRoomName } from '@/src/display';
-import { colors } from '@/src/theme';
+import { colors, useThemeMode } from '@/src/theme';
 import type { Movie, Room } from '@/src/types';
 
 import { styles } from '../styles';
@@ -54,19 +54,22 @@ export function ScheduleForm({
   onChangeVipPrice,
   onCreateShowtime,
 }: ScheduleFormProps) {
+  const dark = useThemeMode() === 'dark';
+  const placeholderTextColor = dark ? '#6e7683' : '#98a2b3';
+
   return (
-    <View style={styles.group}>
+    <View style={[styles.group, dark && styles.groupDark]}>
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Schedule</Text>
+          <Text style={[styles.sectionTitle, dark && styles.textDark]}>Schedule</Text>
           {selectedMovie && selectedRoom ? (
-            <Text numberOfLines={1} style={styles.selectedSummary}>
+            <Text numberOfLines={1} style={[styles.selectedSummary, dark && styles.mutedTextDark]}>
               {selectedMovie.title} | {formatRoomName(selectedRoom.name)}
             </Text>
           ) : null}
         </View>
         <View style={styles.switchRow}>
-          <Text style={styles.switchText}>Bulk</Text>
+          <Text style={[styles.switchText, dark && styles.textDark]}>Bulk</Text>
           <Switch
             disabled={saving}
             onValueChange={onChangeBulkMode}
@@ -79,14 +82,14 @@ export function ScheduleForm({
 
       <View style={styles.formGrid}>
         <View style={styles.field}>
-          <Text style={styles.label}>Date</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Date</Text>
           <TextInput
             editable={!saving}
             keyboardType="numbers-and-punctuation"
             onChangeText={onChangeDate}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#98a2b3"
-            style={styles.input}
+            placeholderTextColor={placeholderTextColor}
+            style={[styles.input, dark && styles.inputDark]}
             value={date}
           />
         </View>
@@ -94,38 +97,38 @@ export function ScheduleForm({
 
       <View style={styles.formGrid}>
         <View style={styles.priceField}>
-          <Text style={styles.label}>Standard</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Standard</Text>
           <TextInput
             editable={!saving}
             keyboardType="numeric"
             onChangeText={onChangeStandardPrice}
             placeholder={defaultStandardPrice}
-            placeholderTextColor="#98a2b3"
-            style={styles.input}
+            placeholderTextColor={placeholderTextColor}
+            style={[styles.input, dark && styles.inputDark]}
             value={standardPrice}
           />
         </View>
         <View style={styles.priceField}>
-          <Text style={styles.label}>VIP</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>VIP</Text>
           <TextInput
             editable={!saving}
             keyboardType="numeric"
             onChangeText={onChangeVipPrice}
             placeholder={defaultVipPrice}
-            placeholderTextColor="#98a2b3"
-            style={styles.input}
+            placeholderTextColor={placeholderTextColor}
+            style={[styles.input, dark && styles.inputDark]}
             value={vipPrice}
           />
         </View>
         <View style={styles.priceField}>
-          <Text style={styles.label}>Couple</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Couple</Text>
           <TextInput
             editable={!saving}
             keyboardType="numeric"
             onChangeText={onChangeCouplePrice}
             placeholder={defaultCouplePrice}
-            placeholderTextColor="#98a2b3"
-            style={styles.input}
+            placeholderTextColor={placeholderTextColor}
+            style={[styles.input, dark && styles.inputDark]}
             value={couplePrice}
           />
         </View>
@@ -133,27 +136,27 @@ export function ScheduleForm({
 
       {bulkMode ? (
         <View style={styles.field}>
-          <Text style={styles.label}>Times</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Times</Text>
           <TextInput
             editable={!saving}
             multiline
             onChangeText={onChangeBulkTimes}
             placeholder={defaultBulkTimes}
-            placeholderTextColor="#98a2b3"
-            style={[styles.input, styles.multilineInput]}
+            placeholderTextColor={placeholderTextColor}
+            style={[styles.input, dark && styles.inputDark, styles.multilineInput]}
             value={bulkTimes}
           />
         </View>
       ) : (
         <View style={styles.field}>
-          <Text style={styles.label}>Time</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Time</Text>
           <TextInput
             editable={!saving}
             keyboardType="numbers-and-punctuation"
             onChangeText={onChangeTime}
             placeholder="HH:mm"
-            placeholderTextColor="#98a2b3"
-            style={styles.input}
+            placeholderTextColor={placeholderTextColor}
+            style={[styles.input, dark && styles.inputDark]}
             value={time}
           />
         </View>

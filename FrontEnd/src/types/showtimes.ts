@@ -51,3 +51,9 @@ export type BulkCreateShowtimesResult = {
   createdCount: number;
   showtimeIds: string[];
 };
+
+export type ShowtimeQueryOptions = {
+  from?: string;
+  includePast?: boolean;
+  to?: string;
+};

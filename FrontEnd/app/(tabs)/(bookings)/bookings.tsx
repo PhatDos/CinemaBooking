@@ -6,7 +6,7 @@ import { BookingsScreen } from '@/src/features/bookings/BookingsScreen';
 import { styles } from '@/src/features/bookings/styles';
 
 export default function BookingsRoute() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -20,5 +20,5 @@ export default function BookingsRoute() {
     return <Redirect href="/login" />;
   }
 
-  return <BookingsScreen userEmail={user?.email} />;
+  return <BookingsScreen />;
 }

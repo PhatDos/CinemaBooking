@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { screenBottomPadding } from '@/src/styles/layout';
 import { colors, radius, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
@@ -6,10 +7,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   content: {
-    padding: 20,
-    paddingTop: 64,
-    paddingBottom: 34,
+    paddingBottom: screenBottomPadding,
   },
   topActions: {
     flexDirection: 'row',
@@ -50,6 +52,7 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
   form: {
+    marginHorizontal: 20,
     marginTop: 22,
     borderWidth: 1,
     borderColor: '#e7eaf0',
@@ -57,6 +60,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 18,
     ...shadow.card,
+  },
+  formDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   label: {
     marginBottom: 7,
@@ -75,6 +83,11 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     fontWeight: '700',
+  },
+  inputDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#080808',
+    color: '#ffffff',
   },
   textArea: {
     minHeight: 116,
@@ -121,6 +134,11 @@ export const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     fontWeight: '800',
+  },
+  emptyGenreTextDark: {
+    borderColor: '#242424',
+    backgroundColor: '#080808',
+    color: '#a7b0c0',
   },
   genreGrid: {
     flexDirection: 'row',
@@ -213,6 +231,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  secondaryButtonDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
+  },
   posterClearText: {
     color: colors.danger,
     fontSize: 13,
@@ -234,6 +256,9 @@ export const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surfaceAlt,
     padding: 14,
+  },
+  switchRowDark: {
+    backgroundColor: '#171717',
   },
   switchText: {
     flex: 1,
@@ -273,6 +298,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
   },
   error: {
     marginBottom: 14,

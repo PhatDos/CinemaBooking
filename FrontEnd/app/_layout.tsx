@@ -4,37 +4,31 @@ import 'react-native-reanimated';
 
 import { AuthProvider } from '@/src/auth/AuthContext';
 import { AppNotificationProvider } from '@/src/components/AppNotification';
+import { ThemeProvider, useThemeMode } from '@/src/theme';
 
 export default function RootLayout() {
   return (
-    <AppNotificationProvider>
-      <AuthProvider>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="movies/index" options={{ headerShown: false }} />
-          <Stack.Screen name="movies/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="movies/manage" options={{ headerShown: false }} />
-          <Stack.Screen name="movies/form" options={{ headerShown: false }} />
-          <Stack.Screen name="movies/imports/index" options={{ headerShown: false }} />
-          <Stack.Screen name="more" options={{ headerShown: false }} />
-          <Stack.Screen name="genres/index" options={{ headerShown: false }} />
-          <Stack.Screen name="genres/manage" options={{ headerShown: false }} />
-          <Stack.Screen name="cinemas" options={{ headerShown: false }} />
-          <Stack.Screen name="cinemas/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="cinemas/[id]/history" options={{ headerShown: false }} />
-          <Stack.Screen name="cinemas/manage" options={{ headerShown: false }} />
-          <Stack.Screen name="cinemas/form" options={{ headerShown: false }} />
-          <Stack.Screen name="bookings" options={{ headerShown: false }} />
-          <Stack.Screen name="staff/manage" options={{ headerShown: false }} />
-          <Stack.Screen name="staff/showtimes" options={{ headerShown: false }} />
-          <Stack.Screen name="staff/scan-ticket" options={{ headerShown: false }} />
-          <Stack.Screen name="seats/[showtimeId]" options={{ headerShown: false }} />
-          <Stack.Screen name="checkout/[bookingId]" options={{ headerShown: false }} />
-          <Stack.Screen name="checkout/hold/[holdId]" options={{ headerShown: false }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </AuthProvider>
-    </AppNotificationProvider>
+    <ThemeProvider>
+      <AppNotificationProvider>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </AppNotificationProvider>
+    </ThemeProvider>
+  );
+}
+
+function RootNavigator() {
+  const themeMode = useThemeMode();
+
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+      </Stack>
+      <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
+    </>
   );
 }

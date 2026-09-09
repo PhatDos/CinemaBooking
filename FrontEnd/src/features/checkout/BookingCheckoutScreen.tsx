@@ -20,10 +20,10 @@ import { getPayment, getPaymentByBooking } from '@/src/api/payments';
 import { getSeatAvailability } from '@/src/api/seats';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
 import { formatDateTime, formatVenueName, getSeatLabel } from '@/src/display';
+import { useThemeMode } from '@/src/theme';
 import type { Booking, Payment } from '@/src/types';
 import { styles } from '@/src/features/checkout/styles';
 
@@ -46,6 +46,7 @@ type BookingCheckoutScreenProps = {
 };
 
 export default function CheckoutScreen({ bookingId }: BookingCheckoutScreenProps) {
+  const dark = useThemeMode() === 'dark';
   const [booking, setBooking] = useState<Booking | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -211,7 +212,7 @@ export default function CheckoutScreen({ bookingId }: BookingCheckoutScreenProps
 
   if (!booking) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, dark && styles.centerDark]}>
         <Text style={styles.error}>{error || 'Booking not found'}</Text>
         <Pressable onPress={() => router.replace('/movies')} style={styles.button}>
           <Text style={styles.buttonText}>Back to movies</Text>
@@ -227,25 +228,27 @@ export default function CheckoutScreen({ bookingId }: BookingCheckoutScreenProps
   const canCancel = status === 'pending' && !hasPaymentLink && !paid && !fulfillmentConflict;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, dark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.topActions}>
         <AnimatedPressable
-          contentStyle={styles.backLink}
+          contentStyle={[styles.backLink, dark && styles.backLinkDark]}
           disabled={canceling}
           onPress={handleGoBack}>
-          <Text style={styles.backLinkText}>Go back</Text>
+          <Text style={[styles.backLinkText, dark && styles.textDark]}>Go back</Text>
         </AnimatedPressable>
 
-        <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.replace('/bookings')}>
-          <Text style={styles.backLinkText}>My bookings</Text>
+        <AnimatedPressable
+          contentStyle={[styles.backLink, dark && styles.backLinkDark]}
+          onPress={() => router.replace('/bookings')}>
+          <Text style={[styles.backLinkText, dark && styles.textDark]}>My bookings</Text>
         </AnimatedPressable>
       </View>
 
       <FadeInView>
-        <Text style={styles.kicker}>Payment</Text>
-        <Text style={styles.title}>Checkout</Text>
-        <Text style={styles.text}>
+        <Text style={[styles.kicker, dark && styles.kickerDark]}>Payment</Text>
+        <Text style={[styles.title, dark && styles.textDark]}>Checkout</Text>
+        <Text style={[styles.text, dark && styles.mutedTextDark]}>
           {checkoutContext
             ? `${checkoutContext.movieTitle} | ${formatDateTime(checkoutContext.startTime)}`
             : 'Loading booking details...'}
@@ -253,11 +256,13 @@ export default function CheckoutScreen({ bookingId }: BookingCheckoutScreenProps
       </FadeInView>
 
       <FadeInView delay={70}>
-        <View style={styles.panel}>
+        <View style={[styles.panel, dark && styles.panelDark]}>
           <View style={styles.statusHeader}>
             <View>
-              <Text style={styles.statusLabel}>Current status</Text>
-              <Text style={styles.stateText}>{getCheckoutStateText(status, paid, fulfillmentConflict)}</Text>
+              <Text style={[styles.statusLabel, dark && styles.mutedTextDark]}>Current status</Text>
+              <Text style={[styles.stateText, dark && styles.textDark]}>
+                {getCheckoutStateText(status, paid, fulfillmentConflict)}
+              </Text>
             </View>
             <View style={[styles.statusPill, getStatusPillStyle(status, paid, fulfillmentConflict)]}>
               <Text style={[styles.statusPillText, getStatusPillTextStyle(status, paid, fulfillmentConflict)]}>
@@ -266,7 +271,7 @@ export default function CheckoutScreen({ bookingId }: BookingCheckoutScreenProps
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, dark && styles.dividerDark]} />
 
           <SeatRow labels={checkoutContext?.seatLabels ?? []} fallbackCount={booking.seatIds.length} />
           <InfoRow label="Total" value={formatCurrency(booking.totalAmount)} highlight />
@@ -302,8 +307,6 @@ export default function CheckoutScreen({ bookingId }: BookingCheckoutScreenProps
         </Text>
       </AnimatedPressable>
       </ScrollView>
-
-      <BottomNav />
       <ConfirmDialog
         cancelLabel="Stay"
         confirmLabel="Cancel booking"
@@ -324,8 +327,10 @@ export default function CheckoutScreen({ bookingId }: BookingCheckoutScreenProps
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, dark && styles.centerDark]}>
       <ActivityIndicator size="large" />
     </View>
   );
@@ -362,4 +367,3 @@ function getStatusPillTextStyle(status: string, paid: boolean, fulfillmentConfli
 
   return styles.statusPillTextPending;
 }
-

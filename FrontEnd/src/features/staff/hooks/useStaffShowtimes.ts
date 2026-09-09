@@ -8,6 +8,11 @@ import { useAppNotification } from '@/src/components/AppNotification';
 import type { Cinema, CinemaShowtime, Movie, Room } from '@/src/types';
 
 import {
+  getDateRangeForQuery,
+  getTodayDateValue,
+} from '@/src/features/showtimes/date-filter';
+
+import {
   buildLocalIsoDateTime,
   defaultBulkTimes,
   defaultCouplePrice,
@@ -32,6 +37,8 @@ export function useStaffShowtimes(isAdmin: boolean) {
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [movieQuery, setMovieQuery] = useState('');
   const [date, setDate] = useState(() => toDateInputValue(new Date()));
+  const [filterDate, setFilterDate] = useState(getTodayDateValue);
+  const [includePast, setIncludePast] = useState(false);
   const [time, setTime] = useState('10:00');
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkTimes, setBulkTimes] = useState(defaultBulkTimes);
@@ -78,7 +85,10 @@ export function useStaffShowtimes(isAdmin: boolean) {
     try {
       const [roomResult, showtimeResult] = await Promise.all([
         getRoomsByCinema(cinemaId),
-        getCinemaShowtimes(cinemaId),
+        getCinemaShowtimes(cinemaId, {
+          ...getDateRangeForQuery(filterDate),
+          includePast,
+        }),
       ]);
       const activeRooms = roomResult.filter((room) => room.isActive);
 
@@ -95,7 +105,7 @@ export function useStaffShowtimes(isAdmin: boolean) {
     } finally {
       setLoadingCinema(false);
     }
-  }, []);
+  }, [filterDate, includePast]);
 
   const loadData = useCallback(async (showSpinner = true) => {
     if (showSpinner) {
@@ -240,7 +250,9 @@ export function useStaffShowtimes(isAdmin: boolean) {
     createSelectedShowtime,
     date,
     error,
+    filterDate,
     filteredMovies,
+    includePast,
     loading,
     loadingCinema,
     movieQuery,
@@ -259,6 +271,8 @@ export function useStaffShowtimes(isAdmin: boolean) {
     setBulkTimes,
     setCouplePrice,
     setDate,
+    setFilterDate,
+    setIncludePast,
     setMovieQuery,
     setSelectedCinemaId,
     setSelectedMovieId,

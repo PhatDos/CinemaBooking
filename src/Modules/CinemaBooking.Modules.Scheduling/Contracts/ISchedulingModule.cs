@@ -8,6 +8,9 @@ public interface ISchedulingModule
 
     Task<IReadOnlyList<ShowtimeInfo>> GetShowtimesByMovieAsync(
         Guid movieId,
+        DateTime? from = null,
+        DateTime? to = null,
+        bool includePast = false,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Guid>> GetUpcomingMovieIdsAsync(

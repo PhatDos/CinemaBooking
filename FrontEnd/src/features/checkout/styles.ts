@@ -7,6 +7,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   content: {
     padding: 20,
     paddingTop: 64,
@@ -19,6 +22,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 24,
   },
+  centerDark: {
+    backgroundColor: '#050505',
+  },
   backLink: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -26,6 +32,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  backLinkDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
   },
   backLinkText: {
     color: colors.ink,
@@ -42,6 +52,9 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
+  },
+  kickerDark: {
+    color: '#c8ced8',
   },
   title: {
     marginTop: 4,
@@ -64,6 +77,11 @@ export const styles = StyleSheet.create({
     padding: 18,
     ...shadow.card,
   },
+  panelDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
+  },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -80,6 +98,9 @@ export const styles = StyleSheet.create({
     height: 1,
     marginVertical: 16,
     backgroundColor: '#eef1f5',
+  },
+  dividerDark: {
+    backgroundColor: '#242424',
   },
   stateText: {
     marginTop: 6,
@@ -124,6 +145,9 @@ export const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
   },
+  infoLabelDark: {
+    color: '#a7b0c0',
+  },
   infoValue: {
     flex: 1,
     color: colors.ink,
@@ -131,10 +155,16 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'right',
   },
+  infoValueDark: {
+    color: '#ffffff',
+  },
   infoValueHighlight: {
     color: colors.primary,
     fontSize: 18,
     fontWeight: '900',
+  },
+  infoValueHighlightDark: {
+    color: '#ffffff',
   },
   seatPills: {
     flex: 1,
@@ -151,10 +181,16 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
   },
+  seatPillDark: {
+    backgroundColor: '#171717',
+  },
   seatPillText: {
     color: colors.ink,
     fontSize: 12,
     fontWeight: '900',
+  },
+  seatPillTextDark: {
+    color: '#ffffff',
   },
   button: {
     marginTop: 24,
@@ -195,5 +231,11 @@ export const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 14,
     fontWeight: '800',
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
   },
 });

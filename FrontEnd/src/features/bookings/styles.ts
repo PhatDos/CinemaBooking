@@ -7,6 +7,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -64,6 +67,11 @@ export const styles = StyleSheet.create({
     padding: 16,
     ...shadow.card,
   },
+  cardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -75,6 +83,9 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 18,
     fontWeight: '900',
+  },
+  bookingIdDark: {
+    color: '#ffffff',
   },
   bookingTitleBlock: {
     flex: 1,
@@ -123,17 +134,26 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     padding: 12,
   },
+  metaBlockDark: {
+    backgroundColor: '#171717',
+  },
   metaLabel: {
     color: colors.muted,
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+  metaLabelDark: {
+    color: '#a7b0c0',
+  },
   metaValue: {
     marginTop: 5,
     color: colors.ink,
     fontSize: 14,
     fontWeight: '900',
+  },
+  metaValueDark: {
+    color: '#ffffff',
   },
   seatPills: {
     flexDirection: 'row',
@@ -149,16 +169,25 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
   },
+  seatPillDark: {
+    backgroundColor: '#080808',
+  },
   seatPillText: {
     color: colors.ink,
     fontSize: 12,
     fontWeight: '900',
+  },
+  seatPillTextDark: {
+    color: '#ffffff',
   },
   total: {
     marginTop: 16,
     color: colors.primary,
     fontSize: 22,
     fontWeight: '900',
+  },
+  totalDark: {
+    color: '#ffffff',
   },
   cardActions: {
     flexDirection: 'row',
@@ -203,6 +232,9 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
+  processingTextDark: {
+    color: '#a7b0c0',
+  },
   cancelBookingButton: {
     minHeight: 40,
     alignItems: 'center',
@@ -224,12 +256,18 @@ export const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
   },
+  dateDark: {
+    color: '#a7b0c0',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  centerDark: {
+    backgroundColor: '#050505',
   },
   empty: {
     flex: 1,
@@ -241,11 +279,17 @@ export const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
   },
+  emptyTitleDark: {
+    color: '#ffffff',
+  },
   emptyText: {
     marginTop: 8,
     color: colors.muted,
     fontSize: 15,
     textAlign: 'center',
+  },
+  emptyTextDark: {
+    color: '#a7b0c0',
   },
   primaryButton: {
     marginTop: 18,

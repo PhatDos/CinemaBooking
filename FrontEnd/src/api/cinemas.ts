@@ -1,5 +1,12 @@
 import { apiFetch, apiPost, apiPut } from '@/src/api/client';
-import type { Cinema, CinemaShowtime, Room, Seat, SeatType } from '@/src/types';
+import type {
+  Cinema,
+  CinemaShowtime,
+  Room,
+  Seat,
+  SeatType,
+  ShowtimeQueryOptions,
+} from '@/src/types';
 
 type GetCinemasOptions = {
   provinceCode?: string | null;
@@ -64,8 +71,15 @@ export function getRoomsByCinema(cinemaId: string) {
   return apiFetch<Room[]>(`/api/cinemas/${cinemaId}/rooms`);
 }
 
-export function getCinemaShowtimes(cinemaId: string) {
-  return apiFetch<CinemaShowtime[]>(`/api/cinemas/${cinemaId}/showtimes`);
+export function getCinemaShowtimes(
+  cinemaId: string,
+  options: ShowtimeQueryOptions = {},
+) {
+  const queryString = buildShowtimeQueryString(options);
+
+  return apiFetch<CinemaShowtime[]>(
+    `/api/cinemas/${cinemaId}/showtimes${queryString}`,
+  );
 }
 
 export function getCinemaShowtimeHistory(
@@ -134,4 +148,24 @@ export function bulkCreateSeats(roomId: string, seats: CreateSeatRequest[]) {
     `/api/rooms/${roomId}/seats/bulk`,
     { seats },
   );
+}
+
+function buildShowtimeQueryString(options: ShowtimeQueryOptions) {
+  const query = new URLSearchParams();
+
+  if (options.from) {
+    query.set('from', options.from);
+  }
+
+  if (options.to) {
+    query.set('to', options.to);
+  }
+
+  if (options.includePast) {
+    query.set('includePast', 'true');
+  }
+
+  const queryString = query.toString();
+
+  return queryString ? `?${queryString}` : '';
 }

@@ -17,12 +17,12 @@ import { getMovieById } from '@/src/api/movies';
 import { getPayment, getPaymentByHold, payHold } from '@/src/api/payments';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
 import { useAppNotification } from '@/src/components/AppNotification';
 import { formatDateTime, formatVenueName } from '@/src/display';
 import { styles } from '@/src/features/checkout/styles';
+import { useThemeMode } from '@/src/theme';
 import type { Payment } from '@/src/types';
 
 import { InfoRow } from './components/InfoRow';
@@ -47,6 +47,7 @@ type HoldCheckoutScreenProps = {
 
 export default function HoldCheckoutScreen({ params }: HoldCheckoutScreenProps) {
   const { showNotification } = useAppNotification();
+  const dark = useThemeMode() === 'dark';
   const [payment, setPayment] = useState<Payment | null>(null);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
@@ -244,29 +245,29 @@ export default function HoldCheckoutScreen({ params }: HoldCheckoutScreenProps) 
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, dark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topActions}>
           <AnimatedPressable
-            contentStyle={styles.backLink}
+            contentStyle={[styles.backLink, dark && styles.backLinkDark]}
             disabled={cancelingHold}
             onPress={handleGoBack}>
-            <Text style={styles.backLinkText}>Go back</Text>
+            <Text style={[styles.backLinkText, dark && styles.textDark]}>Go back</Text>
           </AnimatedPressable>
 
           {payment?.checkoutUrl ? (
             <AnimatedPressable
-              contentStyle={styles.backLink}
+              contentStyle={[styles.backLink, dark && styles.backLinkDark]}
               onPress={() => void Linking.openURL(payment.checkoutUrl!)}>
-              <Text style={styles.backLinkText}>Open PayOS</Text>
+              <Text style={[styles.backLinkText, dark && styles.textDark]}>Open PayOS</Text>
             </AnimatedPressable>
           ) : null}
         </View>
 
         <FadeInView>
-          <Text style={styles.kicker}>Reserved seats</Text>
-          <Text style={styles.title}>Checkout</Text>
-          <Text style={styles.text}>
+          <Text style={[styles.kicker, dark && styles.kickerDark]}>Reserved seats</Text>
+          <Text style={[styles.title, dark && styles.textDark]}>Checkout</Text>
+          <Text style={[styles.text, dark && styles.mutedTextDark]}>
             {checkoutContext
               ? `${checkoutContext.movieTitle} | ${formatDateTime(checkoutContext.startTime)}`
               : 'Your selected seats are held briefly.'}
@@ -274,11 +275,11 @@ export default function HoldCheckoutScreen({ params }: HoldCheckoutScreenProps) 
         </FadeInView>
 
         <FadeInView delay={70}>
-          <View style={styles.panel}>
+          <View style={[styles.panel, dark && styles.panelDark]}>
             <View style={styles.statusHeader}>
               <View>
-                <Text style={styles.statusLabel}>Current status</Text>
-                <Text style={styles.stateText}>
+                <Text style={[styles.statusLabel, dark && styles.mutedTextDark]}>Current status</Text>
+                <Text style={[styles.stateText, dark && styles.textDark]}>
                   {payment?.status === 'Succeeded' ? 'Payment received' : 'Waiting for payment'}
                 </Text>
               </View>
@@ -289,7 +290,7 @@ export default function HoldCheckoutScreen({ params }: HoldCheckoutScreenProps) 
               </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, dark && styles.dividerDark]} />
 
             <InfoRow label="Seats" value={Number.isFinite(seatCount) ? seatCount.toString() : '-'} />
             <InfoRow label="Total" value={formatCurrency(Number.isFinite(amount) ? amount : 0)} highlight />
@@ -327,8 +328,6 @@ export default function HoldCheckoutScreen({ params }: HoldCheckoutScreenProps) 
           )}
         </AnimatedPressable>
       </ScrollView>
-
-      <BottomNav />
       <ConfirmDialog
         cancelLabel="Stay"
         confirmLabel="Cancel checkout"

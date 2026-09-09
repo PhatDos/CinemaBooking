@@ -16,6 +16,7 @@ import {
 type CheckoutCardProps = {
   cancelling: boolean;
   checkout: Checkout;
+  dark: boolean;
   display?: ReservationDisplay;
   onCancel: () => void;
   onPay: () => void;
@@ -25,6 +26,7 @@ type CheckoutCardProps = {
 export function CheckoutCard({
   cancelling,
   checkout,
+  dark,
   display,
   onCancel,
   onPay,
@@ -39,7 +41,7 @@ export function CheckoutCard({
 
   return (
     <AnimatedPressable
-      contentStyle={styles.card}
+      contentStyle={[styles.card, dark && styles.cardDark]}
       onPress={() =>
         router.push({
           pathname: '/checkout/hold/[holdId]',
@@ -54,8 +56,10 @@ export function CheckoutCard({
       }>
       <View style={styles.cardHeader}>
         <View style={styles.bookingTitleBlock}>
-          <Text style={styles.bookingId}>Checkout</Text>
-          <Text style={styles.date}>Expires: {formatDate(checkout.expiresAt)}</Text>
+          <Text style={[styles.bookingId, dark && styles.bookingIdDark]}>Checkout</Text>
+          <Text style={[styles.date, dark && styles.dateDark]}>
+            Expires: {formatDate(checkout.expiresAt)}
+          </Text>
         </View>
         <View style={[styles.badge, getCheckoutBadgeStyle(checkout.status)]}>
           <Text style={[styles.badgeText, getCheckoutBadgeTextStyle(checkout.status)]}>
@@ -65,31 +69,35 @@ export function CheckoutCard({
       </View>
 
       <View style={styles.bookingMetaGrid}>
-        <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Seats</Text>
+        <View style={[styles.metaBlock, dark && styles.metaBlockDark]}>
+          <Text style={[styles.metaLabel, dark && styles.metaLabelDark]}>Seats</Text>
           {seatLabels.length > 0 ? (
             <View style={styles.seatPills}>
               {seatLabels.map((seatLabel) => (
-                <View key={seatLabel} style={styles.seatPill}>
-                  <Text style={styles.seatPillText}>{seatLabel}</Text>
+                <View key={seatLabel} style={[styles.seatPill, dark && styles.seatPillDark]}>
+                  <Text style={[styles.seatPillText, dark && styles.seatPillTextDark]}>
+                    {seatLabel}
+                  </Text>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={styles.metaValue}>
+            <Text style={[styles.metaValue, dark && styles.metaValueDark]}>
               {formatSeatFallback(checkout.seatIds.length)}
             </Text>
           )}
         </View>
-        <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Showtime</Text>
-          <Text numberOfLines={3} style={styles.metaValue}>
+        <View style={[styles.metaBlock, dark && styles.metaBlockDark]}>
+          <Text style={[styles.metaLabel, dark && styles.metaLabelDark]}>Showtime</Text>
+          <Text numberOfLines={3} style={[styles.metaValue, dark && styles.metaValueDark]}>
             {display?.showtimeLabel ?? 'Loading details...'}
           </Text>
         </View>
       </View>
 
-      <Text style={styles.total}>{formatCurrency(checkout.amount)}</Text>
+      <Text style={[styles.total, dark && styles.totalDark]}>
+        {formatCurrency(checkout.amount)}
+      </Text>
 
       <View style={styles.cardActions}>
         {canPay ? (
@@ -120,7 +128,9 @@ export function CheckoutCard({
         ) : null}
 
         {checkout.status === 'PaymentProcessing' ? (
-          <Text style={styles.processingText}>Processing tickets</Text>
+          <Text style={[styles.processingText, dark && styles.processingTextDark]}>
+            Processing tickets
+          </Text>
         ) : null}
 
         {canCancel ? (

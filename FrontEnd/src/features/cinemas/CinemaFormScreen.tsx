@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 import type { LocationItem } from '@/src/types';
 
 import { FormField } from './components/FormField';
@@ -45,22 +46,10 @@ export function CinemaFormScreen({ cinemaId }: CinemaFormScreenProps) {
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled">
-        <View style={styles.topActions}>
-          <AnimatedPressable
-            contentStyle={styles.backButton}
-            disabled={cinema.saving}
-            onPress={() => router.replace(manageRoute)}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </AnimatedPressable>
-        </View>
-
-        <Text style={styles.kicker}>Admin</Text>
-        <Text style={styles.title}>
-          {cinema.editing ? 'Edit Cinema' : 'Add Cinema'}
-        </Text>
-        <Text style={styles.subtitle}>
-          Cinema details are used by listings, showtime setup, and staff assignment.
-        </Text>
+        <ScreenHeader
+          backHref={manageRoute}
+          title={cinema.editing ? 'Edit Cinema' : 'Add Cinema'}
+        />
 
         <View style={styles.panel}>
           <View style={styles.formGrid}>

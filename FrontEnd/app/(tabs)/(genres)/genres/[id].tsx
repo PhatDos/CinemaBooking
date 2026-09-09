@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { Redirect, router, type Href } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,42 +16,41 @@ import { getGenres } from '@/src/api/genres';
 import { getNowShowingMovies } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
+import { goBackOrReplace } from '@/src/navigation';
 import { styles } from '@/src/styles/screens/genres.styles';
+import { colors, useThemeMode } from '@/src/theme';
 import type { Genre, Movie } from '@/src/types';
 
-const genreManageRoute = '/genres/manage' as Href;
-
-export default function GenresScreen() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+export default function GenreMoviesScreen() {
+  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  const { isAuthenticated, isLoading } = useAuth();
+  const dark = useThemeMode() === 'dark';
   const [genres, setGenres] = useState<Genre[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [selectedGenreId, setSelectedGenreId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  const isAdmin = user?.roles.includes('Admin') ?? false;
-
   const selectedGenre = useMemo(
-    () => genres.find((genre) => genre.id === selectedGenreId) ?? null,
-    [genres, selectedGenreId],
+    () => genres.find((genre) => genre.id === id) ?? null,
+    [genres, id],
   );
+  const genreName = selectedGenre?.name ?? name ?? 'Genre';
 
   const filteredMovies = useMemo(() => {
-    if (!selectedGenreId) {
+    if (!id) {
       return [];
     }
 
     return movies.filter((movie) =>
-      movie.genres?.some((genre) => genre.id === selectedGenreId) ||
-      movie.genreId === selectedGenreId ||
+      movie.genres?.some((genre) => genre.id === id) ||
+      movie.genreId === id ||
       (
         selectedGenre &&
         movie.genre?.toLowerCase() === selectedGenre.name.toLowerCase()
       ));
-  }, [movies, selectedGenre, selectedGenreId]);
+  }, [id, movies, selectedGenre]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -60,7 +60,7 @@ export default function GenresScreen() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, id]);
 
   async function loadData(showSpinner = true) {
     if (showSpinner) {
@@ -77,14 +77,9 @@ export default function GenresScreen() {
 
       setGenres(genreResult);
       setMovies(movieResult);
-      setSelectedGenreId((current) =>
-        current && genreResult.some((genre) => genre.id === current)
-          ? current
-          : genreResult[0]?.id ?? null,
-      );
     } catch (loadError) {
       console.error(loadError);
-      setError('Cannot load genres');
+      setError('Cannot load movies');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -103,59 +98,51 @@ export default function GenresScreen() {
     return <CenteredLoader />;
   }
 
-  const genreHeader = (
-    <View style={styles.genreGrid}>
-      {genres.map((genre, index) => {
-        const selected = genre.id === selectedGenreId;
+  return (
+    <View style={[styles.container, dark && styles.containerDark]}>
+      <View style={styles.resultHeader}>
+        <View style={styles.resultTopRow}>
+          <AnimatedPressable
+            contentStyle={[styles.resultBackButton, dark && styles.resultBackButtonDark]}
+            onPress={() => goBackOrReplace('/genres')}>
+            <Ionicons color={dark ? '#ffffff' : colors.ink} name="chevron-back" size={24} />
+          </AnimatedPressable>
+          <Text numberOfLines={1} style={[styles.resultTopTitle, dark && styles.resultTopTitleDark]}>
+            Genres
+          </Text>
+          <View style={styles.resultTopSpacer} />
+        </View>
 
-        return (
-          <FadeInView delay={index * 35} key={genre.id} style={styles.genreItem}>
-            <AnimatedPressable
-              contentStyle={[
-                styles.genreCard,
-                selected && styles.genreCardSelected,
-              ]}
-              onPress={() => setSelectedGenreId(genre.id)}>
+        <FadeInView>
+          <View style={styles.resultHero}>
+            {selectedGenre?.imageUrl ? (
               <Image
                 contentFit="cover"
-                source={{ uri: genre.imageUrl }}
+                source={{ uri: selectedGenre.imageUrl }}
                 style={StyleSheet.absoluteFill}
                 transition={180}
               />
-              <View style={styles.genreShade}>
-                <Text numberOfLines={1} style={styles.genreName}>
-                  {genre.name}
-                </Text>
+            ) : null}
+            <View style={styles.resultHeroShade}>
+              <Text style={styles.resultKicker}>Genre</Text>
+              <Text numberOfLines={2} style={styles.resultHeading}>
+                {genreName}
+              </Text>
+              <View style={styles.resultMetaRow}>
+                <Text style={styles.resultSubtitle}>Now showing movies</Text>
+                <View style={styles.resultCountPill}>
+                  <Text style={styles.resultCountText}>
+                    {filteredMovies.length} movies
+                  </Text>
+                </View>
               </View>
-            </AnimatedPressable>
-          </FadeInView>
-        );
-      })}
-    </View>
-  );
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.kicker}>Browse</Text>
-          <Text style={styles.heading}>Genres</Text>
-          <Text style={styles.subtitle}>
-            {selectedGenre ? `${selectedGenre.name} movies` : 'Choose a genre'}
-          </Text>
-        </View>
-
-        {isAdmin ? (
-          <AnimatedPressable
-            contentStyle={styles.manageButton}
-            onPress={() => router.push(genreManageRoute)}>
-            <Text style={styles.manageButtonText}>Manage</Text>
-          </AnimatedPressable>
-        ) : null}
+            </View>
+          </View>
+        </FadeInView>
       </View>
 
       {error ? (
-        <View style={styles.center}>
+        <View style={[styles.center, dark && styles.centerDark]}>
           <Text style={styles.error}>{error}</Text>
           <Pressable onPress={() => loadData()} style={styles.retryButton}>
             <Text style={styles.retryText}>Try again</Text>
@@ -166,6 +153,16 @@ export default function GenresScreen() {
           contentContainerStyle={styles.list}
           data={filteredMovies}
           keyExtractor={(item) => item.id}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={[styles.emptyTitle, dark && styles.emptyTitleDark]}>
+                No movies in this genre
+              </Text>
+              <Text style={[styles.emptyText, dark && styles.emptyTextDark]}>
+                Choose another genre or check upcoming showtimes later.
+              </Text>
+            </View>
+          }
           refreshControl={
             <RefreshControl
               onRefresh={() => {
@@ -175,17 +172,10 @@ export default function GenresScreen() {
               refreshing={refreshing}
             />
           }
-          ListHeaderComponent={genreHeader}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No movies in this genre</Text>
-              <Text style={styles.emptyText}>Choose another genre or add movies from Admin.</Text>
-            </View>
-          }
           renderItem={({ item, index }) => (
             <FadeInView delay={index * 45}>
               <AnimatedPressable
-                contentStyle={styles.movieCard}
+                contentStyle={[styles.movieCard, dark && styles.movieCardDark]}
                 onPress={() =>
                   router.push({
                     pathname: '/movies/[id]',
@@ -206,31 +196,35 @@ export default function GenresScreen() {
                 </View>
 
                 <View style={styles.movieInfo}>
-                  <Text numberOfLines={2} style={styles.movieTitle}>
+                  <Text numberOfLines={2} style={[styles.movieTitle, dark && styles.movieTitleDark]}>
                     {item.title}
                   </Text>
-                  <Text style={styles.movieMeta}>
+                  <Text style={[styles.movieMeta, dark && styles.movieMetaDark]}>
                     {item.durationMinutes} min | {formatDate(item.releaseDate)}
                   </Text>
-                  <Text numberOfLines={2} style={styles.movieDescription}>
+                  <Text
+                    numberOfLines={2}
+                    style={[styles.movieDescription, dark && styles.movieDescriptionDark]}>
                     {item.description || 'No description yet.'}
                   </Text>
-                  <Text style={styles.movieAction}>View showtimes</Text>
+                  <Text style={[styles.movieAction, dark && styles.movieActionDark]}>
+                    View showtimes
+                  </Text>
                 </View>
               </AnimatedPressable>
             </FadeInView>
           )}
         />
       )}
-
-      <BottomNav />
     </View>
   );
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, dark && styles.centerDark]}>
       <ActivityIndicator size="large" />
     </View>
   );
@@ -250,3 +244,4 @@ function getInitials(title: string) {
     .map((word) => word[0]?.toUpperCase())
     .join('');
 }
+

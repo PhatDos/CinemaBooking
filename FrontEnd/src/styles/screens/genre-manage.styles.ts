@@ -1,11 +1,14 @@
 import { StyleSheet } from 'react-native';
-import { bottomNavHeight } from '@/src/styles/layout';
+import { screenBottomPadding } from '@/src/styles/layout';
 import { colors, radius, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  containerDark: {
+    backgroundColor: '#050505',
   },
   header: {
     paddingHorizontal: 20,
@@ -58,6 +61,11 @@ export const styles = StyleSheet.create({
     padding: 16,
     ...shadow.card,
   },
+  formDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
+  },
   formTitle: {
     marginBottom: 12,
     color: colors.ink,
@@ -75,6 +83,11 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     fontWeight: '700',
+  },
+  inputDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#080808',
+    color: '#ffffff',
   },
   formActions: {
     flexDirection: 'row',
@@ -98,19 +111,24 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   list: {
-    padding: 20,
-    paddingTop: 8,
-    paddingBottom: bottomNavHeight + 24,
+    paddingTop: 0,
+    paddingBottom: screenBottomPadding,
     gap: 12,
   },
   card: {
     flexDirection: 'row',
+    marginHorizontal: 20,
     borderWidth: 1,
     borderColor: '#e7eaf0',
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     overflow: 'hidden',
     ...shadow.card,
+  },
+  cardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   image: {
     width: 112,
@@ -154,6 +172,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 13,
     paddingVertical: 8,
+  },
+  secondaryButtonDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -211,6 +233,7 @@ export const styles = StyleSheet.create({
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 20,
     paddingVertical: 72,
   },
   emptyTitle: {
@@ -230,5 +253,14 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
+  },
+  accentTextDark: {
+    color: '#8edbd2',
   },
 });

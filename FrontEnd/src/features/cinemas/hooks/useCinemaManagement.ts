@@ -12,6 +12,7 @@ import type { Cinema, Room } from '@/src/types';
 
 import {
   defaultRoomForm,
+  toCinemaForm,
   toCreateRoomRequest,
   toRoomForm,
   toUpdateCinemaRequest,

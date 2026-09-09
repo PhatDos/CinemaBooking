@@ -37,15 +37,32 @@ public class SchedulingModule : ISchedulingModule
 
     public async Task<IReadOnlyList<ShowtimeInfo>> GetShowtimesByMovieAsync(
         Guid movieId,
+        DateTime? from = null,
+        DateTime? to = null,
+        bool includePast = false,
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-
-        return await _dbContext.Showtimes
+        var query = _dbContext.Showtimes
             .AsNoTracking()
-            .Where(showtime =>
-                showtime.MovieId == movieId &&
-                showtime.StartTime >= now)
+            .Where(showtime => showtime.MovieId == movieId);
+
+        if (!includePast)
+        {
+            query = query.Where(showtime => showtime.StartTime >= now);
+        }
+
+        if (from is not null)
+        {
+            query = query.Where(showtime => showtime.StartTime >= from);
+        }
+
+        if (to is not null)
+        {
+            query = query.Where(showtime => showtime.StartTime <= to);
+        }
+
+        return await query
             .OrderBy(showtime => showtime.StartTime)
             .Select(showtime => new ShowtimeInfo
             {

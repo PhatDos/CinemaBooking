@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useThemeMode } from '@/src/theme';
 import type {
   MovieImportBatch,
   MovieImportCandidateStatus,
@@ -21,23 +22,25 @@ export function ImportSummary({
   selectedBatch,
   onSelectBatch,
 }: ImportSummaryProps) {
+  const dark = useThemeMode() === 'dark';
+
   return (
     <View style={styles.summary}>
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Latest batch</Text>
-        <Text style={styles.summaryValue}>
+      <View style={[styles.summaryCard, dark && styles.summaryCardDark]}>
+        <Text style={[styles.summaryLabel, dark && styles.mutedTextDark]}>Latest batch</Text>
+        <Text style={[styles.summaryValue, dark && styles.textDark]}>
           {selectedBatch
             ? `${selectedBatch.source} | ${selectedBatch.status}`
             : 'No batch yet'}
         </Text>
         {selectedBatch ? (
-          <Text style={styles.summaryMeta}>
+          <Text style={[styles.summaryMeta, dark && styles.mutedTextDark]}>
             {selectedBatch.candidateCount} candidates |{' '}
             {formatDateTime(selectedBatch.startedAt)}
           </Text>
         ) : null}
         {selectedBatch ? (
-          <Text style={styles.summaryMeta}>
+          <Text style={[styles.summaryMeta, dark && styles.mutedTextDark]}>
             {counts.Discovered} discovered | {counts.Crawled} crawled |{' '}
             {counts.NeedsReview} review | {counts.Failed} failed
           </Text>
@@ -52,12 +55,16 @@ export function ImportSummary({
               onPress={() => onSelectBatch(batch.id)}
               style={[
                 styles.batchChip,
+                dark && styles.batchChipDark,
                 selectedBatch?.id === batch.id && styles.batchChipActive,
+                selectedBatch?.id === batch.id && dark && styles.batchChipActiveDark,
               ]}>
               <Text
                 style={[
                   styles.batchChipText,
-                  selectedBatch?.id === batch.id && styles.batchChipTextActive,
+                  dark && styles.mutedTextDark,
+                  selectedBatch?.id === batch.id && !dark && styles.batchChipTextActive,
+                  selectedBatch?.id === batch.id && dark && styles.batchChipTextActiveDark,
                 ]}>
                 {formatShortDate(batch.startedAt)}
               </Text>

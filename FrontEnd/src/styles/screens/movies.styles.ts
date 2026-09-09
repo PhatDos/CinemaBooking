@@ -1,156 +1,155 @@
 import { StyleSheet } from 'react-native';
 import { bottomNavHeight } from '@/src/styles/layout';
-import { colors, radius, shadow } from '@/src/theme';
+import { colors, radius } from '@/src/theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 16,
-    paddingHorizontal: 20,
-    paddingTop: 64,
-    paddingBottom: 18,
+  containerDark: {
+    backgroundColor: '#050505',
   },
-  headerText: {
-    flex: 1,
+  chipSection: {
+    paddingTop: 52,
   },
-  kicker: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  heading: {
-    marginTop: 4,
-    color: colors.ink,
-    fontSize: 34,
-    fontWeight: '900',
-  },
-  subtitle: {
-    marginTop: 4,
-    color: colors.muted,
-    fontSize: 14,
-  },
-  list: {
-    padding: 20,
-    paddingTop: 10,
-    paddingBottom: bottomNavHeight + 24,
-    gap: 16,
-  },
-  emptyList: {
-    flexGrow: 1,
-    padding: 20,
-    paddingTop: 10,
-    paddingBottom: bottomNavHeight + 24,
-  },
-  filters: {
-    paddingBottom: 2,
-  },
-  filterRail: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    gap: 8,
+  chipRail: {
+    gap: 12,
+    paddingHorizontal: 23,
+    paddingBottom: 8,
   },
   filterChip: {
     maxWidth: 180,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-  },
-  filterChipSelected: {
-    borderColor: colors.ink,
-    backgroundColor: colors.ink,
-  },
-  filterChipText: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  filterChipTextSelected: {
-    color: colors.surface,
-  },
-  card: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#e7eaf0',
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-    ...shadow.card,
-  },
-  poster: {
-    width: 110,
-    minHeight: 164,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.ink,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 9,
   },
-  posterText: {
-    color: colors.surface,
-    fontSize: 28,
+  filterChipDark: {
+    borderColor: '#242424',
+    backgroundColor: '#050505',
+  },
+  filterChipSelected: {
+    borderColor: colors.border,
+    backgroundColor: '#ffffff',
+  },
+  filterChipSelectedDark: {
+    borderColor: '#8a8a8a',
+    backgroundColor: '#ffffff',
+  },
+  filterChipText: {
+    color: colors.ink,
+    fontSize: 15,
     fontWeight: '900',
   },
-  posterBadge: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    bottom: 8,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(16, 24, 40, 0.78)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+  filterChipTextDark: {
+    color: '#c8ced8',
   },
-  posterBadgeText: {
-    color: colors.surface,
-    fontSize: 11,
+  filterChipTextSelected: {
+    color: '#050505',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    paddingHorizontal: 23,
+    paddingTop: 26,
+    paddingBottom: 14,
+  },
+  heading: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  headingDark: {
+    color: '#ffffff',
+  },
+  count: {
+    color: colors.muted,
+    fontSize: 12,
     fontWeight: '800',
-    textAlign: 'center',
+    letterSpacing: 0,
+  },
+  countDark: {
+    color: '#a7b0c0',
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: bottomNavHeight + 28,
+  },
+  emptyList: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: bottomNavHeight + 28,
+  },
+  gridRow: {
+    justifyContent: 'space-between',
+  },
+  cardWrap: {
+    flex: 1,
+    maxWidth: '50%',
+    paddingHorizontal: 7,
+    marginBottom: 22,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: 'transparent',
+  },
+  poster: {
+    width: '100%',
+    aspectRatio: 0.72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    backgroundColor: '#e8edf5',
+    overflow: 'hidden',
+  },
+  posterText: {
+    color: colors.ink,
+    fontSize: 24,
+    fontWeight: '900',
   },
   info: {
-    flex: 1,
-    padding: 16,
+    paddingTop: 10,
   },
   title: {
     color: colors.ink,
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: '900',
+    lineHeight: 19,
+  },
+  titleDark: {
+    color: '#ffffff',
   },
   metaRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 7,
-    marginTop: 8,
+    gap: 6,
+    marginTop: 6,
   },
   meta: {
     color: colors.muted,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  metaDark: {
+    color: '#c4cad4',
   },
   dot: {
-    color: colors.warning,
-    fontSize: 14,
+    color: colors.disabled,
+    fontSize: 11,
     fontWeight: '900',
   },
-  description: {
-    marginTop: 12,
-    color: '#475467',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  detail: {
-    marginTop: 18,
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '800',
+  dotDark: {
+    color: '#788190',
   },
   center: {
     flex: 1,
@@ -158,6 +157,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  centerDark: {
+    backgroundColor: '#050505',
   },
   empty: {
     flex: 1,
@@ -169,15 +171,21 @@ export const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
   },
+  emptyTitleDark: {
+    color: '#ffffff',
+  },
   emptyText: {
     marginTop: 8,
-    color: colors.muted,
+    color: '#a7b0c0',
     fontSize: 15,
     lineHeight: 21,
     textAlign: 'center',
   },
+  emptyTextDark: {
+    color: '#a7b0c0',
+  },
   error: {
-    color: colors.danger,
+    color: '#fca5a5',
     fontSize: 16,
   },
   retryButton: {
@@ -189,6 +197,6 @@ export const styles = StyleSheet.create({
   },
   retryText: {
     color: colors.surface,
-    fontWeight: '600',
+    fontWeight: '900',
   },
 });

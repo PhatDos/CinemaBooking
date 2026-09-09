@@ -7,9 +7,12 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 64,
+    paddingTop: 48,
     paddingBottom: 18,
   },
   headerText: {
@@ -21,16 +24,25 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
     textTransform: 'uppercase',
   },
+  kickerDark: {
+    color: '#c8ced8',
+  },
   heading: {
     marginTop: 4,
     color: colors.ink,
     fontSize: 34,
     fontWeight: '900',
   },
+  headingDark: {
+    color: '#ffffff',
+  },
   subtitle: {
     marginTop: 4,
     color: colors.muted,
     fontSize: 14,
+  },
+  subtitleDark: {
+    color: '#a7b0c0',
   },
   list: {
     padding: 20,
@@ -50,6 +62,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 14,
     ...shadow.card,
+  },
+  cardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   filters: {
     paddingBottom: 6,
@@ -76,17 +93,31 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 9,
   },
+  filterChipDark: {
+    borderColor: '#242424',
+    backgroundColor: '#050505',
+  },
   filterChipSelected: {
     borderColor: colors.ink,
     backgroundColor: colors.ink,
+  },
+  filterChipSelectedDark: {
+    borderColor: '#8a8a8a',
+    backgroundColor: '#ffffff',
   },
   filterChipText: {
     color: colors.muted,
     fontSize: 13,
     fontWeight: '800',
   },
+  filterChipTextDark: {
+    color: '#c8ced8',
+  },
   filterChipTextSelected: {
     color: colors.surface,
+  },
+  filterChipTextSelectedDark: {
+    color: '#050505',
   },
   inlineLoader: {
     flexDirection: 'row',
@@ -136,6 +167,9 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
   },
+  titleDark: {
+    color: '#ffffff',
+  },
   badge: {
     borderRadius: radius.sm,
     paddingHorizontal: 9,
@@ -163,11 +197,17 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
+  metaDark: {
+    color: '#d7dde8',
+  },
   address: {
     marginTop: 5,
     color: '#475467',
     fontSize: 14,
     lineHeight: 20,
+  },
+  addressDark: {
+    color: '#c4cad4',
   },
   ward: {
     marginTop: 4,
@@ -175,11 +215,17 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  wardDark: {
+    color: '#a7b0c0',
+  },
   description: {
     marginTop: 8,
     color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
+  },
+  descriptionDark: {
+    color: '#8f98a8',
   },
   detail: {
     marginTop: 10,
@@ -187,12 +233,18 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
+  detailDark: {
+    color: '#ffffff',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  centerDark: {
+    backgroundColor: '#050505',
   },
   empty: {
     flex: 1,

@@ -1,6 +1,7 @@
 import { ActivityIndicator, Text } from 'react-native';
 
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
+import { useThemeMode } from '@/src/theme';
 
 import { styles } from '../styles';
 
@@ -22,6 +23,7 @@ export function ActionButton({
   variant = 'neutral',
 }: ActionButtonProps) {
   const isPrimary = variant === 'primary';
+  const dark = useThemeMode() === 'dark';
 
   return (
     <AnimatedPressable
@@ -30,6 +32,7 @@ export function ActionButton({
         isPrimary
           ? styles.importActionButtonPrimary
           : styles.importActionButtonNeutral,
+        !isPrimary && dark && styles.importActionButtonNeutralDark,
         fill && styles.importActionButtonFill,
         disabled && styles.importActionButtonDisabled,
       ]}
@@ -37,14 +40,15 @@ export function ActionButton({
       onPress={onPress}
       pressableStyle={fill && styles.importActionPressableFill}>
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#ffffff' : '#111827'} />
+        <ActivityIndicator color={isPrimary || dark ? '#ffffff' : '#111827'} />
       ) : (
         <Text
-          style={
+          style={[
             isPrimary
               ? styles.importActionButtonTextPrimary
-              : styles.importActionButtonTextNeutral
-          }>
+              : styles.importActionButtonTextNeutral,
+            !isPrimary && dark && styles.textDark,
+          ]}>
           {label}
         </Text>
       )}

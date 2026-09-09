@@ -1,6 +1,4 @@
 import { StyleSheet } from 'react-native';
-import { colors, radius, shadow } from '@/src/theme';
-
 export const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
@@ -13,37 +11,47 @@ export const styles = StyleSheet.create({
   nav: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 0,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#e7eaf0',
+    borderColor: '#222222',
     borderBottomWidth: 0,
     borderRadius: 0,
-    backgroundColor: colors.surface,
+    backgroundColor: '#080808',
     paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 22,
-    ...shadow.card,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  navLight: {
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
   },
   item: {
-    minHeight: 54,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.md,
-    gap: 3,
+    gap: 5,
   },
   itemPressable: {
     flex: 1,
   },
   itemActive: {
-    backgroundColor: colors.ink,
+    backgroundColor: 'transparent',
   },
   label: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
+    color: '#6e7683',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0,
+    textTransform: 'uppercase',
+  },
+  labelLight: {
+    color: '#8a94a5',
   },
   labelActive: {
-    color: colors.surface,
+    color: '#ffffff',
+  },
+  labelActiveLight: {
+    color: '#050505',
   },
 });

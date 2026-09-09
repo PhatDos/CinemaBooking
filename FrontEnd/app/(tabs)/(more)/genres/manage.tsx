@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Redirect, router, type Href } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,10 +20,11 @@ import {
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { useAppNotification } from '@/src/components/AppNotification';
-import { BottomNav } from '@/src/components/BottomNav';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { styles } from '@/src/styles/screens/genre-manage.styles';
+import { useThemeMode } from '@/src/theme';
 import type { Genre } from '@/src/types';
 
 type GenreFormState = {
@@ -38,10 +39,9 @@ const defaultForm: GenreFormState = {
   slug: '',
 };
 
-const moviesManageRoute = '/movies/manage' as Href;
-
 export default function GenreManageScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const dark = useThemeMode() === 'dark';
   const { showNotification } = useAppNotification();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [query, setQuery] = useState('');
@@ -194,90 +194,90 @@ export default function GenreManageScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <AnimatedPressable
-          contentStyle={styles.backButton}
-          onPress={() => router.replace(moviesManageRoute)}>
-          <Text style={styles.backButtonText}>Movies</Text>
-        </AnimatedPressable>
-
-        <Text style={styles.kicker}>Admin</Text>
-        <Text style={styles.heading}>Manage Genres</Text>
-        <Text style={styles.subtitle}>Genres are cached and used as movie category visuals.</Text>
-      </View>
-
-      <View style={styles.form}>
-        <Text style={styles.formTitle}>{editingGenre ? 'Edit genre' : 'Add genre'}</Text>
-        <TextInput
-          onChangeText={(value) => setForm((current) => ({ ...current, name: value }))}
-          placeholder="Name"
-          placeholderTextColor="#98a2b3"
-          style={styles.input}
-          value={form.name}
-        />
-        <TextInput
-          autoCapitalize="none"
-          onChangeText={(value) => setForm((current) => ({ ...current, slug: value }))}
-          placeholder="Slug (optional)"
-          placeholderTextColor="#98a2b3"
-          style={styles.input}
-          value={form.slug}
-        />
-        <TextInput
-          autoCapitalize="none"
-          inputMode="url"
-          onChangeText={(value) => setForm((current) => ({ ...current, imageUrl: value }))}
-          placeholder="Image URL"
-          placeholderTextColor="#98a2b3"
-          style={styles.input}
-          value={form.imageUrl}
-        />
-
-        <View style={styles.formActions}>
-          {editingGenre ? (
-            <AnimatedPressable
-              contentStyle={styles.secondaryButton}
-              disabled={saving}
-              onPress={resetForm}>
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
-            </AnimatedPressable>
-          ) : null}
-
-          <AnimatedPressable
-            contentStyle={[styles.submitButton, saving && styles.disabledButton]}
-            disabled={saving}
-            onPress={handleSubmit}>
-            {saving ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.submitButtonText}>{editingGenre ? 'Save' : 'Create'}</Text>
-            )}
-          </AnimatedPressable>
-        </View>
-      </View>
-
-      <View style={styles.toolbar}>
-        <TextInput
-          autoCapitalize="none"
-          onChangeText={setQuery}
-          placeholder="Search genres"
-          placeholderTextColor="#98a2b3"
-          style={styles.searchInput}
-          value={query}
-        />
-      </View>
-
-      {error ? (
-        <View style={styles.inlineError}>
-          <Text style={styles.error}>{error}</Text>
-        </View>
-      ) : null}
-
+    <View style={[styles.container, dark && styles.containerDark]}>
       <FlatList
         contentContainerStyle={styles.list}
         data={filteredGenres}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <View>
+            <ScreenHeader
+              backHref="/more"
+              title="Manage Genres"
+            />
+
+            <View style={[styles.form, dark && styles.formDark]}>
+              <Text style={[styles.formTitle, dark && styles.textDark]}>
+                {editingGenre ? 'Edit genre' : 'Add genre'}
+              </Text>
+              <TextInput
+                onChangeText={(value) => setForm((current) => ({ ...current, name: value }))}
+                placeholder="Name"
+                placeholderTextColor={dark ? '#6e7683' : '#98a2b3'}
+                style={[styles.input, dark && styles.inputDark]}
+                value={form.name}
+              />
+              <TextInput
+                autoCapitalize="none"
+                onChangeText={(value) => setForm((current) => ({ ...current, slug: value }))}
+                placeholder="Slug (optional)"
+                placeholderTextColor={dark ? '#6e7683' : '#98a2b3'}
+                style={[styles.input, dark && styles.inputDark]}
+                value={form.slug}
+              />
+              <TextInput
+                autoCapitalize="none"
+                inputMode="url"
+                onChangeText={(value) => setForm((current) => ({ ...current, imageUrl: value }))}
+                placeholder="Image URL"
+                placeholderTextColor={dark ? '#6e7683' : '#98a2b3'}
+                style={[styles.input, dark && styles.inputDark]}
+                value={form.imageUrl}
+              />
+
+              <View style={styles.formActions}>
+                {editingGenre ? (
+                  <AnimatedPressable
+                    contentStyle={[styles.secondaryButton, dark && styles.secondaryButtonDark]}
+                    disabled={saving}
+                    onPress={resetForm}>
+                    <Text style={[styles.secondaryButtonText, dark && styles.textDark]}>
+                      Cancel
+                    </Text>
+                  </AnimatedPressable>
+                ) : null}
+
+                <AnimatedPressable
+                  contentStyle={[styles.submitButton, saving && styles.disabledButton]}
+                  disabled={saving}
+                  onPress={handleSubmit}>
+                  {saving ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>{editingGenre ? 'Save' : 'Create'}</Text>
+                  )}
+                </AnimatedPressable>
+              </View>
+            </View>
+
+            <View style={styles.toolbar}>
+              <TextInput
+                autoCapitalize="none"
+                onChangeText={setQuery}
+                placeholder="Search genres"
+                placeholderTextColor={dark ? '#6e7683' : '#98a2b3'}
+                style={[styles.searchInput, dark && styles.inputDark]}
+                value={query}
+              />
+            </View>
+
+            {error ? (
+              <View style={styles.inlineError}>
+                <Text style={styles.error}>{error}</Text>
+              </View>
+            ) : null}
+          </View>
+        }
         refreshControl={
           <RefreshControl
             onRefresh={() => {
@@ -289,13 +289,15 @@ export default function GenreManageScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No genres found</Text>
-            <Text style={styles.emptyText}>Create a genre or clear your search.</Text>
+            <Text style={[styles.emptyTitle, dark && styles.textDark]}>No genres found</Text>
+            <Text style={[styles.emptyText, dark && styles.mutedTextDark]}>
+              Create a genre or clear your search.
+            </Text>
           </View>
         }
         renderItem={({ item, index }) => (
           <FadeInView delay={index * 35}>
-            <View style={styles.card}>
+            <View style={[styles.card, dark && styles.cardDark]}>
               <View style={styles.image}>
                 <Image
                   contentFit="cover"
@@ -306,15 +308,17 @@ export default function GenreManageScreen() {
               </View>
 
               <View style={styles.info}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.slug}>{item.slug}</Text>
-                <Text style={styles.created}>Created {formatDate(item.createdAt)}</Text>
+                <Text style={[styles.name, dark && styles.textDark]}>{item.name}</Text>
+                <Text style={[styles.slug, dark && styles.accentTextDark]}>{item.slug}</Text>
+                <Text style={[styles.created, dark && styles.mutedTextDark]}>
+                  Created {formatDate(item.createdAt)}
+                </Text>
 
                 <View style={styles.cardActions}>
                   <AnimatedPressable
-                    contentStyle={styles.secondaryButton}
+                    contentStyle={[styles.secondaryButton, dark && styles.secondaryButtonDark]}
                     onPress={() => startEdit(item)}>
-                    <Text style={styles.secondaryButtonText}>Edit</Text>
+                    <Text style={[styles.secondaryButtonText, dark && styles.textDark]}>Edit</Text>
                   </AnimatedPressable>
                   <AnimatedPressable
                     contentStyle={styles.dangerButton}
@@ -328,8 +332,6 @@ export default function GenreManageScreen() {
           </FadeInView>
         )}
       />
-
-      <BottomNav />
       <ConfirmDialog
         cancelLabel="Keep"
         confirmLabel="Delete"
@@ -350,8 +352,10 @@ export default function GenreManageScreen() {
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, dark && styles.containerDark]}>
       <ActivityIndicator size="large" />
     </View>
   );
@@ -406,3 +410,4 @@ function formatDate(value: string) {
     dateStyle: 'medium',
   }).format(new Date(value));
 }
+

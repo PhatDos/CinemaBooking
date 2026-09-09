@@ -102,7 +102,10 @@ public class MoviesController : ControllerBase
     [HttpGet("{movieId:guid}/showtimes")]
     public async Task<IActionResult> GetShowtimes(
         Guid movieId,
-        CancellationToken cancellationToken)
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] bool includePast = false,
+        CancellationToken cancellationToken = default)
     {
         var movieExists =
             await _catalogModule.MovieExistsAsync(movieId);
@@ -112,9 +115,22 @@ public class MoviesController : ControllerBase
             return NotFound();
         }
 
+        if (from is not null &&
+            to is not null &&
+            from > to)
+        {
+            return BadRequest(new
+            {
+                message = "Showtime start date must be before end date."
+            });
+        }
+
         var showtimes =
             await _schedulingModule.GetShowtimesByMovieAsync(
                 movieId,
+                from,
+                to,
+                CanIncludePastShowtimes(includePast),
                 cancellationToken);
 
         return Ok(showtimes);
@@ -164,5 +180,12 @@ public class MoviesController : ControllerBase
             cancellationToken);
 
         return NoContent();
+    }
+
+    private bool CanIncludePastShowtimes(bool includePast)
+    {
+        return includePast &&
+            (User.IsInRole(AppRoles.Admin) ||
+                User.IsInRole(AppRoles.Staff));
     }
 }

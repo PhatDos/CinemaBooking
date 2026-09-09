@@ -88,10 +88,22 @@ internal sealed class RedisCacheApiFactory : WebApplicationFactory<Program>
 
     public static void AuthorizeAsAdmin(HttpClient client)
     {
+        AuthorizeAs(client, AppRoles.Admin);
+    }
+
+    public static void AuthorizeAsStaff(HttpClient client)
+    {
+        AuthorizeAs(client, AppRoles.Staff);
+    }
+
+    public static void AuthorizeAs(
+        HttpClient client,
+        params string[] roles)
+    {
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(
                 TestAuthenticationHandler.SchemeName,
-                AppRoles.Admin);
+                string.Join(' ', roles));
     }
 
     public async Task ExecuteScopeAsync(

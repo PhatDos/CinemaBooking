@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 
 import { formatCinemaName } from '@/src/display';
+import { useThemeMode } from '@/src/theme';
 import type { Cinema } from '@/src/types';
 
 import { styles } from '../styles';
@@ -23,11 +24,13 @@ export function CinemaSelector({
   selectedCinemaId,
   onSelectCinema,
 }: CinemaSelectorProps) {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.group}>
+    <View style={[styles.group, dark && styles.groupDark]}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Cinema</Text>
-        <Text style={styles.sectionCount}>{cinemas.length}</Text>
+        <Text style={[styles.sectionTitle, dark && styles.textDark]}>Cinema</Text>
+        <Text style={[styles.sectionCount, dark && styles.mutedTextDark]}>{cinemas.length}</Text>
       </View>
       {cinemas.length === 0 ? (
         <EmptyPanel
@@ -48,16 +51,21 @@ export function CinemaSelector({
                 disabled={saving}
                 key={cinema.id}
                 onPress={() => onSelectCinema(cinema.id)}
-                style={[styles.optionRow, selected && styles.optionRowSelected]}>
+                style={[
+                  styles.optionRow,
+                  dark && styles.optionRowDark,
+                  selected && styles.optionRowSelected,
+                  selected && dark && styles.optionRowSelectedDark,
+                ]}>
                 <View style={styles.radioOuter}>
                   {selected ? <View style={styles.radioInner} /> : null}
                 </View>
                 <CinemaOptionImage cinema={cinema} />
                 <View style={styles.optionText}>
-                  <Text numberOfLines={1} style={styles.optionTitle}>
+                  <Text numberOfLines={1} style={[styles.optionTitle, dark && styles.textDark]}>
                     {formatCinemaName(cinema.name)}
                   </Text>
-                  <Text numberOfLines={1} style={styles.optionMeta}>
+                  <Text numberOfLines={1} style={[styles.optionMeta, dark && styles.mutedTextDark]}>
                     {getCinemaCity(cinema)}
                   </Text>
                 </View>

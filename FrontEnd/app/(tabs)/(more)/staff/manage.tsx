@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Redirect, router } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,11 +19,11 @@ import { ApiError } from '@/src/api/client';
 import { assignStaffToCinema, getCinemas } from '@/src/api/cinemas';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
-import { FadeInView } from '@/src/components/FadeInView';
 import { useAppNotification } from '@/src/components/AppNotification';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { formatCinemaName } from '@/src/display';
 import { styles } from '@/src/styles/screens/staff-manage.styles';
+import { useThemeMode } from '@/src/theme';
 import type { AdminUser, Cinema } from '@/src/types';
 
 const allCitiesValue = '__all__';
@@ -31,6 +31,7 @@ const allCitiesValue = '__all__';
 export default function StaffManageScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { showNotification } = useAppNotification();
+  const dark = useThemeMode() === 'dark';
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [selectedCinemaId, setSelectedCinemaId] = useState<string | null>(null);
@@ -180,7 +181,7 @@ export default function StaffManageScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, dark && styles.containerDark]}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -192,30 +193,23 @@ export default function StaffManageScreen() {
             refreshing={refreshing}
           />
         }>
-        <AnimatedPressable contentStyle={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </AnimatedPressable>
+        <ScreenHeader
+          backHref="/more"
+          title="Manage Staff"
+        />
 
-        <FadeInView>
-          <Text style={styles.kicker}>Admin</Text>
-          <Text style={styles.title}>Manage Staff</Text>
-          <Text style={styles.subtitle}>
-            Search users, grant staff role, and assign staff to a cinema.
-          </Text>
-        </FadeInView>
-
-        <View style={styles.group}>
-          <Text style={styles.label}>Search</Text>
+        <View style={[styles.group, dark && styles.groupDark]}>
+          <Text style={[styles.label, dark && styles.textDark]}>Search</Text>
           <TextInput
             autoCapitalize="none"
             onChangeText={setQuery}
             placeholder="Email or user name"
-            placeholderTextColor="#98a2b3"
-            style={styles.input}
+            placeholderTextColor={dark ? '#6e7683' : '#98a2b3'}
+            style={[styles.input, dark && styles.inputDark]}
             value={query}
           />
 
-          <Text style={styles.filterLabel}>City</Text>
+          <Text style={[styles.filterLabel, dark && styles.textDark]}>City</Text>
           <ScrollView
             contentContainerStyle={styles.chipRail}
             horizontal
@@ -229,13 +223,17 @@ export default function StaffManageScreen() {
                   onPress={() => setSelectedCity(city)}
                   style={[
                     styles.filterChip,
+                    dark && styles.filterChipDark,
                     selected && styles.filterChipSelected,
+                    selected && dark && styles.filterChipSelectedDark,
                   ]}>
                   <Text
                     numberOfLines={1}
                     style={[
                       styles.filterChipText,
-                      selected && styles.filterChipTextSelected,
+                      dark && styles.mutedTextDark,
+                      selected && !dark && styles.filterChipTextSelected,
+                      selected && dark && styles.filterChipTextSelectedDark,
                     ]}>
                     {city === allCitiesValue ? 'All cities' : city}
                   </Text>
@@ -245,10 +243,10 @@ export default function StaffManageScreen() {
           </ScrollView>
         </View>
 
-        <View style={styles.group}>
-          <Text style={styles.label}>Assign cinema</Text>
+        <View style={[styles.group, dark && styles.groupDark]}>
+          <Text style={[styles.label, dark && styles.textDark]}>Assign cinema</Text>
           {cinemas.length === 0 ? (
-            <Text style={styles.emptyText}>No cinemas available.</Text>
+            <Text style={[styles.emptyText, dark && styles.mutedTextDark]}>No cinemas available.</Text>
           ) : (
             <View style={styles.cinemaList}>
               {cinemas.map((cinema) => {
@@ -261,17 +259,19 @@ export default function StaffManageScreen() {
                     onPress={() => setSelectedCinemaId(cinema.id)}
                     style={[
                       styles.cinemaRow,
+                      dark && styles.cinemaRowDark,
                       selected && styles.cinemaRowSelected,
+                      selected && dark && styles.cinemaRowSelectedDark,
                     ]}>
                     <View style={styles.radioOuter}>
                       {selected ? <View style={styles.radioInner} /> : null}
                     </View>
                     <CinemaRowImage cinema={cinema} />
                     <View style={styles.cinemaText}>
-                      <Text numberOfLines={1} style={styles.cinemaName}>
+                      <Text numberOfLines={1} style={[styles.cinemaName, dark && styles.textDark]}>
                         {formatCinemaName(cinema.name)}
                       </Text>
-                      <Text numberOfLines={1} style={styles.cinemaMeta}>
+                      <Text numberOfLines={1} style={[styles.cinemaMeta, dark && styles.mutedTextDark]}>
                         {getCinemaCity(cinema)}
                       </Text>
                     </View>
@@ -283,14 +283,16 @@ export default function StaffManageScreen() {
         </View>
 
         <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Users</Text>
-          <Text style={styles.listCount}>{filteredUsers.length}</Text>
+          <Text style={[styles.listTitle, dark && styles.textDark]}>Users</Text>
+          <Text style={[styles.listCount, dark && styles.mutedTextDark]}>{filteredUsers.length}</Text>
         </View>
 
         {filteredUsers.length === 0 ? (
-          <View style={styles.emptyPanel}>
-            <Text style={styles.emptyTitle}>No users found</Text>
-            <Text style={styles.emptyText}>Adjust search or city filter.</Text>
+          <View style={[styles.emptyPanel, dark && styles.emptyPanelDark]}>
+            <Text style={[styles.emptyTitle, dark && styles.textDark]}>No users found</Text>
+            <Text style={[styles.emptyText, dark && styles.mutedTextDark]}>
+              Adjust search or city filter.
+            </Text>
           </View>
         ) : (
           <View style={styles.userList}>
@@ -300,6 +302,7 @@ export default function StaffManageScreen() {
                   .map((cinemaId) => cinemasById.get(cinemaId))
                   .filter((cinema): cinema is Cinema => cinema !== undefined)}
                 busy={busy}
+                dark={dark}
                 key={adminUser.id}
                 loading={savingUserId === adminUser.id}
                 onAssign={() => void handleAssignStaff(adminUser)}
@@ -313,8 +316,6 @@ export default function StaffManageScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
-
-      <BottomNav />
     </View>
   );
 }
@@ -348,6 +349,7 @@ function CinemaRowImage({ cinema }: { cinema: Cinema }) {
 function UserCard({
   assignedCinemas,
   busy,
+  dark,
   loading,
   onAssign,
   onMakeStaff,
@@ -356,6 +358,7 @@ function UserCard({
 }: {
   assignedCinemas: Cinema[];
   busy: boolean;
+  dark: boolean;
   loading: boolean;
   onAssign: () => void;
   onMakeStaff: () => void;
@@ -368,16 +371,16 @@ function UserCard({
     user.assignedCinemaIds.includes(selectedCinemaId!);
 
   return (
-    <View style={styles.userCard}>
+    <View style={[styles.userCard, dark && styles.userCardDark]}>
       <View style={styles.userTop}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{getInitials(user.email || user.userName || 'U')}</Text>
         </View>
         <View style={styles.userInfo}>
-          <Text numberOfLines={1} style={styles.userName}>
+          <Text numberOfLines={1} style={[styles.userName, dark && styles.textDark]}>
             {user.userName || user.email}
           </Text>
-          <Text numberOfLines={1} style={styles.userEmail}>
+          <Text numberOfLines={1} style={[styles.userEmail, dark && styles.mutedTextDark]}>
             {user.email}
           </Text>
         </View>
@@ -388,10 +391,13 @@ function UserCard({
 
       <View style={styles.assignedList}>
         {assignedCinemas.length === 0 ? (
-          <Text style={styles.assignedEmpty}>No cinema assigned</Text>
+          <Text style={[styles.assignedEmpty, dark && styles.mutedTextDark]}>No cinema assigned</Text>
         ) : (
           assignedCinemas.map((cinema) => (
-            <Text key={cinema.id} numberOfLines={1} style={styles.assignedChip}>
+            <Text
+              key={cinema.id}
+              numberOfLines={1}
+              style={[styles.assignedChip, dark && styles.assignedChipDark]}>
               {formatCinemaName(cinema.name)} | {getCinemaCity(cinema)}
             </Text>
           ))
@@ -432,8 +438,10 @@ function UserCard({
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, dark && styles.containerDark]}>
       <ActivityIndicator size="large" />
     </View>
   );
@@ -457,3 +465,4 @@ function getInitials(value: string) {
     .map((part) => part[0]?.toUpperCase())
     .join('');
 }
+

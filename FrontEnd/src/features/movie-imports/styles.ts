@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { bottomNavHeight } from '@/src/styles/layout';
+import { screenBottomPadding } from '@/src/styles/layout';
 import { colors, radius, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
@@ -8,9 +8,10 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 64,
     paddingBottom: 14,
   },
   backButton: {
@@ -52,6 +53,7 @@ export const styles = StyleSheet.create({
   actions: {
     gap: 8,
     marginTop: 16,
+    paddingHorizontal: 20,
   },
   actionRow: {
     flexDirection: 'row',
@@ -74,6 +76,10 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+  },
+  importActionButtonNeutralDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
   },
   importActionButtonPrimary: {
     backgroundColor: colors.primary,
@@ -115,10 +121,16 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
   },
   list: {
-    padding: 20,
     paddingTop: 0,
-    paddingBottom: bottomNavHeight + 24,
+    paddingBottom: screenBottomPadding,
     gap: 12,
+  },
+  listItem: {
+    marginHorizontal: 20,
+  },
+  summaryWrap: {
+    marginHorizontal: 20,
+    marginTop: 14,
   },
   summary: {
     gap: 10,
@@ -131,6 +143,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 16,
     ...shadow.card,
+  },
+  summaryCardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   summaryLabel: {
     color: colors.muted,
@@ -163,9 +180,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  batchChipDark: {
+    borderColor: '#242424',
+    backgroundColor: '#080808',
+  },
   batchChipActive: {
     borderColor: colors.primary,
     backgroundColor: '#fff1f2',
+  },
+  batchChipActiveDark: {
+    borderColor: '#ffffff',
+    backgroundColor: '#ffffff',
   },
   batchChipText: {
     color: colors.muted,
@@ -175,6 +200,9 @@ export const styles = StyleSheet.create({
   batchChipTextActive: {
     color: colors.primary,
   },
+  batchChipTextActiveDark: {
+    color: '#050505',
+  },
   card: {
     borderWidth: 1,
     borderColor: '#e7eaf0',
@@ -182,6 +210,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     overflow: 'hidden',
     ...shadow.card,
+  },
+  cardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   cardTop: {
     flexDirection: 'row',
@@ -219,6 +252,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 14,
+  },
+  cardBodyDark: {
+    borderTopColor: '#242424',
   },
   titleRow: {
     flexDirection: 'row',
@@ -284,11 +320,17 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  descriptionDark: {
+    color: '#c4cad4',
+  },
   matchBox: {
     marginTop: 10,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceAlt,
     padding: 10,
+  },
+  matchBoxDark: {
+    backgroundColor: '#171717',
   },
   matchLabel: {
     color: colors.muted,
@@ -318,6 +360,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 13,
     paddingVertical: 8,
+  },
+  secondaryButtonDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
   },
   secondaryButtonText: {
     color: colors.ink,
@@ -363,6 +409,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 24,
   },
+  centerDark: {
+    backgroundColor: '#050505',
+  },
   error: {
     color: colors.danger,
     fontSize: 16,
@@ -382,6 +431,7 @@ export const styles = StyleSheet.create({
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 20,
     paddingVertical: 80,
   },
   emptyTitle: {
@@ -412,6 +462,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     overflow: 'hidden',
     ...shadow.card,
+  },
+  trailerModalDark: {
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   trailerHeader: {
     flexDirection: 'row',
@@ -444,5 +498,14 @@ export const styles = StyleSheet.create({
   },
   trailerPlayer: {
     backgroundColor: colors.ink,
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
+  },
+  accentTextDark: {
+    color: '#8edbd2',
   },
 });

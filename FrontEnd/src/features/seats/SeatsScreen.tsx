@@ -15,7 +15,6 @@ import { getMovieById } from '@/src/api/movies';
 import { getSeatAvailability, holdSeats } from '@/src/api/seats';
 import { getShowtimeById } from '@/src/api/showtimes';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
 import { useAppNotification } from '@/src/components/AppNotification';
 import {
@@ -25,7 +24,7 @@ import {
   formatRoomName,
 } from '@/src/display';
 import { styles } from '@/src/features/seats/styles';
-import { colors } from '@/src/theme';
+import { colors, useThemeMode } from '@/src/theme';
 import type { SeatAvailability } from '@/src/types';
 
 import { LegendItem } from './components/LegendItem';
@@ -53,6 +52,7 @@ type SeatsScreenProps = {
 
 export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
   const { showNotification } = useAppNotification();
+  const dark = useThemeMode() === 'dark';
   const { width } = useWindowDimensions();
   const [seats, setSeats] = useState<SeatAvailability[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<Set<string>>(new Set());
@@ -233,7 +233,7 @@ export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
 
   if (error) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, dark && styles.centerDark]}>
         <Text style={styles.error}>{error}</Text>
         <Pressable onPress={() => router.back()} style={styles.button}>
           <Text style={styles.buttonText}>Back</Text>
@@ -243,27 +243,33 @@ export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, dark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
-      <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.back()}>
-        <Text style={styles.backLinkText}>Back</Text>
+      <AnimatedPressable
+        contentStyle={[styles.backLink, dark && styles.backLinkDark]}
+        onPress={() => router.back()}>
+        <Text style={[styles.backLinkText, dark && styles.textDark]}>Back</Text>
       </AnimatedPressable>
 
       <FadeInView>
-        <Text style={styles.kicker}>Seat map</Text>
-        <Text style={styles.title}>Select Seats</Text>
+        <Text style={[styles.kicker, dark && styles.kickerDark]}>Seat map</Text>
+        <Text style={[styles.title, dark && styles.textDark]}>Select Seats</Text>
       </FadeInView>
-      <Text style={styles.text}>
+      <Text style={[styles.text, dark && styles.mutedTextDark]}>
         {showtimeContext
           ? `${showtimeContext.movieTitle} | ${formatDateTime(showtimeContext.startTime)}`
           : 'Loading showtime...'}
       </Text>
 
       {showtimeContext ? (
-        <FadeInView delay={45} style={styles.contextPanel}>
-          <Text style={styles.contextTitle}>{formatCinemaName(showtimeContext.cinemaName)}</Text>
-          <Text style={styles.contextText}>{formatRoomName(showtimeContext.roomName)}</Text>
-          <Text style={styles.contextPrice}>
+        <FadeInView delay={45} style={[styles.contextPanel, dark && styles.panelDark]}>
+          <Text style={[styles.contextTitle, dark && styles.textDark]}>
+            {formatCinemaName(showtimeContext.cinemaName)}
+          </Text>
+          <Text style={[styles.contextText, dark && styles.mutedTextDark]}>
+            {formatRoomName(showtimeContext.roomName)}
+          </Text>
+          <Text style={[styles.contextPrice, dark && styles.textDark]}>
             {minimumSeatPrice === null
               ? 'Seat prices unavailable'
               : `From ${formatCurrency(minimumSeatPrice)}`}
@@ -271,14 +277,14 @@ export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
         </FadeInView>
       ) : null}
 
-      <View style={styles.screen}>
+      <View style={[styles.screen, dark && styles.screenDark]}>
         <Text style={styles.screenText}>Screen</Text>
       </View>
 
-      <FadeInView delay={70} style={styles.map}>
+      <FadeInView delay={70} style={[styles.map, dark && styles.mapDark]}>
         {rows.map(([row, rowSeats]) => (
           <View key={row} style={styles.row}>
-            <Text style={styles.rowLabel}>{row}</Text>
+            <Text style={[styles.rowLabel, dark && styles.textDark]}>{row}</Text>
 
             <View style={styles.seats}>
               {rowSeats.map((seat) => {
@@ -290,6 +296,7 @@ export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
                     accessibilityRole="button"
                     contentStyle={[
                       styles.seat,
+                      dark && styles.seatDark,
                       { height: seatSize, width: getSeatWidth(seat, seatSize) },
                       seat.type === 'VIP' && styles.seatVip,
                       seat.type === 'Couple' && styles.seatCouple,
@@ -306,6 +313,7 @@ export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
                     <Text
                       style={[
                         styles.seatText,
+                        dark && styles.seatTextDark,
                         seat.type === 'VIP' && styles.seatTextVip,
                         seat.type === 'Couple' && styles.seatTextCouple,
                         held && styles.seatTextHeld,
@@ -334,9 +342,9 @@ export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
         <LegendItem color="#ffe4e6" label={formatSeatTypeLegend('Couple', priceByType)} />
       </View>
 
-      <Text style={styles.note}>Selected: {selectedSeatIds.size}</Text>
+      <Text style={[styles.note, dark && styles.mutedTextDark]}>Selected: {selectedSeatIds.size}</Text>
       {selectedSeatIds.size > 0 ? (
-        <Text style={styles.selectedTotal}>
+        <Text style={[styles.selectedTotal, dark && styles.textDark]}>
           {selectedTotal === null
             ? 'Price unavailable'
             : `Total: ${formatCurrency(selectedTotal)}`}
@@ -367,17 +375,16 @@ export default function SeatsScreen({ showtimeId }: SeatsScreenProps) {
         )}
       </AnimatedPressable>
       </ScrollView>
-
-      <BottomNav />
     </View>
   );
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
-      <ActivityIndicator size="large" />
+    <View style={[styles.center, dark && styles.centerDark]}>
+      <ActivityIndicator color={dark ? '#ffffff' : undefined} size="large" />
     </View>
   );
 }
-

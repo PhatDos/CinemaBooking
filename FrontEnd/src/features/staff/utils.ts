@@ -38,8 +38,7 @@ export function getUpcomingShowtimes(showtimes: CinemaShowtime[]) {
     .sort(
       (left, right) =>
         new Date(left.startTime).getTime() - new Date(right.startTime).getTime(),
-    )
-    .slice(0, 12);
+    );
 }
 
 export function validateForm({

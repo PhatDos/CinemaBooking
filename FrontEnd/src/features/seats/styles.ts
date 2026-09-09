@@ -9,6 +9,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   content: {
     padding: 20,
     paddingTop: 64,
@@ -29,6 +32,10 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  backLinkDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -36,11 +43,17 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 24,
   },
+  centerDark: {
+    backgroundColor: '#050505',
+  },
   kicker: {
     color: colors.primary,
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
+  },
+  kickerDark: {
+    color: '#c8ced8',
   },
   title: {
     marginTop: 4,
@@ -62,6 +75,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 14,
     ...shadow.soft,
+  },
+  panelDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   contextTitle: {
     color: colors.ink,
@@ -95,6 +113,9 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+  screenDark: {
+    backgroundColor: '#171717',
+  },
   map: {
     borderWidth: 1,
     borderColor: '#e7eaf0',
@@ -103,6 +124,11 @@ export const styles = StyleSheet.create({
     gap: 9,
     padding: 8,
     ...shadow.card,
+  },
+  mapDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   row: {
     flexDirection: 'row',
@@ -132,6 +158,10 @@ export const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.surface,
   },
+  seatDark: {
+    borderColor: '#d8dee9',
+    backgroundColor: '#ffffff',
+  },
   seatHeld: {
     borderColor: '#facc15',
     backgroundColor: '#fde68a',
@@ -160,6 +190,9 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 12,
     fontWeight: '700',
+  },
+  seatTextDark: {
+    color: '#050505',
   },
   seatTextCompact: {
     fontSize: 11,
@@ -202,9 +235,15 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 4,
   },
+  legendSwatchDark: {
+    borderColor: '#4b5563',
+  },
   legendText: {
     color: colors.muted,
     fontSize: 13,
+  },
+  legendTextDark: {
+    color: '#a7b0c0',
   },
   note: {
     marginTop: 20,
@@ -284,5 +323,11 @@ export const styles = StyleSheet.create({
   error: {
     color: colors.danger,
     fontSize: 16,
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
   },
 });

@@ -1,9 +1,8 @@
-import { router } from 'expo-router';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 
-import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
-import { FadeInView } from '@/src/components/FadeInView';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
+import { ShowtimeDateRail } from '@/src/features/showtimes/ShowtimeDateRail';
+import { useThemeMode } from '@/src/theme';
 
 import { CinemaSelector } from './components/CinemaSelector';
 import { RoomSelector } from './components/RoomSelector';
@@ -23,13 +22,14 @@ export function StaffShowtimesScreen({
   isStaff,
 }: StaffShowtimesScreenProps) {
   const showtimes = useStaffShowtimes(isAdmin);
+  const dark = useThemeMode() === 'dark';
 
   if (showtimes.loading) {
     return <CenteredLoader />;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, dark && styles.containerDark]}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -38,17 +38,10 @@ export function StaffShowtimesScreen({
             refreshing={showtimes.refreshing}
           />
         }>
-        <AnimatedPressable contentStyle={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </AnimatedPressable>
-
-        <FadeInView>
-          <Text style={styles.kicker}>{isAdmin ? 'Admin' : 'Staff'}</Text>
-          <Text style={styles.title}>Manage Showtimes</Text>
-          <Text style={styles.subtitle}>
-            Create showtimes from active movies for available cinema rooms.
-          </Text>
-        </FadeInView>
+        <ScreenHeader
+          backHref="/more"
+          title="Manage Showtimes"
+        />
 
         <CinemaSelector
           cinemas={showtimes.cinemas}
@@ -100,20 +93,29 @@ export function StaffShowtimesScreen({
 
         {showtimes.error ? <Text style={styles.error}>{showtimes.error}</Text> : null}
 
+        <ShowtimeDateRail
+          canIncludePast
+          includePast={showtimes.includePast}
+          onSelectDate={showtimes.setFilterDate}
+          onToggleIncludePast={showtimes.setIncludePast}
+          selectedDate={showtimes.filterDate}
+          title="FILTER SHOWTIMES"
+        />
+
         <UpcomingShowtimes
           selectedCinema={showtimes.selectedCinema}
           showtimes={showtimes.upcomingShowtimes}
         />
       </ScrollView>
-
-      <BottomNav />
     </View>
   );
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, dark && styles.containerDark]}>
       <ActivityIndicator size="large" />
     </View>
   );

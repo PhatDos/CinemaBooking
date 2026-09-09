@@ -15,11 +15,12 @@ import {
 import { getMovies, updateMovie } from '@/src/api/movies';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
 import { ConfirmDialog } from '@/src/components/ConfirmDialog';
 import { FadeInView } from '@/src/components/FadeInView';
 import { useAppNotification } from '@/src/components/AppNotification';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { styles } from '@/src/styles/screens/movie-manage.styles';
+import { useThemeMode } from '@/src/theme';
 import type { Movie, UpdateMovieRequest } from '@/src/types';
 
 const movieFormRoute = '/movies/form' as Href;
@@ -29,6 +30,7 @@ const movieImportsRoute = '/movies/imports' as Href;
 export default function MovieManageScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { showNotification } = useAppNotification();
+  const dark = useThemeMode() === 'dark';
   const [movies, setMovies] = useState<Movie[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -125,51 +127,9 @@ export default function MovieManageScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.kicker}>Admin</Text>
-          <Text style={styles.heading}>Manage Movies</Text>
-          <Text style={styles.subtitle}>Add, edit, deactivate, and restore catalog movies.</Text>
-        </View>
-      </View>
-
-      <View style={styles.toolbar}>
-        <View style={styles.toolbarRow}>
-          <TextInput
-            autoCapitalize="none"
-            placeholder="Search title or genre"
-            placeholderTextColor="#98a2b3"
-            value={query}
-            onChangeText={setQuery}
-            style={styles.searchInput}
-          />
-        </View>
-
-        <View style={styles.toolbarRow}>
-          <AnimatedPressable
-            contentStyle={styles.toolbarPrimaryButton}
-            onPress={() => router.push(movieFormRoute)}
-            pressableStyle={styles.toolbarActionItem}>
-            <Text style={styles.toolbarPrimaryButtonText}>Add</Text>
-          </AnimatedPressable>
-          <AnimatedPressable
-            contentStyle={styles.toolbarOutlineButton}
-            onPress={() => router.push(genreManageRoute)}
-            pressableStyle={styles.toolbarActionItem}>
-            <Text style={styles.toolbarOutlineButtonText}>Genres</Text>
-          </AnimatedPressable>
-          <AnimatedPressable
-            contentStyle={styles.toolbarOutlineButton}
-            onPress={() => router.push(movieImportsRoute)}
-            pressableStyle={styles.toolbarActionItem}>
-            <Text style={styles.toolbarOutlineButtonText}>Import</Text>
-          </AnimatedPressable>
-        </View>
-      </View>
-
+    <View style={[styles.container, dark && styles.containerDark]}>
       {error ? (
-        <View style={styles.center}>
+        <View style={[styles.center, dark && styles.centerDark]}>
           <Text style={styles.error}>{error}</Text>
           <Pressable onPress={() => loadMovies()} style={styles.retryButton}>
             <Text style={styles.retryText}>Try again</Text>
@@ -180,6 +140,52 @@ export default function MovieManageScreen() {
           contentContainerStyle={styles.list}
           data={filteredMovies}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={
+            <View>
+              <ScreenHeader
+                backHref="/more"
+                title="Manage Movies"
+              />
+
+              <View style={styles.toolbar}>
+                <View style={styles.toolbarRow}>
+                  <TextInput
+                    autoCapitalize="none"
+                    placeholder="Search title or genre"
+                    placeholderTextColor={dark ? '#6e7683' : '#98a2b3'}
+                    value={query}
+                    onChangeText={setQuery}
+                    style={[styles.searchInput, dark && styles.searchInputDark]}
+                  />
+                </View>
+
+                <View style={styles.toolbarRow}>
+                  <AnimatedPressable
+                    contentStyle={styles.toolbarPrimaryButton}
+                    onPress={() => router.push(movieFormRoute)}
+                    pressableStyle={styles.toolbarActionItem}>
+                    <Text style={styles.toolbarPrimaryButtonText}>Add</Text>
+                  </AnimatedPressable>
+                  <AnimatedPressable
+                    contentStyle={[styles.toolbarOutlineButton, dark && styles.toolbarOutlineButtonDark]}
+                    onPress={() => router.push(genreManageRoute)}
+                    pressableStyle={styles.toolbarActionItem}>
+                    <Text style={[styles.toolbarOutlineButtonText, dark && styles.textDark]}>
+                      Genres
+                    </Text>
+                  </AnimatedPressable>
+                  <AnimatedPressable
+                    contentStyle={[styles.toolbarOutlineButton, dark && styles.toolbarOutlineButtonDark]}
+                    onPress={() => router.push(movieImportsRoute)}
+                    pressableStyle={styles.toolbarActionItem}>
+                    <Text style={[styles.toolbarOutlineButtonText, dark && styles.textDark]}>
+                      Import
+                    </Text>
+                  </AnimatedPressable>
+                </View>
+              </View>
+            </View>
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -191,15 +197,17 @@ export default function MovieManageScreen() {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No movies found</Text>
-              <Text style={styles.emptyText}>Create a movie or clear your search.</Text>
+              <Text style={[styles.emptyTitle, dark && styles.textDark]}>No movies found</Text>
+              <Text style={[styles.emptyText, dark && styles.mutedTextDark]}>
+                Create a movie or clear your search.
+              </Text>
             </View>
           }
           renderItem={({ item, index }) => {
             return (
               <FadeInView delay={index * 35}>
                 <AnimatedPressable
-                  contentStyle={styles.card}
+                  contentStyle={[styles.card, dark && styles.cardDark]}
                   onPress={() => router.push(toMovieFormRoute(item.id))}>
                   <View style={styles.cardTop}>
                     <View style={styles.poster}>
@@ -217,7 +225,9 @@ export default function MovieManageScreen() {
 
                     <View style={styles.info}>
                       <View style={styles.titleRow}>
-                        <Text numberOfLines={3} style={styles.title}>{item.title}</Text>
+                        <Text numberOfLines={3} style={[styles.title, dark && styles.textDark]}>
+                          {item.title}
+                        </Text>
                         <View style={[styles.badge, item.isActive ? styles.badgeActive : styles.badgeInactive]}>
                           <Text style={[styles.badgeText, item.isActive ? styles.badgeTextActive : styles.badgeTextInactive]}>
                             {item.isActive ? 'Active' : 'Inactive'}
@@ -225,28 +235,32 @@ export default function MovieManageScreen() {
                         </View>
                       </View>
 
-                      <Text style={styles.meta}>
+                      <Text style={[styles.meta, dark && styles.mutedTextDark]}>
                         {item.durationMinutes} min | {formatDate(item.releaseDate)}
                       </Text>
                       {getGenreLabel(item) ? (
-                        <Text style={styles.genre}>{getGenreLabel(item)}</Text>
+                        <Text style={[styles.genre, dark && styles.accentTextDark]}>
+                          {getGenreLabel(item)}
+                        </Text>
                       ) : null}
                     </View>
                   </View>
 
-                  <View style={styles.cardBody}>
-                    <Text numberOfLines={2} style={styles.description}>
+                  <View style={[styles.cardBody, dark && styles.cardBodyDark]}>
+                    <Text numberOfLines={2} style={[styles.description, dark && styles.descriptionDark]}>
                       {item.description}
                     </Text>
 
                     <View style={styles.cardActions}>
                       <AnimatedPressable
-                        contentStyle={styles.secondaryButton}
+                        contentStyle={[styles.secondaryButton, dark && styles.secondaryButtonDark]}
                         onPress={(event) => {
                           event.stopPropagation();
                           router.push(toMovieFormRoute(item.id));
                         }}>
-                        <Text style={styles.secondaryButtonText}>Edit</Text>
+                        <Text style={[styles.secondaryButtonText, dark && styles.textDark]}>
+                          Edit
+                        </Text>
                       </AnimatedPressable>
 
                       {item.isActive ? (
@@ -286,8 +300,6 @@ export default function MovieManageScreen() {
           }}
         />
       )}
-
-      <BottomNav />
       <ConfirmDialog
         cancelLabel="Keep active"
         confirmLabel="Deactivate"
@@ -312,8 +324,10 @@ export default function MovieManageScreen() {
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, dark && styles.centerDark]}>
       <ActivityIndicator size="large" />
     </View>
   );
@@ -366,3 +380,4 @@ function getInitials(title: string) {
 function toMovieFormRoute(movieId: string) {
   return `/movies/form?movieId=${encodeURIComponent(movieId)}` as Href;
 }
+

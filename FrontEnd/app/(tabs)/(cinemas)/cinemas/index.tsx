@@ -15,14 +15,15 @@ import { getCinemas } from '@/src/api/cinemas';
 import { getProvinces, getWards } from '@/src/api/locations';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
 import { formatCinemaName } from '@/src/display';
 import { styles } from '@/src/styles/screens/cinemas.styles';
+import { useThemeMode } from '@/src/theme';
 import type { Cinema, LocationItem } from '@/src/types';
 
 export default function CinemasScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const dark = useThemeMode() === 'dark';
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [provinces, setProvinces] = useState<LocationItem[]>([]);
   const [wards, setWards] = useState<LocationItem[]>([]);
@@ -91,7 +92,7 @@ export default function CinemasScreen() {
     setWards([]);
 
     if (!provinceCode) {
-      await loadCinemasForFilters(null, null);
+      await loadCinemasForFilters(null, null, false);
       return;
     }
 
@@ -100,7 +101,7 @@ export default function CinemasScreen() {
     try {
       const [wardResult] = await Promise.all([
         getWards(provinceCode),
-        loadCinemasForFilters(provinceCode, null),
+        loadCinemasForFilters(provinceCode, null, false),
       ]);
 
       setWards(wardResult);
@@ -114,7 +115,7 @@ export default function CinemasScreen() {
 
   async function handleSelectWard(wardCode: string | null) {
     setSelectedWardCode(wardCode);
-    await loadCinemasForFilters(selectedProvinceCode, wardCode);
+    await loadCinemasForFilters(selectedProvinceCode, wardCode, false);
   }
 
   useEffect(() => {
@@ -138,19 +139,19 @@ export default function CinemasScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, dark && styles.containerDark]}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.kicker}>Theaters</Text>
-          <Text style={styles.heading}>Cinemas</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.kicker, dark && styles.kickerDark]}>Theaters</Text>
+          <Text style={[styles.heading, dark && styles.headingDark]}>Cinemas</Text>
+          <Text style={[styles.subtitle, dark && styles.subtitleDark]}>
             {selectedProvince ? selectedProvince.name : user?.email}
           </Text>
         </View>
       </View>
 
       {error ? (
-        <View style={styles.center}>
+        <View style={[styles.center, dark && styles.centerDark]}>
           <Text style={styles.error}>{error}</Text>
           <AnimatedPressable contentStyle={styles.primaryButton} onPress={() => loadInitialData()}>
             <Text style={styles.primaryButtonText}>Try again</Text>
@@ -165,12 +166,14 @@ export default function CinemasScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}>
               <FilterChip
+                dark={dark}
                 label="All"
                 selected={!selectedProvinceCode}
                 onPress={() => void handleSelectProvince(null)}
               />
               {provinces.map((province) => (
                 <FilterChip
+                  dark={dark}
                   key={province.code}
                   label={province.name}
                   selected={province.code === selectedProvinceCode}
@@ -193,12 +196,14 @@ export default function CinemasScreen() {
                     horizontal
                     showsHorizontalScrollIndicator={false}>
                     <FilterChip
+                      dark={dark}
                       label="All wards"
                       selected={!selectedWardCode}
                       onPress={() => void handleSelectWard(null)}
                     />
                     {wards.map((ward) => (
                       <FilterChip
+                        dark={dark}
                         key={ward.code}
                         label={ward.name}
                         selected={ward.code === selectedWardCode}
@@ -233,7 +238,7 @@ export default function CinemasScreen() {
             renderItem={({ item, index }) => (
               <FadeInView delay={index * 45}>
                 <AnimatedPressable
-                  contentStyle={styles.card}
+                  contentStyle={[styles.card, dark && styles.cardDark]}
                   onPress={() =>
                     router.push(`/cinemas/${item.id}` as Href)
                   }>
@@ -254,9 +259,9 @@ export default function CinemasScreen() {
 
                   <View style={styles.cardBody}>
                     <View style={styles.cardHeader}>
-                      <Text numberOfLines={2} style={styles.title}>
-                        {formatCinemaName(item.name)}
-                      </Text>
+                        <Text numberOfLines={2} style={[styles.title, dark && styles.titleDark]}>
+                          {formatCinemaName(item.name)}
+                        </Text>
                       <View style={[styles.badge, item.isActive ? styles.badgeActive : styles.badgeInactive]}>
                         <Text style={[styles.badgeText, item.isActive ? styles.badgeTextActive : styles.badgeTextInactive]}>
                           {item.isActive ? 'Active' : 'Inactive'}
@@ -264,15 +269,25 @@ export default function CinemasScreen() {
                       </View>
                     </View>
 
-                    <Text style={styles.meta}>{item.provinceName ?? item.city}</Text>
-                    {item.wardName ? <Text style={styles.ward}>{item.wardName}</Text> : null}
-                    <Text numberOfLines={2} style={styles.address}>
+                    <Text style={[styles.meta, dark && styles.metaDark]}>
+                      {item.provinceName ?? item.city}
+                    </Text>
+                    {item.wardName ? (
+                      <Text style={[styles.ward, dark && styles.wardDark]}>{item.wardName}</Text>
+                    ) : null}
+                    <Text numberOfLines={2} style={[styles.address, dark && styles.addressDark]}>
                       {item.addressLine ?? item.address}
                     </Text>
                     {item.description ? (
-                      <Text numberOfLines={2} style={styles.description}>{item.description}</Text>
+                      <Text
+                        numberOfLines={2}
+                        style={[styles.description, dark && styles.descriptionDark]}>
+                        {item.description}
+                      </Text>
                     ) : null}
-                    <Text style={styles.detail}>View upcoming showtimes</Text>
+                    <Text style={[styles.detail, dark && styles.detailDark]}>
+                      View upcoming showtimes
+                    </Text>
                   </View>
                 </AnimatedPressable>
               </FadeInView>
@@ -280,29 +295,39 @@ export default function CinemasScreen() {
           />
         </>
       )}
-
-      <BottomNav />
     </View>
   );
 }
 
 function FilterChip({
+  dark,
   label,
   selected,
   onPress,
 }: {
+  dark: boolean;
   label: string;
   selected: boolean;
   onPress: () => void;
 }) {
   return (
     <AnimatedPressable
-      contentStyle={[styles.filterChip, selected && styles.filterChipSelected]}
+      contentStyle={[
+        styles.filterChip,
+        dark && styles.filterChipDark,
+        selected && styles.filterChipSelected,
+        selected && dark && styles.filterChipSelectedDark,
+      ]}
       onPress={onPress}
       pressedScale={0.97}>
       <Text
         numberOfLines={1}
-        style={[styles.filterChipText, selected && styles.filterChipTextSelected]}>
+        style={[
+          styles.filterChipText,
+          dark && styles.filterChipTextDark,
+          selected && !dark && styles.filterChipTextSelected,
+          selected && dark && styles.filterChipTextSelectedDark,
+        ]}>
         {label}
       </Text>
     </AnimatedPressable>
@@ -310,8 +335,10 @@ function FilterChip({
 }
 
 function CenteredLoader() {
+  const dark = useThemeMode() === 'dark';
+
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, dark && styles.centerDark]}>
       <ActivityIndicator size="large" />
     </View>
   );
@@ -325,3 +352,4 @@ function getInitials(name: string) {
     .map((word) => word[0]?.toUpperCase())
     .join('');
 }
+

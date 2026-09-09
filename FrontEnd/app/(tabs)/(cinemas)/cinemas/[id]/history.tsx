@@ -10,34 +10,32 @@ import {
   View,
 } from 'react-native';
 
-import {
-  getCinema,
-  getCinemaShowtimes,
-} from '@/src/api/cinemas';
+import { getCinema, getCinemaShowtimeHistory } from '@/src/api/cinemas';
 import { getCurrentStaffCinemaAssignment } from '@/src/api/staff';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
-import { BottomNav } from '@/src/components/BottomNav';
 import { FadeInView } from '@/src/components/FadeInView';
 import { formatCinemaName, formatCurrency, formatDateTime, formatRoomName } from '@/src/display';
 import { styles } from '@/src/styles/screens/cinema-detail.styles';
 import type { Cinema, CinemaShowtime } from '@/src/types';
 
-export default function CinemaDetailScreen() {
+export default function CinemaHistoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [cinema, setCinema] = useState<Cinema | null>(null);
   const [showtimes, setShowtimes] = useState<CinemaShowtime[]>([]);
+  const [assignmentChecked, setAssignmentChecked] = useState(false);
   const [isAssignedStaff, setIsAssignedStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const isAdmin = user?.roles.includes('Admin') ?? false;
   const isStaff = user?.roles.includes('Staff') ?? false;
+  const canAttemptHistory = isAdmin || isStaff;
   const canViewHistory = isAdmin || isAssignedStaff;
 
   useEffect(() => {
-    if (!id || !isAuthenticated) {
+    if (!id || !isAuthenticated || !canAttemptHistory) {
       return;
     }
 
@@ -46,26 +44,40 @@ export default function CinemaDetailScreen() {
     async function loadData() {
       setLoading(true);
       setError('');
+      setAssignmentChecked(false);
 
       try {
-        const [cinemaResult, showtimeResult] = await Promise.all([
-          getCinema(id),
-          getCinemaShowtimes(id),
-        ]);
         const assignmentResult = !isAdmin && isStaff
           ? await getCurrentStaffCinemaAssignment(id)
           : null;
+        const nextCanViewHistory = isAdmin || (assignmentResult?.isAssigned ?? false);
+
+        if (!nextCanViewHistory) {
+          if (!cancelled) {
+            setIsAssignedStaff(false);
+            setAssignmentChecked(true);
+            setLoading(false);
+          }
+
+          return;
+        }
+
+        const [cinemaResult, historyResult] = await Promise.all([
+          getCinema(id),
+          getCinemaShowtimeHistory(id),
+        ]);
 
         if (!cancelled) {
           setCinema(cinemaResult);
-          setShowtimes(showtimeResult);
+          setShowtimes(historyResult);
           setIsAssignedStaff(assignmentResult?.isAssigned ?? false);
+          setAssignmentChecked(true);
         }
       } catch (loadError) {
         console.error(loadError);
 
         if (!cancelled) {
-          setError('Cannot load cinema');
+          setError('Cannot load showtime history');
         }
       } finally {
         if (!cancelled) {
@@ -79,14 +91,24 @@ export default function CinemaDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAdmin, isStaff, isAuthenticated]);
+  }, [canAttemptHistory, id, isAdmin, isStaff, isAuthenticated]);
 
-  if (isLoading || loading) {
+  if (isLoading) {
     return <CenteredLoader />;
   }
 
   if (!isAuthenticated) {
     return <Redirect href="/login" />;
+  }
+
+  if (!canAttemptHistory || (assignmentChecked && !canViewHistory)) {
+    return (
+      <Redirect href={`/cinemas/${id}` as Href} />
+    );
+  }
+
+  if (loading) {
+    return <CenteredLoader />;
   }
 
   if (error || !cinema) {
@@ -107,96 +129,52 @@ export default function CinemaDetailScreen() {
           <AnimatedPressable contentStyle={styles.backLink} onPress={() => router.back()}>
             <Text style={styles.backLinkText}>Back</Text>
           </AnimatedPressable>
-
-          {canViewHistory ? (
-            <AnimatedPressable
-              contentStyle={styles.historyButton}
-              onPress={() =>
-                router.push(`/cinemas/${id}/history` as Href)
-              }>
-              <Text style={styles.historyButtonText}>History</Text>
-            </AnimatedPressable>
-          ) : null}
         </View>
 
         <FadeInView>
-          {cinema.imageUrl ? (
-            <View style={styles.heroImage}>
-              <Image
-                contentFit="cover"
-                source={{ uri: cinema.imageUrl }}
-                style={StyleSheet.absoluteFill}
-                transition={240}
-              />
-            </View>
-          ) : null}
-          <Text style={styles.kicker}>Cinema</Text>
+          <Text style={styles.kicker}>Operations log</Text>
           <Text style={styles.title}>{formatCinemaName(cinema.name)}</Text>
-          <Text style={styles.subtitle}>
-            {cinema.provinceName ?? cinema.city}
-            {cinema.wardName ? ` | ${cinema.wardName}` : ''}
-          </Text>
-          <Text style={styles.address}>{cinema.addressLine ?? cinema.address}</Text>
-          {cinema.description ? <Text style={styles.description}>{cinema.description}</Text> : null}
+          <Text style={styles.subtitle}>Past 30 days of showtimes</Text>
         </FadeInView>
-
-        <Text style={styles.sectionTitle}>Upcoming showtimes</Text>
 
         {showtimes.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No upcoming showtimes</Text>
-            <Text style={styles.emptyText}>Try another cinema or check again later.</Text>
+            <Text style={styles.emptyTitle}>No history yet</Text>
+            <Text style={styles.emptyText}>Past showtimes for this cinema will appear here.</Text>
           </View>
         ) : (
           showtimes.map((showtime, index) => (
-            <FadeInView delay={index * 45 + 80} key={showtime.showtimeId}>
-              <ShowtimeCard showtime={showtime} />
+            <FadeInView delay={index * 35 + 70} key={showtime.showtimeId}>
+              <View style={styles.historyCard}>
+                <View style={styles.posterSmall}>
+                  {showtime.posterUrl ? (
+                    <Image
+                      contentFit="cover"
+                      source={{ uri: showtime.posterUrl }}
+                      style={StyleSheet.absoluteFill}
+                      transition={180}
+                    />
+                  ) : (
+                    <Text style={styles.posterSmallText}>{getInitials(showtime.movieTitle)}</Text>
+                  )}
+                </View>
+                <View style={styles.showtimeBody}>
+                  <Text numberOfLines={2} style={styles.movieTitle}>
+                    {showtime.movieTitle}
+                  </Text>
+                  <Text style={styles.meta}>{formatDateTime(showtime.startTime)}</Text>
+                  <Text style={styles.meta}>{formatRoomName(showtime.roomName)}</Text>
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.price}>{formatCurrency(showtime.basePrice)}</Text>
+                    <Text style={styles.historyLabel}>Past</Text>
+                  </View>
+                </View>
+              </View>
             </FadeInView>
           ))
         )}
       </ScrollView>
-
-      <BottomNav />
     </View>
-  );
-}
-
-function ShowtimeCard({ showtime }: { showtime: CinemaShowtime }) {
-  return (
-    <AnimatedPressable
-      contentStyle={styles.showtimeCard}
-      onPress={() =>
-        router.push({
-          pathname: '/seats/[showtimeId]',
-          params: { showtimeId: showtime.showtimeId },
-        })
-      }>
-      <View style={styles.poster}>
-        {showtime.posterUrl ? (
-          <Image
-            contentFit="cover"
-            source={{ uri: showtime.posterUrl }}
-            style={StyleSheet.absoluteFill}
-            transition={220}
-          />
-        ) : (
-          <Text style={styles.posterText}>{getInitials(showtime.movieTitle)}</Text>
-        )}
-      </View>
-
-      <View style={styles.showtimeBody}>
-        <Text numberOfLines={2} style={styles.movieTitle}>
-          {showtime.movieTitle}
-        </Text>
-        <Text style={styles.meta}>{formatDateTime(showtime.startTime)}</Text>
-        <Text style={styles.meta}>{formatRoomName(showtime.roomName)}</Text>
-        {showtime.genre ? <Text style={styles.genre}>{showtime.genre}</Text> : null}
-        <View style={styles.cardFooter}>
-          <Text style={styles.price}>{formatCurrency(showtime.basePrice)}</Text>
-          <Text style={styles.action}>Select seats</Text>
-        </View>
-      </View>
-    </AnimatedPressable>
   );
 }
 
@@ -216,3 +194,4 @@ function getInitials(title: string) {
     .map((word) => word[0]?.toUpperCase())
     .join('');
 }
+

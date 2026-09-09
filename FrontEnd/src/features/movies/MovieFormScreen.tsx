@@ -20,8 +20,9 @@ import { signMoviePosterUpload, uploadMoviePoster } from '@/src/api/media';
 import { createMovie, getMovieById, updateMovie } from '@/src/api/movies';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import { useAppNotification } from '@/src/components/AppNotification';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { styles } from '@/src/features/movies/movie-form.styles';
-import { colors } from '@/src/theme';
+import { colors, useThemeMode } from '@/src/theme';
 import type { Genre } from '@/src/types';
 
 import { Field } from './components/Field';
@@ -42,6 +43,7 @@ type MovieFormScreenProps = {
 
 export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
   const { showNotification } = useAppNotification();
+  const dark = useThemeMode() === 'dark';
   const [form, setForm] = useState<MovieFormState>(defaultMovieForm);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,7 +213,7 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, dark && styles.containerDark]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -220,26 +222,16 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.select({ ios: 'padding', default: undefined })}
-      style={styles.container}>
+      style={[styles.container, dark && styles.containerDark]}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled">
-        <View style={styles.topActions}>
-          <AnimatedPressable
-            contentStyle={styles.backButton}
-            disabled={saving}
-            onPress={() => router.replace(movieManageRoute)}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </AnimatedPressable>
-        </View>
+        <ScreenHeader
+          backHref={movieManageRoute}
+          title={editing ? 'Edit Movie' : 'Add Movie'}
+        />
 
-        <Text style={styles.kicker}>Admin</Text>
-        <Text style={styles.heading}>{editing ? 'Edit Movie' : 'Add Movie'}</Text>
-        <Text style={styles.subtitle}>
-          Catalog metadata is used by movie listings, showtime selection, and ticket emails.
-        </Text>
-
-        <View style={styles.form}>
+        <View style={[styles.form, dark && styles.formDark]}>
           <Field
             label="Title"
             onChangeText={(value) => updateField('title', value)}
@@ -247,14 +239,14 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
             value={form.title}
           />
 
-          <Text style={styles.label}>Description</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Description</Text>
           <TextInput
             multiline
             numberOfLines={5}
             onChangeText={(value) => updateField('description', value)}
             placeholder="Short movie description"
-            placeholderTextColor="#98a2b3"
-            style={[styles.input, styles.textArea]}
+            placeholderTextColor={dark ? '#6e7683' : '#98a2b3'}
+            style={[styles.input, dark && styles.inputDark, styles.textArea]}
             textAlignVertical="top"
             value={form.description}
           />
@@ -282,17 +274,19 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
           </View>
 
           <View style={styles.genreHeader}>
-          <Text style={styles.label}>Genres</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Genres</Text>
             <AnimatedPressable
-              contentStyle={styles.manageGenresButton}
+              contentStyle={[styles.manageGenresButton, dark && styles.secondaryButtonDark]}
               disabled={saving}
               onPress={() => router.push(genreManageRoute)}>
-              <Text style={styles.manageGenresText}>Manage Genres</Text>
+              <Text style={[styles.manageGenresText, dark && styles.textDark]}>Manage Genres</Text>
             </AnimatedPressable>
           </View>
 
           {genres.length === 0 ? (
-            <Text style={styles.emptyGenreText}>Create a genre before adding movies.</Text>
+            <Text style={[styles.emptyGenreText, dark && styles.emptyGenreTextDark]}>
+              Create a genre before adding movies.
+            </Text>
           ) : (
             <View style={styles.genreGrid}>
               {genres.map((genre) => {
@@ -325,7 +319,7 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
             </View>
           )}
 
-          <Text style={styles.label}>Poster</Text>
+          <Text style={[styles.label, dark && styles.textDark]}>Poster</Text>
           <View style={styles.posterPicker}>
             <View style={styles.posterPreview}>
               {form.posterUrl ? (
@@ -348,7 +342,7 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
               </AnimatedPressable>
               {form.posterUrl ? (
                 <AnimatedPressable
-                  contentStyle={styles.posterClearButton}
+                  contentStyle={[styles.posterClearButton, dark && styles.secondaryButtonDark]}
                   disabled={saving}
                   onPress={() => {
                     setPosterLocalUri(null);
@@ -358,7 +352,7 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
                   <Text style={styles.posterClearText}>Remove</Text>
                 </AnimatedPressable>
               ) : null}
-              <Text style={styles.posterHint}>
+              <Text style={[styles.posterHint, dark && styles.mutedTextDark]}>
                 Uploads to Cloudinary when you save.
               </Text>
             </View>
@@ -373,10 +367,12 @@ export default function MovieFormScreen({ movieId }: MovieFormScreenProps) {
             value={form.trailerUrl}
           />
 
-          <View style={styles.switchRow}>
+          <View style={[styles.switchRow, dark && styles.switchRowDark]}>
             <View style={styles.switchText}>
-              <Text style={styles.switchTitle}>Active</Text>
-              <Text style={styles.switchDescription}>Visible to customers and selectable for new showtimes.</Text>
+              <Text style={[styles.switchTitle, dark && styles.textDark]}>Active</Text>
+              <Text style={[styles.switchDescription, dark && styles.mutedTextDark]}>
+                Visible to customers and selectable for new showtimes.
+              </Text>
             </View>
             <Switch
               ios_backgroundColor="#d0d5dd"

@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { bottomNavHeight } from '@/src/styles/layout';
+import { screenBottomPadding } from '@/src/styles/layout';
 import { colors, radius, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
@@ -8,16 +8,17 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   content: {
-    padding: 20,
-    paddingTop: 64,
-    paddingBottom: bottomNavHeight + 24,
+    paddingBottom: screenBottomPadding,
   },
   topActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 12,
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -30,7 +31,6 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    marginBottom: 18,
   },
   backButtonText: {
     color: colors.ink,
@@ -56,6 +56,7 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
   panel: {
+    marginHorizontal: 20,
     marginTop: 22,
     borderWidth: 1,
     borderColor: '#e7eaf0',
@@ -63,6 +64,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 16,
     ...shadow.card,
+  },
+  panelDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   panelHeader: {
     flexDirection: 'row',
@@ -106,6 +112,11 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     fontWeight: '700',
+  },
+  inputDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#080808',
+    color: '#ffffff',
   },
   chipRail: {
     gap: 8,
@@ -320,6 +331,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  secondaryButtonDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#151515',
+  },
   dangerButton: {
     minHeight: 44,
     alignItems: 'center',
@@ -402,9 +417,18 @@ export const styles = StyleSheet.create({
     padding: 14,
     ...shadow.soft,
   },
+  cinemaCardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#111111',
+    shadowColor: '#000000',
+  },
   cinemaCardSelected: {
     borderColor: colors.primary,
     backgroundColor: '#fff7f7',
+  },
+  cinemaCardSelectedDark: {
+    borderColor: '#ffffff',
+    backgroundColor: '#171717',
   },
   cardTop: {
     gap: 12,
@@ -499,6 +523,10 @@ export const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 14,
   },
+  subPanelDark: {
+    borderColor: '#242424',
+    backgroundColor: '#080808',
+  },
   selectedCinemaTitle: {
     color: colors.ink,
     fontSize: 16,
@@ -569,5 +597,11 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
   },
 });

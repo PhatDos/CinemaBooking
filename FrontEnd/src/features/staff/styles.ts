@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { bottomNavHeight } from '@/src/styles/layout';
+import { screenBottomPadding } from '@/src/styles/layout';
 import { colors, radius, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
@@ -8,10 +8,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  containerDark: {
+    backgroundColor: '#050505',
+  },
   content: {
-    padding: 20,
-    paddingTop: 64,
-    paddingBottom: bottomNavHeight + 24,
+    paddingBottom: screenBottomPadding,
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -50,6 +51,7 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
   group: {
+    marginHorizontal: 20,
     marginTop: 22,
     borderWidth: 1,
     borderColor: '#e7eaf0',
@@ -57,6 +59,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 16,
     ...shadow.card,
+  },
+  groupDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -90,9 +97,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
+  optionRowDark: {
+    borderColor: '#242424',
+    backgroundColor: '#080808',
+  },
   optionRowSelected: {
     borderColor: colors.primary,
     backgroundColor: '#fff1f2',
+  },
+  optionRowSelectedDark: {
+    borderColor: '#ffffff',
+    backgroundColor: '#171717',
   },
   radioOuter: {
     width: 20,
@@ -160,9 +175,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
+  roomChipDark: {
+    borderColor: '#242424',
+    backgroundColor: '#080808',
+  },
   roomChipSelected: {
     borderColor: colors.ink,
     backgroundColor: colors.ink,
+  },
+  roomChipSelectedDark: {
+    borderColor: '#ffffff',
+    backgroundColor: '#ffffff',
   },
   roomChipText: {
     color: colors.muted,
@@ -171,6 +194,9 @@ export const styles = StyleSheet.create({
   },
   roomChipTextSelected: {
     color: colors.surface,
+  },
+  roomChipTextSelectedDark: {
+    color: '#050505',
   },
   input: {
     minHeight: 50,
@@ -182,6 +208,11 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     fontWeight: '700',
+  },
+  inputDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#080808',
+    color: '#ffffff',
   },
   multilineInput: {
     minHeight: 92,
@@ -204,9 +235,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
+  movieRowDark: {
+    borderColor: '#242424',
+    backgroundColor: '#080808',
+  },
   movieRowSelected: {
     borderColor: colors.primary,
     backgroundColor: '#fff1f2',
+  },
+  movieRowSelectedDark: {
+    borderColor: '#ffffff',
+    backgroundColor: '#171717',
   },
   movieText: {
     flex: 1,
@@ -319,6 +358,11 @@ export const styles = StyleSheet.create({
     padding: 14,
     ...shadow.soft,
   },
+  showtimeCardDark: {
+    borderColor: '#242424',
+    backgroundColor: '#101010',
+    shadowColor: '#000000',
+  },
   showtimeInfo: {
     flex: 1,
     minWidth: 0,
@@ -347,6 +391,10 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fbfcfe',
     padding: 16,
   },
+  emptyPanelDark: {
+    borderColor: '#242424',
+    backgroundColor: '#080808',
+  },
   emptyTitle: {
     color: colors.ink,
     fontSize: 18,
@@ -370,5 +418,11 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
     padding: 24,
+  },
+  textDark: {
+    color: '#ffffff',
+  },
+  mutedTextDark: {
+    color: '#a7b0c0',
   },
 });
