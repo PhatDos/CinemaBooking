@@ -11,81 +11,71 @@ export const styles = StyleSheet.create({
     backgroundColor: '#050505',
   },
   content: {
-    padding: 20,
-    paddingTop: 64,
+    paddingTop: 0,
     paddingBottom: bottomNavHeight + 24,
   },
-  showtimeInfo: {
-    flex: 1,
+  body: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
   },
-  backLink: {
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  hero: {
+    height: 224,
+    overflow: 'hidden',
+    backgroundColor: colors.ink,
   },
-  backLinkText: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  backLinkDark: {
-    borderColor: '#2a2a2a',
-    backgroundColor: '#151515',
-  },
-  poster: {
-    height: 220,
+  heroFallback: {
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.md,
     backgroundColor: colors.ink,
-    overflow: 'hidden',
-    ...shadow.card,
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(16, 24, 40, 0.48)',
+  },
+  heroOverlayDark: {
+    backgroundColor: 'rgba(0, 0, 0, 0.56)',
+  },
+  heroBackButton: {
+    position: 'absolute',
+    top: 54,
+    left: 20,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.32)',
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  heroBackText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  heroCopy: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 22,
+  },
+  heroTitle: {
+    color: '#ffffff',
+    fontSize: 27,
+    fontWeight: '900',
+  },
+  heroMeta: {
+    marginTop: 8,
+    color: 'rgba(255, 255, 255, 0.84)',
+    fontSize: 13,
+    fontWeight: '800',
   },
   posterText: {
     color: colors.surface,
     fontSize: 48,
     fontWeight: '900',
-  },
-  title: {
-    marginTop: 24,
-    color: colors.ink,
-    fontSize: 32,
-    fontWeight: '900',
-  },
-  description: {
-    marginTop: 12,
-    color: '#475467',
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  descriptionDark: {
-    color: '#c4cad4',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 16,
-  },
-  meta: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  genre: {
-    borderRadius: radius.sm,
-    backgroundColor: '#fff3e0',
-    color: '#9a3412',
-    overflow: 'hidden',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    fontSize: 13,
-    fontWeight: '800',
   },
   trailerPanel: {
     marginTop: 18,
@@ -109,7 +99,7 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
   },
   showtimeSection: {
-    marginTop: 28,
+    marginTop: 30,
   },
   sectionHint: {
     color: colors.muted,
@@ -120,40 +110,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 30,
-  },
-  showtime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e7eaf0',
-    borderRadius: radius.md,
-    padding: 14,
-    backgroundColor: colors.surface,
-    ...shadow.soft,
-  },
-  showtimeTime: {
-    marginBottom: 8,
-    color: colors.ink,
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  pricePill: {
-    borderRadius: radius.sm,
-    backgroundColor: '#e7f6f2',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  priceText: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  empty: {
-    color: colors.muted,
-    fontSize: 15,
   },
   emptyPanel: {
     marginTop: 14,
@@ -179,10 +135,11 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
   },
   cinemaRail: {
-    gap: 14,
-    paddingTop: 18,
-    paddingBottom: 18,
-    paddingRight: 20,
+    gap: 18,
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingLeft: 4,
+    paddingRight: 40,
   },
   cinemaChip: {
     width: 78,
@@ -233,7 +190,44 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
   },
   cinemaSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
     marginBottom: 12,
+  },
+  cinemaList: {
+    gap: 22,
+  },
+  cinemaMark: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e7eaf0',
+    borderRadius: 21,
+    backgroundColor: '#eef1f5',
+    overflow: 'hidden',
+  },
+  cinemaMarkDark: {
+    borderColor: '#2a2a2a',
+    backgroundColor: '#171717',
+  },
+  cinemaMarkImage: {
+    height: '100%',
+    width: '100%',
+  },
+  cinemaMarkText: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  cinemaMarkTextDark: {
+    color: '#a7b0c0',
+  },
+  cinemaInfo: {
+    flex: 1,
+    minWidth: 0,
   },
   cinemaName: {
     color: colors.ink,
@@ -247,6 +241,7 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   timePanel: {
+    marginLeft: 0,
     borderRadius: radius.md,
     backgroundColor: '#f2f4f7',
     padding: 16,
@@ -256,22 +251,26 @@ export const styles = StyleSheet.create({
   },
   roomFormat: {
     color: colors.ink,
-    fontSize: 21,
+    fontSize: 18,
     fontWeight: '900',
   },
-  roomBlock: {
-    marginTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#d9dde5',
-    paddingTop: 14,
+  timeDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 12,
+    marginBottom: 14,
+    width: '100%',
+    overflow: 'hidden',
   },
-  roomBlockDark: {
-    borderTopColor: '#242424',
+  timeDividerDash: {
+    width: 14,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: '#c7ceda',
   },
-  roomName: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '900',
+  timeDividerDashDark: {
+    backgroundColor: '#4f5663',
   },
   timeGrid: {
     flexDirection: 'row',

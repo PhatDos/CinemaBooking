@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { colors, radius, shadow } from '@/src/theme';
+import { colors, shadow } from '@/src/theme';
 
 export const styles = StyleSheet.create({
   dateSection: {
@@ -52,24 +52,25 @@ export const styles = StyleSheet.create({
     color: '#a7b0c0',
   },
   dateRail: {
-    gap: 12,
+    gap: 10,
     paddingRight: 20,
   },
   dateChip: {
-    width: 68,
-    height: 74,
+    width: 72,
+    height: 76,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#e7eaf0',
-    borderRadius: radius.md,
+    borderRadius: 17,
     backgroundColor: '#f2f4f7',
     ...shadow.soft,
   },
   dateChipDark: {
-    borderColor: '#242424',
-    backgroundColor: '#151515',
+    borderColor: '#2a2a2a',
+    backgroundColor: '#141414',
     shadowColor: '#000000',
+    shadowOpacity: 0.28,
   },
   dateChipPast: {
     opacity: 0.72,
@@ -77,18 +78,20 @@ export const styles = StyleSheet.create({
   dateChipSelected: {
     borderColor: '#0b6fa4',
     backgroundColor: '#0b6fa4',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
   },
   dateChipSelectedDark: {
     borderColor: '#ffffff',
     backgroundColor: '#ffffff',
   },
   dateText: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: '800',
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '900',
   },
   dateTextDark: {
-    color: '#a7b0c0',
+    color: '#c8ced8',
   },
   dateTextSelected: {
     color: colors.surface,
@@ -98,12 +101,12 @@ export const styles = StyleSheet.create({
   },
   dayText: {
     marginTop: 4,
-    color: colors.ink,
-    fontSize: 23,
+    color: colors.muted,
+    fontSize: 12,
     fontWeight: '900',
   },
   dayTextDark: {
-    color: '#ffffff',
+    color: '#a7b0c0',
   },
   dayTextSelected: {
     color: colors.surface,

@@ -1,5 +1,5 @@
-import { router, Redirect, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -22,11 +22,11 @@ import {
   getDateRangeForQuery,
   getTodayDateValue,
 } from '@/src/features/showtimes/date-filter';
-import { formatCinemaName, formatRoomName } from '@/src/display';
+import { formatCinemaName } from '@/src/display';
 import { getYouTubeVideoId } from '@/src/media/youtube';
+import { styles } from '@/src/styles/screens/movie-detail.styles';
 import { useThemeMode } from '@/src/theme';
 import type { MovieDetail, Showtime } from '@/src/types';
-import { styles } from '@/src/styles/screens/movie-detail.styles';
 
 type ShowtimeVenue = {
   cinemaAddress: string;
@@ -34,7 +34,6 @@ type ShowtimeVenue = {
   cinemaId: string;
   cinemaImageUrl: string | null;
   cinemaName: string;
-  roomName: string;
 };
 
 type CinemaShowtimeGroup = {
@@ -44,12 +43,6 @@ type CinemaShowtimeGroup = {
   imageUrl: string | null;
   minPrice: number;
   name: string;
-  rooms: RoomShowtimeGroup[];
-};
-
-type RoomShowtimeGroup = {
-  roomId: string;
-  roomName: string;
   showtimes: Showtime[];
 };
 
@@ -74,10 +67,12 @@ export default function MovieDetailScreen() {
     () => groupShowtimesByCinema(showtimes, venues),
     [showtimes, venues],
   );
-  const selectedCinemaGroup =
-    cinemaGroups.find((group) => group.cinemaId === selectedCinemaId) ??
-    cinemaGroups[0] ??
-    null;
+  const selectedCinemaGroup = selectedCinemaId
+    ? cinemaGroups.find((group) => group.cinemaId === selectedCinemaId) ?? null
+    : null;
+  const visibleCinemaGroups = selectedCinemaGroup
+    ? [selectedCinemaGroup]
+    : cinemaGroups;
 
   const loadVenues = useCallback(async (items: Showtime[]) => {
     const uniqueRoomIds = Array.from(new Set(items.map((item) => item.roomId)));
@@ -95,7 +90,6 @@ export default function MovieDetailScreen() {
               cinemaId: cinema.id,
               cinemaImageUrl: cinema.imageUrl ?? null,
               cinemaName: formatCinemaName(cinema.name),
-              roomName: formatRoomName(room.name),
             },
           ] as const;
         } catch (venueError) {
@@ -127,7 +121,7 @@ export default function MovieDetailScreen() {
       }
     }
 
-    loadData();
+    void loadData();
   }, [id, isAuthenticated]);
 
   useEffect(() => {
@@ -165,7 +159,7 @@ export default function MovieDetailScreen() {
     selectedDate,
   ]);
 
-  if (isLoading) {
+  if (isLoading || loading) {
     return <CenteredLoader />;
   }
 
@@ -173,15 +167,13 @@ export default function MovieDetailScreen() {
     return <Redirect href="/login" />;
   }
 
-  if (loading) {
-    return <CenteredLoader />;
-  }
-
   if (error || !movie) {
     return (
       <View style={[styles.center, dark && styles.centerDark]}>
         <Text style={styles.error}>{error || 'Movie not found'}</Text>
-        <Pressable onPress={() => router.back()} style={[styles.backButton, dark && styles.backButtonDark]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={[styles.backButton, dark && styles.backButtonDark]}>
           <Text style={[styles.backButtonText, dark && styles.textDark]}>Back</Text>
         </Pressable>
       </View>
@@ -193,138 +185,151 @@ export default function MovieDetailScreen() {
   return (
     <View style={[styles.container, dark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AnimatedPressable
-          contentStyle={[styles.backLink, dark && styles.backLinkDark]}
-          onPress={() => router.back()}>
-          <Text style={[styles.backLinkText, dark && styles.textDark]}>Back</Text>
-        </AnimatedPressable>
-
-        <FadeInView>
-          <View style={styles.poster}>
-            {movie.posterUrl ? (
-              <Image
-                contentFit="cover"
-                source={{ uri: movie.posterUrl }}
-                style={StyleSheet.absoluteFill}
-                transition={300}
-              />
-            ) : (
+        <View style={styles.hero}>
+          {movie.posterUrl ? (
+            <Image
+              contentFit="cover"
+              source={{ uri: movie.posterUrl }}
+              style={StyleSheet.absoluteFill}
+              transition={300}
+            />
+          ) : (
+            <View style={styles.heroFallback}>
               <Text style={styles.posterText}>{getInitials(movie.title)}</Text>
-            )}
-          </View>
-        </FadeInView>
-
-        <Text style={[styles.title, dark && styles.textDark]}>{movie.title}</Text>
-
-        {movie.description ? (
-          <Text style={[styles.description, dark && styles.descriptionDark]}>{movie.description}</Text>
-        ) : null}
-
-        <View style={styles.metaRow}>
-          <Text style={[styles.meta, dark && styles.mutedTextDark]}>{movie.durationMinutes} min</Text>
-          <Text style={[styles.meta, dark && styles.mutedTextDark]}>Release: {formatDate(movie.releaseDate)}</Text>
-          {getGenreLabel(movie) ? (
-            <Text style={styles.genre}>{getGenreLabel(movie)}</Text>
-          ) : null}
-        </View>
-
-        {trailerVideoId ? (
-          <View style={styles.trailerPanel}>
-            <Text style={[styles.trailerTitle, dark && styles.textDark]}>Trailer</Text>
-            <View style={styles.trailerPlayer}>
-              <YouTubeEmbed
-                height={210}
-                play={false}
-                videoId={trailerVideoId}
-              />
             </View>
-          </View>
-        ) : null}
+          )}
+          <View style={[styles.heroOverlay, dark && styles.heroOverlayDark]} />
 
-        <ShowtimeDateRail
-          canIncludePast={canIncludePast}
-          includePast={includePast}
-          onSelectDate={setSelectedDate}
-          onToggleIncludePast={setIncludePast}
-          selectedDate={selectedDate}
-        />
+          <AnimatedPressable
+            contentStyle={styles.heroBackButton}
+            onPress={() => router.back()}>
+            <Text style={styles.heroBackText}>Back</Text>
+          </AnimatedPressable>
 
-        <View style={styles.showtimeSection}>
-          <Text style={[styles.heading, dark && styles.textDark]}>CHỌN RẠP CHIẾU - SUẤT CHIẾU</Text>
-          <Text style={[styles.sectionHint, dark && styles.mutedTextDark]}>
-            Vui lòng chọn rạp - suất chiếu
-          </Text>
-        </View>
-
-        {loadingShowtimes ? (
-          <View style={styles.showtimeLoading}>
-            <ActivityIndicator />
-          </View>
-        ) : cinemaGroups.length === 0 ? (
-          <View style={[styles.emptyPanel, dark && styles.emptyPanelDark]}>
-            <Text style={[styles.emptyTitle, dark && styles.textDark]}>No showtimes available</Text>
-            <Text style={[styles.emptyText, dark && styles.mutedTextDark]}>
-              Choose another date or check again later.
+          <View style={styles.heroCopy}>
+            <Text numberOfLines={2} style={styles.heroTitle}>{movie.title}</Text>
+            <Text numberOfLines={1} style={styles.heroMeta}>
+              {getHeroMeta(movie)}
             </Text>
           </View>
-        ) : (
-          <>
-            <ScrollView
-              contentContainerStyle={styles.cinemaRail}
-              horizontal
-              showsHorizontalScrollIndicator={false}>
-              {cinemaGroups.map((group) => {
-                const selected = group.cinemaId === selectedCinemaGroup?.cinemaId;
+        </View>
 
-                return (
-                  <AnimatedPressable
-                    contentStyle={[
-                      styles.cinemaChip,
-                      dark && styles.cinemaChipDark,
-                      selected && styles.cinemaChipSelected,
-                      selected && dark && styles.cinemaChipSelectedDark,
-                    ]}
-                    key={group.cinemaId}
-                    onPress={() => setSelectedCinemaId(group.cinemaId)}
-                    pressedScale={0.95}>
-                    {group.imageUrl ? (
-                      <Image
-                        contentFit="cover"
-                        source={{ uri: group.imageUrl }}
-                        style={[StyleSheet.absoluteFill, styles.cinemaChipImage]}
-                        transition={160}
-                      />
-                    ) : (
-                      <Text style={[styles.cinemaChipText, dark && styles.textDark]}>{getInitials(group.name)}</Text>
-                    )}
-                    <View style={styles.cinemaPriceBadge}>
-                      <Text style={styles.cinemaPriceText}>
-                        {formatShortCurrency(group.minPrice)}
-                      </Text>
+        <View style={styles.body}>
+          <ShowtimeDateRail
+            canIncludePast={canIncludePast}
+            includePast={includePast}
+            onSelectDate={setSelectedDate}
+            onToggleIncludePast={setIncludePast}
+            selectedDate={selectedDate}
+          />
+
+          <View style={styles.showtimeSection}>
+            <Text style={[styles.heading, dark && styles.textDark]}>CHỌN RẠP CHIẾU - SUẤT CHIẾU</Text>
+            <Text style={[styles.sectionHint, dark && styles.mutedTextDark]}>
+              Vui lòng chọn rạp - suất chiếu
+            </Text>
+          </View>
+
+          {loadingShowtimes ? (
+            <View style={styles.showtimeLoading}>
+              <ActivityIndicator color={dark ? '#ffffff' : undefined} />
+            </View>
+          ) : cinemaGroups.length === 0 ? (
+            <View style={[styles.emptyPanel, dark && styles.emptyPanelDark]}>
+              <Text style={[styles.emptyTitle, dark && styles.textDark]}>No showtimes available</Text>
+              <Text style={[styles.emptyText, dark && styles.mutedTextDark]}>
+                Choose another date or check again later.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <ScrollView
+                contentContainerStyle={styles.cinemaRail}
+                horizontal
+                showsHorizontalScrollIndicator={false}>
+                {cinemaGroups.map((group) => {
+                  const selected = group.cinemaId === selectedCinemaGroup?.cinemaId;
+
+                  return (
+                    <AnimatedPressable
+                      contentStyle={[
+                        styles.cinemaChip,
+                        dark && styles.cinemaChipDark,
+                        selected && styles.cinemaChipSelected,
+                        selected && dark && styles.cinemaChipSelectedDark,
+                      ]}
+                      key={group.cinemaId}
+                      onPress={() =>
+                        setSelectedCinemaId((current) =>
+                          current === group.cinemaId ? null : group.cinemaId,
+                        )
+                      }
+                      pressedScale={0.95}>
+                      {group.imageUrl ? (
+                        <Image
+                          contentFit="cover"
+                          source={{ uri: group.imageUrl }}
+                          style={[StyleSheet.absoluteFill, styles.cinemaChipImage]}
+                          transition={160}
+                        />
+                      ) : (
+                        <Text style={[styles.cinemaChipText, dark && styles.textDark]}>
+                          {getInitials(group.name)}
+                        </Text>
+                      )}
+                      <View style={styles.cinemaPriceBadge}>
+                        <Text style={styles.cinemaPriceText}>
+                          {formatShortCurrency(group.minPrice)}
+                        </Text>
+                      </View>
+                    </AnimatedPressable>
+                  );
+                })}
+              </ScrollView>
+
+              <View style={styles.cinemaList}>
+                {visibleCinemaGroups.map((group, index) => (
+                  <FadeInView delay={80 + index * 35} key={group.cinemaId}>
+                    <View style={styles.cinemaSummary}>
+                      <View style={[styles.cinemaMark, dark && styles.cinemaMarkDark]}>
+                        {group.imageUrl ? (
+                          <Image
+                            contentFit="cover"
+                            source={{ uri: group.imageUrl }}
+                            style={styles.cinemaMarkImage}
+                            transition={160}
+                          />
+                        ) : (
+                          <Text style={[styles.cinemaMarkText, dark && styles.cinemaMarkTextDark]}>
+                            {getInitials(group.name).slice(0, 1)}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.cinemaInfo}>
+                        <Text numberOfLines={1} style={[styles.cinemaName, dark && styles.textDark]}>
+                          {group.name}
+                        </Text>
+                        <Text numberOfLines={1} style={[styles.cinemaAddress, dark && styles.mutedTextDark]}>
+                          {group.address}
+                        </Text>
+                      </View>
                     </View>
-                  </AnimatedPressable>
-                );
-              })}
-            </ScrollView>
 
-            {selectedCinemaGroup ? (
-              <FadeInView delay={80}>
-                <View style={styles.cinemaSummary}>
-                  <Text numberOfLines={1} style={[styles.cinemaName, dark && styles.textDark]}>
-                    {selectedCinemaGroup.name}
-                  </Text>
-                  <Text numberOfLines={1} style={[styles.cinemaAddress, dark && styles.mutedTextDark]}>
-                    {selectedCinemaGroup.address}
-                  </Text>
-                </View>
-
-                <View style={[styles.timePanel, dark && styles.timePanelDark]}>
-                  <Text style={[styles.roomFormat, dark && styles.textDark]}>2D</Text>
-                  {selectedCinemaGroup.rooms.map((room) => (
-                    <View key={room.roomId} style={[styles.roomBlock, dark && styles.roomBlockDark]}>
-                      <Text style={[styles.roomName, dark && styles.mutedTextDark]}>{room.roomName}</Text>
+                    <View style={[styles.timePanel, dark && styles.timePanelDark]}>
+                      <Text style={[styles.roomFormat, dark && styles.textDark]}>2D - Phụ đề</Text>
+                      <View style={styles.timeDivider}>
+                        {Array.from({ length: 18 }).map((_, dashIndex) => (
+                          <View
+                            key={dashIndex}
+                            style={[
+                              styles.timeDividerDash,
+                              dark && styles.timeDividerDashDark,
+                            ]}
+                          />
+                        ))}
+                      </View>
                       <View style={styles.timeGrid}>
-                        {room.showtimes.map((showtime) => (
+                        {group.showtimes.map((showtime) => (
                           <AnimatedPressable
                             contentStyle={[styles.timeChip, dark && styles.timeChipDark]}
                             key={showtime.id}
@@ -342,12 +347,25 @@ export default function MovieDetailScreen() {
                         ))}
                       </View>
                     </View>
-                  ))}
-                </View>
-              </FadeInView>
-            ) : null}
-          </>
-        )}
+                  </FadeInView>
+                ))}
+              </View>
+            </>
+          )}
+
+          {trailerVideoId ? (
+            <View style={styles.trailerPanel}>
+              <Text style={[styles.trailerTitle, dark && styles.textDark]}>Trailer</Text>
+              <View style={styles.trailerPlayer}>
+                <YouTubeEmbed
+                  height={210}
+                  play={false}
+                  videoId={trailerVideoId}
+                />
+              </View>
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
     </View>
   );
@@ -384,6 +402,16 @@ function getGenreLabel(movie: MovieDetail) {
     : movie.genre ?? '';
 }
 
+function getHeroMeta(movie: MovieDetail) {
+  return [
+    getGenreLabel(movie),
+    `${movie.durationMinutes} min`,
+    `Release ${formatDate(movie.releaseDate)}`,
+  ]
+    .filter(Boolean)
+    .join(' | ');
+}
+
 function groupShowtimesByCinema(
   showtimes: Showtime[],
   venues: Record<string, ShowtimeVenue>,
@@ -407,7 +435,7 @@ function groupShowtimesByCinema(
         imageUrl: venue.cinemaImageUrl,
         minPrice: showtime.standardPrice || showtime.basePrice,
         name: venue.cinemaName,
-        rooms: [],
+        showtimes: [],
       };
       cinemas.set(venue.cinemaId, cinema);
     }
@@ -416,32 +444,17 @@ function groupShowtimesByCinema(
       cinema.minPrice,
       showtime.standardPrice || showtime.basePrice,
     );
-
-    let room = cinema.rooms.find((item) => item.roomId === showtime.roomId);
-
-    if (!room) {
-      room = {
-        roomId: showtime.roomId,
-        roomName: venue.roomName,
-        showtimes: [],
-      };
-      cinema.rooms.push(room);
-    }
-
-    room.showtimes.push(showtime);
+    cinema.showtimes.push(showtime);
   });
 
   return Array.from(cinemas.values())
     .map((cinema) => ({
       ...cinema,
-      rooms: cinema.rooms.map((room) => ({
-        ...room,
-        showtimes: [...room.showtimes].sort(
-          (left, right) =>
-            new Date(left.startTime).getTime() -
-            new Date(right.startTime).getTime(),
-        ),
-      })),
+      showtimes: [...cinema.showtimes].sort(
+        (left, right) =>
+          new Date(left.startTime).getTime() -
+          new Date(right.startTime).getTime(),
+      ),
     }))
     .sort((left, right) => left.name.localeCompare(right.name));
 }
@@ -449,4 +462,3 @@ function groupShowtimesByCinema(
 function formatShortCurrency(value: number) {
   return `Từ ${Math.round(value / 1000)}K`;
 }
-

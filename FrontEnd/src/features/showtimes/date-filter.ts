@@ -6,7 +6,15 @@ export type ShowtimeDateOption = {
   value: string;
 };
 
-const weekdayLabels = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const weekdayLabels = [
+  'Chủ Nhật',
+  'Thứ Hai',
+  'Thứ Ba',
+  'Thứ Tư',
+  'Thứ Năm',
+  'Thứ Sáu',
+  'Thứ Bảy',
+];
 
 export function buildShowtimeDateOptions({
   includePast = false,
