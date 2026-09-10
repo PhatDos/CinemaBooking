@@ -247,6 +247,19 @@ export default function MovieDetailScreen() {
                 contentContainerStyle={styles.cinemaRail}
                 horizontal
                 showsHorizontalScrollIndicator={false}>
+                <AnimatedPressable
+                  contentStyle={[
+                    styles.allCinemasChip,
+                    dark && styles.cinemaChipDark,
+                    selectedCinemaId === null && styles.cinemaChipSelected,
+                    selectedCinemaId === null && dark && styles.cinemaChipSelectedDark,
+                  ]}
+                  onPress={() => setSelectedCinemaId(null)}
+                  pressedScale={0.95}>
+                  <Text style={[styles.allCinemasText, dark && styles.textDark]}>
+                    All cinemas
+                  </Text>
+                </AnimatedPressable>
                 {cinemaGroups.map((group) => {
                   const selected = group.cinemaId === selectedCinemaGroup?.cinemaId;
 

@@ -152,6 +152,17 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     overflow: 'visible',
   },
+  allCinemasChip: {
+    width: 104,
+    height: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#eef1f5',
+    borderRadius: 39,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+  },
   cinemaChipDark: {
     borderColor: '#242424',
     backgroundColor: '#151515',
@@ -169,6 +180,13 @@ export const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 18,
     fontWeight: '900',
+  },
+  allCinemasText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 15,
+    textAlign: 'center',
   },
   cinemaPriceBadge: {
     position: 'absolute',

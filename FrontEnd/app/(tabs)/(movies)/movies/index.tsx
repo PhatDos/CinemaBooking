@@ -1,6 +1,6 @@
 import { router, Redirect } from 'expo-router';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -31,7 +31,7 @@ export default function MoviesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  async function loadMovies(showSpinner = true) {
+  const loadMovies = useCallback(async (showSpinner = true) => {
     if (showSpinner) {
       setLoading(true);
     }
@@ -47,7 +47,7 @@ export default function MoviesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -57,7 +57,7 @@ export default function MoviesScreen() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadMovies]);
 
   if (isLoading) {
     return <CenteredLoader />;
@@ -143,54 +143,63 @@ export default function MoviesScreen() {
               tintColor={dark ? '#ffffff' : '#050505'}
             />
           }
-          renderItem={({ item, index }) => (
-            <View style={styles.cardWrap}>
-              <FadeInView delay={index * 45}>
-                <AnimatedPressable
-                  contentStyle={styles.card}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/movies/[id]',
-                      params: { id: item.id },
-                    })
-                  }>
-                  <View style={styles.poster}>
-                    {item.posterUrl ? (
-                      <Image
-                        contentFit="cover"
-                        source={{ uri: item.posterUrl }}
-                        style={StyleSheet.absoluteFill}
-                        transition={250}
-                      />
-                    ) : (
-                      <Text style={styles.posterText}>{getInitials(item.title)}</Text>
-                    )}
-                  </View>
+          renderItem={({ item, index }) => {
+            const genreLabel = getGenreLabel(item);
 
-                  <View style={styles.info}>
-                    <Text numberOfLines={2} style={[styles.title, dark && styles.titleDark]}>
-                      {item.title}
-                    </Text>
-                    <View style={styles.metaRow}>
-                      {getGenreLabel(item) ? (
-                        <>
-                          <Text
-                            numberOfLines={1}
-                            style={[styles.meta, dark && styles.metaDark]}>
-                            {getGenreLabel(item)}
-                          </Text>
-                          <Text style={[styles.dot, dark && styles.dotDark]}>|</Text>
-                        </>
-                      ) : null}
-                      <Text style={[styles.meta, dark && styles.metaDark]}>
-                        {formatDuration(item.durationMinutes)}
-                      </Text>
+            return (
+              <View style={styles.cardWrap}>
+                <FadeInView delay={index * 45}>
+                  <AnimatedPressable
+                    contentStyle={styles.card}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/movies/[id]',
+                        params: { id: item.id },
+                      })
+                    }>
+                    <View style={styles.poster}>
+                      {item.posterUrl ? (
+                        <Image
+                          contentFit="cover"
+                          source={{ uri: item.posterUrl }}
+                          style={StyleSheet.absoluteFill}
+                          transition={250}
+                        />
+                      ) : (
+                        <Text style={styles.posterText}>{getInitials(item.title)}</Text>
+                      )}
                     </View>
-                  </View>
-                </AnimatedPressable>
-              </FadeInView>
-            </View>
-          )}
+
+                    <View style={styles.info}>
+                      <Text numberOfLines={2} style={[styles.title, dark && styles.titleDark]}>
+                        {item.title}
+                      </Text>
+                      <View style={styles.metaRow}>
+                        {genreLabel ? (
+                          <>
+                            <Text
+                              ellipsizeMode="tail"
+                              numberOfLines={1}
+                              style={[styles.meta, styles.metaGenre, dark && styles.metaDark]}>
+                              {genreLabel}
+                            </Text>
+                            <Text style={[styles.dot, styles.metaDivider, dark && styles.dotDark]}>
+                              |
+                            </Text>
+                          </>
+                        ) : null}
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.meta, styles.metaDuration, dark && styles.metaDark]}>
+                          {formatDuration(item.durationMinutes)}
+                        </Text>
+                      </View>
+                    </View>
+                  </AnimatedPressable>
+                </FadeInView>
+              </View>
+            );
+          }}
         />
       )}
     </View>

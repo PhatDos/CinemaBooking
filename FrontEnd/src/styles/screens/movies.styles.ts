@@ -94,10 +94,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardWrap: {
-    flex: 1,
+    width: '50%',
+    flexGrow: 0,
+    flexShrink: 0,
     maxWidth: '50%',
     paddingHorizontal: 7,
-    marginBottom: 22,
+    marginBottom: 28,
   },
   card: {
     width: '100%',
@@ -119,12 +121,13 @@ export const styles = StyleSheet.create({
   },
   info: {
     paddingTop: 10,
+    overflow: 'hidden',
   },
   title: {
     color: colors.ink,
     fontSize: 15,
     fontWeight: '900',
-    lineHeight: 19,
+    lineHeight: 21,
   },
   titleDark: {
     color: '#ffffff',
@@ -133,12 +136,25 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 6,
+    width: '100%',
+    marginTop: 8,
+    overflow: 'hidden',
   },
   meta: {
     color: colors.muted,
     fontSize: 11,
     fontWeight: '700',
+  },
+  metaGenre: {
+    minWidth: 0,
+    flex: 1,
+    flexShrink: 1,
+  },
+  metaDivider: {
+    flexShrink: 0,
+  },
+  metaDuration: {
+    flexShrink: 0,
   },
   metaDark: {
     color: '#c4cad4',

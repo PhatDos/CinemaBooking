@@ -1,4 +1,6 @@
+using CinemaBooking.Modules.Catalog.Application.MovieImports;
 using CinemaBooking.Modules.Catalog.Domain;
+using CinemaBooking.Modules.Catalog.Domain.Imports;
 using CinemaBooking.Modules.Catalog.Infrastructure.Persistence;
 using CinemaBooking.Modules.Identity.Application.Roles;
 using CinemaBooking.Modules.Identity.Domain;
@@ -17,16 +19,31 @@ namespace CinemaBooking.Api.SeedData;
 
 public static class DevelopmentDataSeeder
 {
-    private const string DefaultRoomName = "Room 1";
-    private const decimal SeedBasePrice = 90000m;
-    private const decimal SeedVipPrice = 100000m;
-    private const decimal SeedCouplePrice = 200000m;
+    private const decimal MinimumSeedStandardPrice = 80000m;
+    private const decimal MaximumSeedStandardPrice = 120000m;
+    private const decimal SeedPriceStep = 10000m;
+    private const int SeedRoomsPerCinema = 10;
+    private const int SeedDays = 7;
+    private const int SeedShowtimesPerMovieCinemaAndDate = 2;
+
+    private static readonly TimeSpan[] SeedStartOffsets =
+    [
+        TimeSpan.FromHours(9),
+        TimeSpan.FromHours(11.5),
+        TimeSpan.FromHours(14),
+        TimeSpan.FromHours(16.5),
+        TimeSpan.FromHours(19),
+        TimeSpan.FromHours(21.5)
+    ];
 
     private static readonly string[] LegacyMovieTitles =
     [
         "Seed Movie: The Modular Monolith",
         "Seed Movie: Redis Hold",
-        "Seed Movie: SQL Final Boss"
+        "Seed Movie: SQL Final Boss",
+        "Saigon Night Run",
+        "Moonlit Station",
+        "The Last Projection"
     ];
 
     private static readonly string[] LegacyMovieTitlePrefixes =
@@ -95,34 +112,6 @@ public static class DevelopmentDataSeeder
             "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=900&q=80")
     ];
 
-    private static readonly SeedMovie[] Movies =
-    [
-        new(
-            "Saigon Night Run",
-            "A courier crosses the city to uncover a hidden theater conspiracy.",
-            105,
-            new DateTime(2026, 8, 29),
-            "https://picsum.photos/seed/saigon-night-run/600/900",
-            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            "Action"),
-        new(
-            "Moonlit Station",
-            "Two strangers meet on the final train and chase a story neither can forget.",
-            95,
-            new DateTime(2026, 8, 29),
-            "https://picsum.photos/seed/moonlit-station/600/900",
-            "https://youtu.be/dQw4w9WgXcQ",
-            "Romance"),
-        new(
-            "The Last Projection",
-            "A projectionist finds an impossible reel that changes every screening.",
-            120,
-            new DateTime(2026, 8, 29),
-            "https://picsum.photos/seed/the-last-projection/600/900",
-            "https://www.youtube.com/shorts/dQw4w9WgXcQ",
-            "Mystery")
-    ];
-
     public static async Task SeedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
@@ -152,13 +141,10 @@ public static class DevelopmentDataSeeder
             catalogDbContext,
             schedulingDbContext);
 
-        var genres =
-            await EnsureGenresAsync(catalogDbContext);
+        await EnsureGenresAsync(catalogDbContext);
 
         var movies =
-            await EnsureMoviesAsync(
-                catalogDbContext,
-                genres);
+            await GetApprovedMoveekMoviesAsync(catalogDbContext);
 
         var cinemaContexts =
             await EnsureTheaterDependenciesAsync(theaterDbContext);
@@ -173,10 +159,7 @@ public static class DevelopmentDataSeeder
         await EnsureShowtimesAsync(
             schedulingDbContext,
             movies,
-            cinemaContexts
-                .Where(context => context.ShowtimeRoomId.HasValue)
-                .Select(context => context.ShowtimeRoomId!.Value)
-                .ToArray());
+            cinemaContexts);
     }
 
     private static async Task RemoveLegacySeedDataAsync(
@@ -273,81 +256,30 @@ public static class DevelopmentDataSeeder
                 StringComparer.OrdinalIgnoreCase);
     }
 
-    private static async Task<List<Movie>> EnsureMoviesAsync(
-        CatalogDbContext dbContext,
-        IReadOnlyDictionary<string, Genre> genresByName)
+    private static async Task<List<Movie>> GetApprovedMoveekMoviesAsync(
+        CatalogDbContext dbContext)
     {
-        foreach (var seedMovie in Movies)
+        var movieIds =
+            await dbContext.MovieImportCandidates
+                .Where(candidate =>
+                    candidate.Source == MoveekMovieImportProvider.ProviderSource &&
+                    candidate.Status == MovieImportCandidateStatus.Approved &&
+                    candidate.MatchMovieId.HasValue)
+                .Select(candidate => candidate.MatchMovieId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+        if (movieIds.Count == 0)
         {
-            genresByName.TryGetValue(
-                seedMovie.Genre,
-                out var genre);
-
-            var movie =
-                await dbContext.Movies
-                    .Include(movie => movie.MovieGenres)
-                    .FirstOrDefaultAsync(movie =>
-                        movie.Title == seedMovie.Title);
-
-            if (movie is not null)
-            {
-                movie.Description = seedMovie.Description;
-                movie.DurationMinutes = seedMovie.DurationMinutes;
-                movie.ReleaseDate = seedMovie.ReleaseDate;
-                movie.PosterUrl ??= seedMovie.PosterUrl;
-                movie.TrailerUrl = seedMovie.TrailerUrl;
-                movie.GenreId = genre?.Id;
-                movie.Genre = seedMovie.Genre;
-                movie.IsActive = true;
-                EnsureMovieGenre(movie, genre);
-
-                continue;
-            }
-
-            var newMovie = new Movie
-            {
-                Title = seedMovie.Title,
-                Description = seedMovie.Description,
-                DurationMinutes = seedMovie.DurationMinutes,
-                ReleaseDate = seedMovie.ReleaseDate,
-                PosterUrl = seedMovie.PosterUrl,
-                TrailerUrl = seedMovie.TrailerUrl,
-                GenreId = genre?.Id,
-                Genre = seedMovie.Genre,
-                IsActive = true
-            };
-
-            EnsureMovieGenre(newMovie, genre);
-            dbContext.Movies.Add(newMovie);
+            return [];
         }
-
-        await dbContext.SaveChangesAsync();
 
         return await dbContext.Movies
             .Where(movie =>
-                Movies.Select(seedMovie => seedMovie.Title)
-                    .Contains(movie.Title))
+                movie.IsActive &&
+                movieIds.Contains(movie.Id))
             .OrderBy(movie => movie.Title)
             .ToListAsync();
-    }
-
-    private static void EnsureMovieGenre(
-        Movie movie,
-        Genre? genre)
-    {
-        if (genre is null ||
-            movie.MovieGenres.Any(movieGenre =>
-                movieGenre.GenreId == genre.Id))
-        {
-            return;
-        }
-
-        movie.MovieGenres.Add(new MovieGenre
-        {
-            MovieId = movie.Id,
-            GenreId = genre.Id,
-            CreatedAt = DateTime.UtcNow
-        });
     }
 
     private static async Task<IReadOnlyList<SeedCinemaContext>> EnsureTheaterDependenciesAsync(
@@ -356,135 +288,103 @@ public static class DevelopmentDataSeeder
         var result = new List<SeedCinemaContext>();
         var cinemas =
             await dbContext.Cinemas
-                .Include(cinema => cinema.Rooms)
                 .Where(cinema => cinema.IsActive)
                 .OrderBy(cinema => cinema.Name)
                 .ToListAsync();
 
         foreach (var cinema in cinemas)
         {
-            var room =
-                cinema.Rooms
-                    .OrderByDescending(item => item.IsActive)
-                    .ThenBy(item => item.Name)
-                    .FirstOrDefault();
-
-            if (room is null)
-            {
-                room = new Room
-                {
-                    CinemaId = cinema.Id,
-                    Name = DefaultRoomName,
-                    IsActive = true
-                };
-
-                dbContext.Rooms.Add(room);
-
-                await dbContext.SaveChangesAsync();
-                await EnsureSeedSeatLayoutAsync(dbContext, room.Id);
-            }
-
-            var roomIds =
+            var rooms =
                 await dbContext.Rooms
-                    .Where(item => item.CinemaId == cinema.Id)
-                    .Select(item => item.Id)
+                    .Where(room =>
+                        room.CinemaId == cinema.Id)
+                    .OrderBy(room => room.Name)
+                    .ToListAsync();
+            var existingRoomIds =
+                rooms.Select(room => room.Id)
+                    .ToArray();
+            var existingRoomIdsWithSeats =
+                await dbContext.Seats
+                    .Where(seat =>
+                        existingRoomIds.Contains(seat.RoomId))
+                    .Select(seat => seat.RoomId)
+                    .Distinct()
                     .ToListAsync();
 
-            var roomIdWithSeats =
-                await dbContext.Seats
-                    .Where(seat => roomIds.Contains(seat.RoomId))
-                    .GroupBy(seat => seat.RoomId)
-                    .OrderBy(group => group.Key)
-                    .Select(group => (Guid?)group.Key)
-                    .FirstOrDefaultAsync();
+            for (var roomNumber = 1; roomNumber <= SeedRoomsPerCinema; roomNumber++)
+            {
+                var roomName = $"Room {roomNumber}";
+                var room =
+                    rooms.FirstOrDefault(item =>
+                        string.Equals(
+                            item.Name,
+                            roomName,
+                            StringComparison.OrdinalIgnoreCase));
+
+                if (room is null)
+                {
+                    room = new Room
+                    {
+                        CinemaId = cinema.Id,
+                        Name = roomName,
+                        IsActive = true
+                    };
+
+                    rooms.Add(room);
+                    dbContext.Rooms.Add(room);
+                }
+
+                if (!existingRoomIdsWithSeats.Contains(room.Id))
+                {
+                    dbContext.Seats.AddRange(GetSeedSeatLayout(room.Id));
+                    existingRoomIdsWithSeats.Add(room.Id);
+                }
+            }
+
+            var roomIds = rooms
+                .Where(room =>
+                    room.IsActive &&
+                    existingRoomIdsWithSeats.Contains(room.Id))
+                .OrderBy(room => room.Name)
+                .Select(room => room.Id)
+                .ToList();
 
             result.Add(new SeedCinemaContext(
                 cinema.Id,
                 cinema.Name,
-                roomIdWithSeats));
+                roomIds));
         }
+
+        await dbContext.SaveChangesAsync();
 
         return result;
     }
 
-    private static async Task EnsureSeedSeatLayoutAsync(
-        TheaterDbContext dbContext,
-        Guid roomId)
-    {
-        var desiredSeats =
-            GetSeedSeatLayout()
-                .ToArray();
-
-        var desiredKeys =
-            desiredSeats
-                .Select(seat => $"{seat.Row}:{seat.Number}")
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var existingSeats =
-            await dbContext.Seats
-                .Where(seat => seat.RoomId == roomId)
-                .ToListAsync();
-
-        foreach (var existingSeat in existingSeats)
-        {
-            var key = $"{existingSeat.Row}:{existingSeat.Number}";
-
-            if (!desiredKeys.Contains(key))
-            {
-                dbContext.Seats.Remove(existingSeat);
-
-                continue;
-            }
-
-            existingSeat.Type =
-                GetSeedSeatType(
-                    existingSeat.Row,
-                    existingSeat.Number);
-        }
-
-        var existingKeys =
-            existingSeats
-                .Select(seat => $"{seat.Row}:{seat.Number}")
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var desiredSeat in desiredSeats)
-        {
-            if (existingKeys.Contains($"{desiredSeat.Row}:{desiredSeat.Number}"))
-            {
-                continue;
-            }
-
-            dbContext.Seats.Add(new Seat
-            {
-                RoomId = roomId,
-                Row = desiredSeat.Row,
-                Number = desiredSeat.Number,
-                Type = desiredSeat.Type
-            });
-        }
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static IEnumerable<SeedSeat> GetSeedSeatLayout()
+    private static IEnumerable<Seat> GetSeedSeatLayout(Guid roomId)
     {
         foreach (var row in new[] { "A", "B", "C", "D" })
         {
             for (var number = 1; number <= 8; number++)
             {
-                yield return new SeedSeat(
-                    row,
-                    number,
-                    GetSeedSeatType(row, number));
+                yield return new Seat
+                {
+                    RoomId = roomId,
+                    Row = row,
+                    Number = number,
+                    Type = GetSeedSeatType(row, number)
+                };
             }
         }
 
         for (var number = 1; number <= 4; number++)
         {
-            yield return new SeedSeat(
-                "E",
-                number,
-                SeatType.Couple);
+            yield return new Seat
+            {
+                RoomId = roomId,
+                Row = "E",
+                Number = number,
+                Type = SeatType.Couple
+            };
         }
     }
 
@@ -503,60 +403,218 @@ public static class DevelopmentDataSeeder
     private static async Task EnsureShowtimesAsync(
         SchedulingDbContext dbContext,
         IReadOnlyList<Movie> movies,
-        IReadOnlyList<Guid> roomIds)
+        IReadOnlyList<SeedCinemaContext> cinemaContexts)
     {
-        if (roomIds.Count == 0)
+        if (movies.Count == 0 ||
+            cinemaContexts.Count == 0)
         {
             return;
         }
 
-        var firstStart =
-            DateTime.UtcNow.Date
-                .AddDays(1)
-                .AddHours(10);
+        var now = DateTime.UtcNow;
+        var seedStartDate = now.Date.AddDays(1);
+        var seedEndDate = seedStartDate.AddDays(SeedDays);
+        var distinctRoomIds =
+            cinemaContexts
+                .SelectMany(context => context.ShowtimeRoomIds)
+                .Distinct()
+                .ToArray();
 
-        var startTimes = new[]
+        if (distinctRoomIds.Length == 0)
         {
-            firstStart,
-            firstStart.AddHours(3),
-            firstStart.AddHours(6)
-        };
+            return;
+        }
 
-        for (var roomIndex = 0; roomIndex < roomIds.Count; roomIndex++)
+        var scheduledShowtimes =
+            await dbContext.Showtimes
+                .Where(showtime =>
+                    distinctRoomIds.Contains(showtime.RoomId) &&
+                    showtime.EndTime > now &&
+                    showtime.StartTime < seedEndDate)
+                .ToListAsync();
+        var scheduledShowtimesByRoom =
+            distinctRoomIds.ToDictionary(
+                roomId => roomId,
+                roomId => scheduledShowtimes
+                    .Where(showtime => showtime.RoomId == roomId)
+                    .ToList());
+
+        foreach (var context in cinemaContexts.Where(item => item.ShowtimeRoomIds.Count > 0))
         {
-            var roomId = roomIds[roomIndex];
-            var hasSeedShowtimes =
-                await dbContext.Showtimes.AnyAsync(showtime =>
-                    showtime.RoomId == roomId &&
-                    showtime.StartTime > DateTime.UtcNow);
-
-            if (hasSeedShowtimes)
-            {
-                continue;
-            }
+            var roomIds = context.ShowtimeRoomIds
+                .Distinct()
+                .OrderBy(roomId => scheduledShowtimesByRoom[roomId].Count)
+                .ToArray();
+            var cinemaShowtimes = roomIds
+                .SelectMany(roomId => scheduledShowtimesByRoom[roomId])
+                .ToList();
 
             for (var movieIndex = 0; movieIndex < movies.Count; movieIndex++)
             {
                 var movie = movies[movieIndex];
-                var startTime = startTimes[movieIndex % startTimes.Length]
-                    .AddDays(movieIndex / startTimes.Length)
-                    .AddMinutes(roomIndex * 20);
 
-                dbContext.Showtimes.Add(new Showtime
+                foreach (var existingShowtime in cinemaShowtimes.Where(showtime =>
+                        showtime.MovieId == movie.Id &&
+                        showtime.StartTime > now))
                 {
-                    MovieId = movie.Id,
-                    RoomId = roomId,
-                    StartTime = startTime,
-                    EndTime = startTime.AddMinutes(movie.DurationMinutes),
-                    BasePrice = SeedBasePrice,
-                    StandardPrice = SeedBasePrice,
-                    VipPrice = SeedVipPrice,
-                    CouplePrice = SeedCouplePrice
-                });
+                    if (HasValidSeedPrices(existingShowtime))
+                    {
+                        continue;
+                    }
+
+                    var prices = CreateSeedPrices();
+                    existingShowtime.BasePrice = prices.StandardPrice;
+                    existingShowtime.StandardPrice = prices.StandardPrice;
+                    existingShowtime.VipPrice = prices.VipPrice;
+                    existingShowtime.CouplePrice = prices.CouplePrice;
+                }
+
+                for (var dayIndex = 0; dayIndex < SeedDays; dayIndex++)
+                {
+                    var date = seedStartDate.AddDays(dayIndex);
+                    var nextDate = date.AddDays(1);
+                    var existingDateShowtimeCount =
+                        cinemaShowtimes.Count(showtime =>
+                            showtime.MovieId == movie.Id &&
+                            showtime.StartTime >= date &&
+                            showtime.StartTime < nextDate &&
+                            showtime.StartTime > now);
+
+                    for (var seedIndex = existingDateShowtimeCount;
+                         seedIndex < SeedShowtimesPerMovieCinemaAndDate;
+                         seedIndex++)
+                    {
+                        var scheduleIndex =
+                            (movieIndex * SeedShowtimesPerMovieCinemaAndDate) + seedIndex;
+                        var desiredStart = GetDesiredShowtimeStart(
+                            date,
+                            scheduleIndex,
+                            roomIds.Length);
+                        var availableSlot = roomIds
+                            .OrderBy(roomId => scheduledShowtimesByRoom[roomId].Count)
+                            .Select(roomId => new
+                            {
+                                RoomId = roomId,
+                                StartTime = FindAvailableShowtimeStart(
+                                    scheduledShowtimesByRoom[roomId],
+                                    desiredStart,
+                                    date.AddDays(1),
+                                    movie.DurationMinutes)
+                            })
+                            .FirstOrDefault(slot => slot.StartTime.HasValue);
+
+                        if (availableSlot is null)
+                        {
+                            continue;
+                        }
+
+                        var roomId = availableSlot.RoomId;
+                        var roomShowtimes = scheduledShowtimesByRoom[roomId];
+                        var startTime = availableSlot.StartTime;
+
+                        if (!startTime.HasValue)
+                        {
+                            continue;
+                        }
+
+                        var prices = CreateSeedPrices();
+                        var showtime = new Showtime
+                        {
+                            MovieId = movie.Id,
+                            RoomId = roomId,
+                            StartTime = startTime.Value,
+                            EndTime = startTime.Value.AddMinutes(movie.DurationMinutes),
+                            BasePrice = prices.StandardPrice,
+                            StandardPrice = prices.StandardPrice,
+                            VipPrice = prices.VipPrice,
+                            CouplePrice = prices.CouplePrice
+                        };
+
+                        roomShowtimes.Add(showtime);
+                        cinemaShowtimes.Add(showtime);
+                        dbContext.Showtimes.Add(showtime);
+                    }
+                }
             }
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private static DateTime GetDesiredShowtimeStart(
+        DateTime date,
+        int scheduleIndex,
+        int roomCount)
+    {
+        var offset =
+            SeedStartOffsets[
+                (scheduleIndex / roomCount) % SeedStartOffsets.Length];
+
+        return date.Add(offset);
+    }
+
+    private static DateTime? FindAvailableShowtimeStart(
+        IReadOnlyCollection<Showtime> scheduledShowtimes,
+        DateTime desiredStart,
+        DateTime latestStart,
+        int durationMinutes)
+    {
+        var startTime = desiredStart;
+
+        while (startTime < latestStart)
+        {
+            var endTime = startTime.AddMinutes(durationMinutes);
+            var overlaps =
+                scheduledShowtimes.Any(showtime =>
+                    showtime.StartTime < endTime &&
+                    showtime.EndTime > startTime);
+
+            if (!overlaps)
+            {
+                return startTime;
+            }
+
+            startTime = startTime.AddMinutes(30);
+        }
+
+        return null;
+    }
+
+    private static SeedShowtimePrices CreateSeedPrices()
+    {
+        var standardSteps =
+            (int)((MaximumSeedStandardPrice - MinimumSeedStandardPrice) /
+                SeedPriceStep);
+        var standard =
+            MinimumSeedStandardPrice +
+            (Random.Shared.Next(standardSteps + 1) * SeedPriceStep);
+        var vip =
+            standard +
+            (Random.Shared.Next(1, 4) * SeedPriceStep);
+        var couple =
+            (vip * 2) +
+            (Random.Shared.Next(0, 5) * SeedPriceStep);
+
+        return new SeedShowtimePrices(
+            standard,
+            vip,
+            couple);
+    }
+
+    private static bool HasValidSeedPrices(Showtime showtime)
+    {
+        return showtime.BasePrice == showtime.StandardPrice &&
+            showtime.StandardPrice >= MinimumSeedStandardPrice &&
+            showtime.StandardPrice <= MaximumSeedStandardPrice &&
+            showtime.StandardPrice % SeedPriceStep == 0 &&
+            showtime.VipPrice >= showtime.StandardPrice &&
+            showtime.VipPrice - showtime.StandardPrice >= SeedPriceStep &&
+            showtime.VipPrice - showtime.StandardPrice <= SeedPriceStep * 3 &&
+            showtime.VipPrice % SeedPriceStep == 0 &&
+            showtime.VipPrice <= showtime.CouplePrice / 2 &&
+            showtime.CouplePrice - (showtime.VipPrice * 2) >= 0 &&
+            showtime.CouplePrice - (showtime.VipPrice * 2) <= SeedPriceStep * 4 &&
+            showtime.CouplePrice % SeedPriceStep == 0;
     }
 
     private static async Task EnsureSeedStaffAssignmentsAsync(
@@ -713,15 +771,6 @@ public static class DevelopmentDataSeeder
             errors.Select(error => error.Description));
     }
 
-    private sealed record SeedMovie(
-        string Title,
-        string Description,
-        int DurationMinutes,
-        DateTime ReleaseDate,
-        string PosterUrl,
-        string TrailerUrl,
-        string Genre);
-
     private sealed record SeedGenre(
         string Name,
         string Slug,
@@ -730,10 +779,10 @@ public static class DevelopmentDataSeeder
     private sealed record SeedCinemaContext(
         Guid CinemaId,
         string CinemaName,
-        Guid? ShowtimeRoomId);
+        IReadOnlyList<Guid> ShowtimeRoomIds);
 
-    private sealed record SeedSeat(
-        string Row,
-        int Number,
-        SeatType Type);
+    private sealed record SeedShowtimePrices(
+        decimal StandardPrice,
+        decimal VipPrice,
+        decimal CouplePrice);
 }
